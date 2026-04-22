@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analytics Dashboard | HMO Hub</title>
+    <script src="https://code.highcharts.com/highcharts.js"></script>
+    <script src="https://code.highcharts.com/highcharts-more.js"></script>
+    <script src="https://code.highcharts.com/modules/accessibility.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body { background: #0f172a; min-height: 100vh; color: white; }
+        .glass-card { background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); }
+        .table-container { border-radius: 12px; overflow: hidden; border: 1px solid rgba(255, 255, 255, 0.1); }
+        tr:nth-child(even) { background: rgba(255, 255, 255, 0.02); }
+        .status-pill { font-size: 10px; font-weight: 900; padding: 2px 10px; border-radius: 9999px; border-width: 1px; text-transform: uppercase; }
+        .highcharts-background { fill: transparent !important; }
+    </style>
+</head>
+<body class="p-4 md:p-8 font-sans text-slate-200">
+
+    <div class="max-w-7xl mx-auto">
+        <header class="mb-8 flex justify-between items-end">
+            <div>
+                <h1 class="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-emerald-400">Analytics Dashboard</h1>
+                <p class="text-slate-500 text-sm tracking-widest uppercase">Performance & Metrics</p>
+            </div>
+            <a href="index.html" class="text-blue-400 hover:text-blue-300 text-sm font-semibold flex items-center gap-2 mb-1">
+                ← Back to Entry Form
+            </a>
+        </header>
+
+        <div class="grid grid-cols-1 mb-8">
+            <div class="glass-card p-4 rounded-2xl shadow-2xl">
+                <div id="callDurationChart" style="width:100%; height:450px;"></div>
+            </div>
+        </div>
+
+        <div class="table-container bg-slate-900/50 backdrop-blur-sm shadow-xl">
+            <div class="p-4 border-b border-slate-800 flex justify-between items-center bg-slate-900/80">
+                <h3 class="font-bold text-slate-300">Live Transaction Logs</h3>
+                <span class="text-[10px] bg-emerald-500/10 text-emerald-400 px-2 py-1 rounded border border-emerald-500/20 animate-pulse">LIVE UPDATING</span>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead class="text-[10px] uppercase tracking-widest text-slate-500 bg-slate-900">
+                        <tr>
+                            <th class="p-4">Patient</th>
+                            <th class="p-4">Transaction</th>
+                            <th class="p-4">Arrival</th>
+                            <th class="p-4">Call Logs</th>
+                            <th class="p-4">TAT Status</th>
+                            <th class="p-4">Associate</th>
+                        </tr>
+                    </thead>
+                    <tbody id="dataTableBody" class="text-xs">
+                        </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const SUPABASE_URL = "https://zqnqkxpseeuyovtqezbc.supabase.co";
+        const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpxbnFreHBzZWV1eW92dHFlemJjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3OTYyOTEsImV4cCI6MjA5MjM3MjI5MX0.uR9TcF4_J58cx7XsKx4BbAQcIeYBElgJpKglbMEyHQs";
+        const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        // Chart Initialization
+        function updateChart(records) {
+            const recent = records.slice(0, 12).reverse();
+            const categories = recent.map(r => r.patient_name);
+            const seriesData = recent.map(r => {
+                if (!r.start_time_of_call || !r.end_time_of_call) return [null, null];
+                return [new Date(r.start_time_of_call).getTime(), new Date(r.end_time_of_call).getTime()];
+            });
+
+            Highcharts.chart('callDurationChart', {
+                chart: { type: 'columnrange', inverted: true, backgroundColor: 'transparent' },
+                title: { text: 'Call Duration Benchmarks', style: { color: '#38bdf8' } },
+                xAxis: { categories: categories, labels: { style: { color: '#94a3b8' } } },
+                yAxis: { type: 'datetime', title: { text: 'Time Log' }, labels: { style: { color: '#94a3b8' } } },
+                legend: { enabled: false },
+                tooltip: { xDateFormat: '%H:%M:%S' },
+                plotOptions: {
+                    columnrange: {
+                        borderRadius: 4,
+                        dataLabels: { enabled: true, format: '{y:%H:%M}', style: { color: '#64748b', fontSize: '9px' } },
+                        color: {
+                            linearGradient: { x1: 0, y1: 0, x2: 1, y2: 0 },
+                            stops: [[0, '#60a5fa'], [1, '#34d399']]
+                        }
+                    }
+                },
+                series: [{ name: 'Active Call', data: seriesData }]
+            });
+        }
+
+        async function fetchRecords() {
+            const { data, error } = await _supabase.from('hmo_monitoring').select('*').order('created_at', { ascending: false });
+            if (!error) {
+                renderTable(data);
+                updateChart(data);
+            }
+        }
+
+        function renderTable(data) {
+            const tbody = document.getElementById('dataTableBody');
+            tbody.innerHTML = data.map(row => {
+                const arrival = new Date(row.time_of_arrival);
+                const start = row.start_time_of_call ? new Date(row.start_time_of_call).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : '--';
+                const end = row.end_time_of_call ? new Date(row.end_time_of_call).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : '--';
+                const status = row.turnaround_time || 'PENDING';
+                const style = status === 'MET' ? 'text-emerald-400 bg-emerald-400/10 border-emerald-500/50' : 
+                             status === 'NOT MET' ? 'text-red-400 bg-red-400/10 border-red-500/50' : 'text-slate-500 bg-slate-800 border-slate-700';
+
+                return `
+                    <tr class="border-b border-slate-800 hover:bg-white/5 transition">
+                        <td class="p-4"><div class="font-bold">${row.patient_name}</div><div class="text-[10px] text-slate-500">${row.patient_type}</div></td>
+                        <td class="p-4"><div class="text-blue-400">${row.transaction_type}</div><div class="text-[10px] text-slate-600">${row.doctor_procedure || ''}</div></td>
+                        <td class="p-4 font-mono text-slate-400"><div>${arrival.toISOString().split('T')[0]}</div><div>${arrival.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</div></td>
+                        <td class="p-4 font-mono">
+                            <div class="text-blue-400/80">S: ${start}</div>
+                            <div class="text-emerald-400/80">E: ${end}</div>
+                        </td>
+                        <td class="p-4"><span class="status-pill border ${style}">${status}</span></td>
+                        <td class="p-4 text-slate-400 uppercase text-[10px]">${row.name_of_associate || '-'}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // Real-time listener
+        _supabase.channel('hmo_db_track').on('postgres_changes', { event: '*', schema: 'public', table: 'hmo_monitoring' }, fetchRecords).subscribe();
+        fetchRecords();
+    </script>
+</body>
+</html>
