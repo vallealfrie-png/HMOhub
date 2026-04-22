@@ -9,7 +9,12 @@
     <style>
         body { background: #0f172a; min-height: 100vh; color: white; }
         .glass-card { background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); }
-        input, select, textarea { background: rgba(15, 23, 42, 0.8) !important; border: 1px solid rgba(255, 255, 255, 0.2) !important; color: white !important; }
+        input, select, textarea { 
+            background: rgba(15, 23, 42, 0.8) !important; 
+            border: 1px solid rgba(255, 255, 255, 0.2) !important; 
+            color: white !important; 
+        }
+        input:focus, select:focus { border-color: #38bdf8 !important; outline: none; }
         .table-container { border-radius: 12px; overflow: hidden; border: 1px solid rgba(255, 255, 255, 0.1); }
         tr:nth-child(even) { background: rgba(255, 255, 255, 0.02); }
     </style>
@@ -18,75 +23,96 @@
 
     <div class="max-w-7xl mx-auto">
         <header class="mb-8 flex justify-between items-center">
-            <h1 class="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-emerald-400">HMO Hub Dashboard</h1>
-            <button onclick="toggleForm()" class="bg-blue-600 hover:bg-blue-500 px-6 py-2 rounded-lg font-bold transition">
+            <div>
+                <h1 class="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-emerald-400">HMO Hub Dashboard</h1>
+                <p class="text-slate-500 text-sm">Real-time Patient Monitoring</p>
+            </div>
+            <button onclick="toggleForm()" class="bg-blue-600 hover:bg-blue-500 px-6 py-2 rounded-lg font-bold transition flex items-center gap-2">
                 <span id="toggleIcon">+</span> Add New Patient
             </button>
         </header>
 
         <div id="formSection" class="hidden mb-12">
-            <form id="hmoForm" class="glass-card rounded-2xl p-6 md:p-8 space-y-6">
+            <form id="hmoForm" class="glass-card rounded-2xl p-6 md:p-8 space-y-6 shadow-2xl">
                 <div class="flex justify-between items-center border-b border-slate-800 pb-4">
                     <h2 class="text-xl font-semibold text-blue-400">New Patient Entry</h2>
                     <div class="text-right">
-                        <label class="block text-xs uppercase text-slate-500">Arrival Time</label>
-                        <input type="text" id="toa_display" readonly class="bg-transparent border-none text-emerald-400 font-mono text-lg p-0 text-right focus:ring-0">
+                        <label class="block text-[10px] uppercase tracking-widest text-slate-500">Arrival Time</label>
+                        <input type="text" id="toa_display" readonly class="bg-transparent border-none text-emerald-400 font-mono text-xl p-0 text-right focus:ring-0 w-32">
                         <input type="hidden" id="time_of_arrival" name="time_of_arrival">
                     </div>
                 </div>
 
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <input type="text" name="patient_name" placeholder="Patient Name" required class="w-full rounded-lg p-2.5">
-                    <input type="text" name="card_company" placeholder="Card / Company" class="w-full rounded-lg p-2.5">
-                    <select name="transaction_type" id="transaction_type" class="w-full rounded-lg p-2.5">
-                        <option value="Consult">Consult</option>
-                        <option value="Loa">LOA</option>
-                        <option value="Procedure">Procedure</option>
-                    </select>
+                    <div class="space-y-1">
+                        <label class="text-xs text-slate-400 ml-1">Patient Name</label>
+                        <input type="text" name="patient_name" placeholder="Full Name" required class="w-full rounded-lg p-2.5">
+                    </div>
+                    <div class="space-y-1">
+                        <label class="text-xs text-slate-400 ml-1">Card / Company</label>
+                        <input type="text" name="card_company" placeholder="e.g. Maxicare" class="w-full rounded-lg p-2.5">
+                    </div>
+                    <div class="space-y-1">
+                        <label class="text-xs text-slate-400 ml-1">Transaction</label>
+                        <select name="transaction_type" id="transaction_type" class="w-full rounded-lg p-2.5">
+                            <option value="Consult">Consult</option>
+                            <option value="Loa">LOA</option>
+                            <option value="Procedure">Procedure</option>
+                        </select>
+                    </div>
                 </div>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-end border-t border-slate-800 pt-6">
                     <div class="space-y-2">
-                        <label class="text-sm text-slate-400">Start Call</label>
+                        <label class="text-sm font-medium text-slate-300">Start Call</label>
                         <div class="flex gap-2">
-                            <input type="text" id="start_time_display" readonly class="w-full rounded-lg p-2.5 font-mono" placeholder="--:--:--">
+                            <input type="text" id="start_time_display" readonly class="w-full rounded-lg p-2.5 font-mono text-slate-400" placeholder="--:--:--">
                             <button type="button" id="startBtn" class="bg-slate-700 hover:bg-slate-600 px-6 py-2 rounded-lg font-bold transition">START</button>
                         </div>
                         <input type="hidden" id="start_time_of_call" name="start_time_of_call">
                     </div>
                     <div class="space-y-2">
-                        <label class="text-sm text-slate-400">End Call</label>
+                        <label class="text-sm font-medium text-slate-300">End Call</label>
                         <div class="flex gap-2">
-                            <input type="text" id="end_time_display" readonly class="w-full rounded-lg p-2.5 font-mono" placeholder="--:--:--">
+                            <input type="text" id="end_time_display" readonly class="w-full rounded-lg p-2.5 font-mono text-slate-400" placeholder="--:--:--">
                             <button type="button" id="endBtn" class="bg-slate-700 hover:bg-slate-600 px-6 py-2 rounded-lg font-bold transition">END</button>
                         </div>
                         <input type="hidden" id="end_time_of_call" name="end_time_of_call">
                     </div>
                 </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <input type="text" name="doctor_procedure" placeholder="Doctor/Procedure" class="w-full rounded-lg p-2.5">
                     <input type="text" name="name_of_associate" placeholder="Associate Name" class="w-full rounded-lg p-2.5">
-                    <input type="text" name="remarks" placeholder="Remarks" class="w-full rounded-lg p-2.5">
+                    <select name="patient_type" class="w-full rounded-lg p-2.5">
+                        <option value="Old">Old Patient</option>
+                        <option value="New">New Patient</option>
+                    </select>
                 </div>
+                
+                <textarea name="remarks" placeholder="Remarks..." class="w-full rounded-lg p-2.5" rows="1"></textarea>
 
-                <button type="submit" id="submitBtn" class="w-full bg-blue-500 hover:bg-blue-400 text-white font-bold py-3 rounded-xl transition">SAVE RECORD</button>
+                <button type="submit" id="submitBtn" class="w-full bg-blue-500 hover:bg-blue-400 text-white font-bold py-4 rounded-xl shadow-lg transition active:scale-95">
+                    SAVE PATIENT RECORD
+                </button>
             </form>
         </div>
 
-        <div class="table-container bg-slate-900/50 backdrop-blur-sm">
+        <div class="table-container bg-slate-900/50 backdrop-blur-sm shadow-xl">
             <div class="overflow-x-auto">
                 <table class="w-full text-left border-collapse">
-                    <thead class="text-xs uppercase text-slate-500 bg-slate-900">
+                    <thead class="text-[10px] uppercase tracking-widest text-slate-500 bg-slate-900">
                         <tr>
-                            <th class="p-4">Patient</th>
-                            <th class="p-4">Type</th>
+                            <th class="p-4">Patient Info</th>
+                            <th class="p-4">Transaction</th>
                             <th class="p-4">Arrival</th>
-                            <th class="p-4">TAT (Target)</th>
-                            <th class="p-4">Call Duration</th>
+                            <th class="p-4">TAT Progress</th>
+                            <th class="p-4">Call Time</th>
                             <th class="p-4">Associate</th>
                         </tr>
                     </thead>
-                    <tbody id="dataTableBody"></tbody>
+                    <tbody id="dataTableBody" class="text-sm">
+                        </tbody>
                 </table>
             </div>
         </div>
@@ -96,21 +122,22 @@
         const SUPABASE_URL = "https://zqnqkxpseeuyovtqezbc.supabase.co";
         const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpxbnFreHBzZWV1eW92dHFlemJjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3OTYyOTEsImV4cCI6MjA5MjM3MjI5MX0.uR9TcF4_J58cx7XsKx4BbAQcIeYBElgJpKglbMEyHQs";
         
-        // Correct initialization for Supabase v2
         const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
         function toggleForm() {
             const form = document.getElementById('formSection');
+            const icon = document.getElementById('toggleIcon');
             form.classList.toggle('hidden');
-            document.getElementById('toggleIcon').innerText = form.classList.contains('hidden') ? '+' : '-';
+            icon.innerText = form.classList.contains('hidden') ? '+' : '-';
+            
             if(!form.classList.contains('hidden')) {
                 const now = new Date();
-                document.getElementById('toa_display').value = now.toLocaleTimeString();
+                document.getElementById('toa_display').value = now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'});
                 document.getElementById('time_of_arrival').value = now.toISOString();
             }
         }
 
-        // FIXED START/END BUTTON LOGIC
+        // START/END CALL CLOCK LOGIC
         document.getElementById('startBtn').addEventListener('click', () => {
             const now = new Date();
             document.getElementById('start_time_display').value = now.toLocaleTimeString();
@@ -123,64 +150,108 @@
             document.getElementById('end_time_of_call').value = now.toISOString();
         });
 
+        // FETCH AND RENDER
         async function fetchRecords() {
             const { data, error } = await _supabase.from('hmo_monitoring').select('*').order('created_at', { ascending: false });
-            if (!error) renderTable(data);
+            if (error) console.error(error);
+            else renderTable(data);
         }
 
         function renderTable(data) {
             const tbody = document.getElementById('dataTableBody');
             tbody.innerHTML = data.map(row => {
-                // TAT Logic
                 const arrival = new Date(row.time_of_arrival);
                 const endCall = row.end_time_of_call ? new Date(row.end_time_of_call) : null;
+                
                 let tatDisplay = "--";
-                let tatColor = "text-slate-400";
+                let statusLabel = "PENDING";
+                let statusColor = "bg-slate-800 text-slate-500 border-slate-700";
+                let timeColor = "text-slate-400";
                 
                 if (endCall) {
                     const diffMins = Math.floor((endCall - arrival) / 60000);
                     const limit = row.transaction_type === 'Consult' ? 5 : 30;
+                    
                     tatDisplay = diffMins + "m";
-                    tatColor = diffMins > limit ? "text-red-400" : "text-emerald-400";
+                    
+                    if (diffMins <= limit) {
+                        statusLabel = "MET";
+                        statusColor = "bg-emerald-500/10 text-emerald-400 border-emerald-500/50";
+                        timeColor = "text-emerald-400";
+                    } else {
+                        statusLabel = "NOT MET";
+                        statusColor = "bg-red-500/10 text-red-400 border-red-500/50";
+                        timeColor = "text-red-400";
+                    }
                 }
 
                 return `
                     <tr class="border-b border-slate-800 hover:bg-white/5 transition">
-                        <td class="p-4 font-medium">${row.patient_name}<br><span class="text-xs text-slate-500">${row.card_company || ''}</span></td>
-                        <td class="p-4"><span class="px-2 py-1 rounded text-[10px] bg-slate-800">${row.transaction_type}</span></td>
-                        <td class="p-4 font-mono text-sm">${new Date(row.time_of_arrival).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</td>
-                        <td class="p-4 font-bold ${tatColor}">${tatDisplay} <span class="text-[10px] text-slate-500 font-normal">/ ${row.transaction_type === 'Consult' ? '5m' : '30m'}</span></td>
-                        <td class="p-4">${row.total_mins_of_call ? Math.round(row.total_mins_of_call) + 'm' : '--'}</td>
-                        <td class="p-4 text-slate-400">${row.name_of_associate || '-'}</td>
+                        <td class="p-4">
+                            <div class="font-bold">${row.patient_name}</div>
+                            <div class="text-[10px] text-slate-500 uppercase">${row.card_company || 'Cash'}</div>
+                        </td>
+                        <td class="p-4">
+                            <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 border border-slate-700">
+                                ${row.transaction_type}
+                            </span>
+                        </td>
+                        <td class="p-4 font-mono text-xs text-slate-300">
+                            ${arrival.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}
+                        </td>
+                        <td class="p-4">
+                            <div class="flex flex-col gap-1">
+                                <span class="text-sm font-bold ${timeColor}">${tatDisplay}</span>
+                                <span class="px-2 py-0.5 rounded-full text-[9px] font-black border w-fit ${statusColor}">
+                                    ${statusLabel}
+                                </span>
+                            </div>
+                        </td>
+                        <td class="p-4 font-mono text-xs">
+                            ${row.total_mins_of_call ? Math.round(row.total_mins_of_call) + 'm' : '--'}
+                        </td>
+                        <td class="p-4 text-slate-400">
+                            ${row.name_of_associate || '-'}
+                        </td>
                     </tr>
                 `;
             }).join('');
         }
 
+        // SUBMIT FORM
         document.getElementById('hmoForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const btn = document.getElementById('submitBtn');
-            btn.innerText = "SAVING...";
-            
+            btn.innerText = "PROCESSING...";
+            btn.disabled = true;
+
             const formData = new FormData(e.target);
             const entry = Object.fromEntries(formData.entries());
-            // Manual check for the hidden arrival time
+            
+            // Ensure arrival time is captured even if hidden
             entry.time_of_arrival = document.getElementById('time_of_arrival').value;
 
             const { error } = await _supabase.from('hmo_monitoring').insert([entry]);
-            if (error) alert(error.message);
-            else {
+
+            if (error) {
+                alert("Error: " + error.message);
+            } else {
                 e.target.reset();
                 document.getElementById('start_time_display').value = "";
                 document.getElementById('end_time_display').value = "";
                 toggleForm();
                 fetchRecords();
             }
-            btn.innerText = "SAVE RECORD";
+            btn.innerText = "SAVE PATIENT RECORD";
+            btn.disabled = false;
         });
 
-        // Initialize Realtime
-        _supabase.channel('hmo_changes').on('postgres_changes', { event: '*', schema: 'public', table: 'hmo_monitoring' }, fetchRecords).subscribe();
+        // REALTIME SUBSCRIPTION
+        _supabase.channel('hmo_realtime')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'hmo_monitoring' }, fetchRecords)
+            .subscribe();
+
+        // INITIAL LOAD
         fetchRecords();
     </script>
 </body>
