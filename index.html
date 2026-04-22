@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HMO Hub Monitoring</title>
+    <title>HMO Hub Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         body { background: #0f172a; min-height: 100vh; color: white; }
         .glass-card { background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); }
-        input, select, textarea { background: rgba(15, 23, 42, 0.6) !important; border: 1px solid rgba(255, 255, 255, 0.1) !important; color: white !important; }
+        input, select, textarea { background: rgba(15, 23, 42, 0.8) !important; border: 1px solid rgba(255, 255, 255, 0.2) !important; color: white !important; }
         .table-container { border-radius: 12px; overflow: hidden; border: 1px solid rgba(255, 255, 255, 0.1); }
         tr:nth-child(even) { background: rgba(255, 255, 255, 0.02); }
     </style>
@@ -19,35 +19,29 @@
     <div class="max-w-7xl mx-auto">
         <header class="mb-8 flex justify-between items-center">
             <h1 class="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-emerald-400">HMO Hub Dashboard</h1>
-            <button onclick="toggleForm()" class="bg-blue-600 hover:bg-blue-500 px-6 py-2 rounded-lg font-bold transition flex items-center gap-2">
+            <button onclick="toggleForm()" class="bg-blue-600 hover:bg-blue-500 px-6 py-2 rounded-lg font-bold transition">
                 <span id="toggleIcon">+</span> Add New Patient
             </button>
         </header>
 
         <div id="formSection" class="hidden mb-12">
             <form id="hmoForm" class="glass-card rounded-2xl p-6 md:p-8 space-y-6">
-                <div class="flex justify-between items-end border-b border-slate-800 pb-4">
-                    <h2 class="text-xl font-semibold text-blue-400">Patient Entry</h2>
+                <div class="flex justify-between items-center border-b border-slate-800 pb-4">
+                    <h2 class="text-xl font-semibold text-blue-400">New Patient Entry</h2>
                     <div class="text-right">
                         <label class="block text-xs uppercase text-slate-500">Arrival Time</label>
-                        <input type="text" id="toa_display" readonly class="bg-transparent border-none text-emerald-400 font-mono text-lg p-0 focus:ring-0 text-right">
+                        <input type="text" id="toa_display" readonly class="bg-transparent border-none text-emerald-400 font-mono text-lg p-0 text-right focus:ring-0">
                         <input type="hidden" id="time_of_arrival" name="time_of_arrival">
                     </div>
                 </div>
 
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <input type="text" name="patient_name" placeholder="Patient Name" required class="w-full rounded-lg p-2.5">
-                    <input type="text" name="card_company" placeholder="Card/Company" class="w-full rounded-lg p-2.5">
-                    <select name="transaction_type" class="w-full rounded-lg p-2.5">
+                    <input type="text" name="card_company" placeholder="Card / Company" class="w-full rounded-lg p-2.5">
+                    <select name="transaction_type" id="transaction_type" class="w-full rounded-lg p-2.5">
                         <option value="Consult">Consult</option>
                         <option value="Loa">LOA</option>
                         <option value="Procedure">Procedure</option>
-                    </select>
-                    <input type="text" name="doctor_procedure" placeholder="Doctor/Procedure" class="w-full rounded-lg p-2.5">
-                    <input type="text" name="service" placeholder="Service" class="w-full rounded-lg p-2.5">
-                    <select name="patient_type" class="w-full rounded-lg p-2.5">
-                        <option value="Old">Old</option>
-                        <option value="New">New</option>
                     </select>
                 </div>
 
@@ -56,7 +50,7 @@
                         <label class="text-sm text-slate-400">Start Call</label>
                         <div class="flex gap-2">
                             <input type="text" id="start_time_display" readonly class="w-full rounded-lg p-2.5 font-mono" placeholder="--:--:--">
-                            <button type="button" onclick="captureTime('start_time_display', 'start_time_of_call')" class="bg-slate-700 hover:bg-slate-600 px-4 py-2 rounded-lg transition">Log Start</button>
+                            <button type="button" id="startBtn" class="bg-slate-700 hover:bg-slate-600 px-6 py-2 rounded-lg font-bold transition">START</button>
                         </div>
                         <input type="hidden" id="start_time_of_call" name="start_time_of_call">
                     </div>
@@ -64,7 +58,7 @@
                         <label class="text-sm text-slate-400">End Call</label>
                         <div class="flex gap-2">
                             <input type="text" id="end_time_display" readonly class="w-full rounded-lg p-2.5 font-mono" placeholder="--:--:--">
-                            <button type="button" onclick="captureTime('end_time_display', 'end_time_of_call')" class="bg-slate-700 hover:bg-slate-600 px-4 py-2 rounded-lg transition">Log End</button>
+                            <button type="button" id="endBtn" class="bg-slate-700 hover:bg-slate-600 px-6 py-2 rounded-lg font-bold transition">END</button>
                         </div>
                         <input type="hidden" id="end_time_of_call" name="end_time_of_call">
                     </div>
@@ -80,25 +74,19 @@
         </div>
 
         <div class="table-container bg-slate-900/50 backdrop-blur-sm">
-            <div class="p-4 border-b border-slate-800 bg-slate-800/50">
-                <h3 class="font-bold text-slate-300">Active Monitoring Log</h3>
-            </div>
             <div class="overflow-x-auto">
                 <table class="w-full text-left border-collapse">
                     <thead class="text-xs uppercase text-slate-500 bg-slate-900">
                         <tr>
                             <th class="p-4">Patient</th>
-                            <th class="p-4">Card</th>
                             <th class="p-4">Type</th>
                             <th class="p-4">Arrival</th>
-                            <th class="p-4">TAT</th>
-                            <th class="p-4">Call Mins</th>
+                            <th class="p-4">TAT (Target)</th>
+                            <th class="p-4">Call Duration</th>
                             <th class="p-4">Associate</th>
                         </tr>
                     </thead>
-                    <tbody id="dataTableBody">
-                        <tr><td colspan="7" class="p-8 text-center text-slate-600">Loading records...</td></tr>
-                    </tbody>
+                    <tbody id="dataTableBody"></tbody>
                 </table>
             </div>
         </div>
@@ -107,85 +95,92 @@
     <script>
         const SUPABASE_URL = "https://zqnqkxpseeuyovtqezbc.supabase.co";
         const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpxbnFreHBzZWV1eW92dHFlemJjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3OTYyOTEsImV4cCI6MjA5MjM3MjI5MX0.uR9TcF4_J58cx7XsKx4BbAQcIeYBElgJpKglbMEyHQs";
+        
+        // Correct initialization for Supabase v2
         const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
         function toggleForm() {
             const form = document.getElementById('formSection');
-            const icon = document.getElementById('toggleIcon');
             form.classList.toggle('hidden');
-            icon.innerText = form.classList.contains('hidden') ? '+' : '-';
-            if(!form.classList.contains('hidden')) setArrivalTime();
+            document.getElementById('toggleIcon').innerText = form.classList.contains('hidden') ? '+' : '-';
+            if(!form.classList.contains('hidden')) {
+                const now = new Date();
+                document.getElementById('toa_display').value = now.toLocaleTimeString();
+                document.getElementById('time_of_arrival').value = now.toISOString();
+            }
         }
 
-        function setArrivalTime() {
+        // FIXED START/END BUTTON LOGIC
+        document.getElementById('startBtn').addEventListener('click', () => {
             const now = new Date();
-            document.getElementById('toa_display').value = now.toLocaleTimeString();
-            document.getElementById('time_of_arrival').value = now.toISOString();
-        }
+            document.getElementById('start_time_display').value = now.toLocaleTimeString();
+            document.getElementById('start_time_of_call').value = now.toISOString();
+        });
 
-        function captureTime(displayId, hiddenId) {
+        document.getElementById('endBtn').addEventListener('click', () => {
             const now = new Date();
-            document.getElementById(displayId).value = now.toLocaleTimeString();
-            document.getElementById(hiddenId).value = now.toISOString();
-        }
+            document.getElementById('end_time_display').value = now.toLocaleTimeString();
+            document.getElementById('end_time_of_call').value = now.toISOString();
+        });
 
-        // Fetch and Render Table
         async function fetchRecords() {
-            const { data, error } = await _supabase
-                .from('hmo_monitoring')
-                .select('*')
-                .order('created_at', { ascending: false });
-
-            if (error) console.error(error);
-            else renderTable(data);
+            const { data, error } = await _supabase.from('hmo_monitoring').select('*').order('created_at', { ascending: false });
+            if (!error) renderTable(data);
         }
 
         function renderTable(data) {
             const tbody = document.getElementById('dataTableBody');
-            tbody.innerHTML = data.map(row => `
-                <tr class="border-b border-slate-800 hover:bg-white/5 transition">
-                    <td class="p-4 font-medium">${row.patient_name}</td>
-                    <td class="p-4 text-slate-400">${row.card_company || '-'}</td>
-                    <td class="p-4 text-xs"><span class="px-2 py-1 rounded bg-slate-800">${row.transaction_type}</span></td>
-                    <td class="p-4 font-mono text-sm">${new Date(row.time_of_arrival).toLocaleTimeString()}</td>
-                    <td class="p-4 text-blue-400 font-bold">${row.turnaround_time || '--'}</td>
-                    <td class="p-4">${row.total_mins_of_call ? Math.round(row.total_mins_of_call) + 'm' : '--'}</td>
-                    <td class="p-4 text-slate-400">${row.name_of_associate || '-'}</td>
-                </tr>
-            `).join('');
+            tbody.innerHTML = data.map(row => {
+                // TAT Logic
+                const arrival = new Date(row.time_of_arrival);
+                const endCall = row.end_time_of_call ? new Date(row.end_time_of_call) : null;
+                let tatDisplay = "--";
+                let tatColor = "text-slate-400";
+                
+                if (endCall) {
+                    const diffMins = Math.floor((endCall - arrival) / 60000);
+                    const limit = row.transaction_type === 'Consult' ? 5 : 30;
+                    tatDisplay = diffMins + "m";
+                    tatColor = diffMins > limit ? "text-red-400" : "text-emerald-400";
+                }
+
+                return `
+                    <tr class="border-b border-slate-800 hover:bg-white/5 transition">
+                        <td class="p-4 font-medium">${row.patient_name}<br><span class="text-xs text-slate-500">${row.card_company || ''}</span></td>
+                        <td class="p-4"><span class="px-2 py-1 rounded text-[10px] bg-slate-800">${row.transaction_type}</span></td>
+                        <td class="p-4 font-mono text-sm">${new Date(row.time_of_arrival).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</td>
+                        <td class="p-4 font-bold ${tatColor}">${tatDisplay} <span class="text-[10px] text-slate-500 font-normal">/ ${row.transaction_type === 'Consult' ? '5m' : '30m'}</span></td>
+                        <td class="p-4">${row.total_mins_of_call ? Math.round(row.total_mins_of_call) + 'm' : '--'}</td>
+                        <td class="p-4 text-slate-400">${row.name_of_associate || '-'}</td>
+                    </tr>
+                `;
+            }).join('');
         }
 
-        // Realtime Subscription
-        _supabase.channel('custom-all-channel')
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'hmo_monitoring' }, () => {
-                fetchRecords();
-            }).subscribe();
-
-        // Handle Submit
         document.getElementById('hmoForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const btn = document.getElementById('submitBtn');
             btn.innerText = "SAVING...";
-            btn.disabled = true;
-
+            
             const formData = new FormData(e.target);
             const entry = Object.fromEntries(formData.entries());
+            // Manual check for the hidden arrival time
             entry.time_of_arrival = document.getElementById('time_of_arrival').value;
 
             const { error } = await _supabase.from('hmo_monitoring').insert([entry]);
-
             if (error) alert(error.message);
             else {
                 e.target.reset();
                 document.getElementById('start_time_display').value = "";
                 document.getElementById('end_time_display').value = "";
                 toggleForm();
+                fetchRecords();
             }
             btn.innerText = "SAVE RECORD";
-            btn.disabled = false;
         });
 
-        // Initial Load
+        // Initialize Realtime
+        _supabase.channel('hmo_changes').on('postgres_changes', { event: '*', schema: 'public', table: 'hmo_monitoring' }, fetchRecords).subscribe();
         fetchRecords();
     </script>
 </body>
