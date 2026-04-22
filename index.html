@@ -7,129 +7,186 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        body { background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); min-height: 100vh; }
+        body { background: #0f172a; min-height: 100vh; color: white; }
         .glass-card { background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); }
-        input, select, textarea { background: rgba(255, 255, 255, 0.05) !important; border: 1px solid rgba(255, 255, 255, 0.2) !important; color: white !important; }
+        input, select, textarea { background: rgba(15, 23, 42, 0.6) !important; border: 1px solid rgba(255, 255, 255, 0.1) !important; color: white !important; }
+        .table-container { border-radius: 12px; overflow: hidden; border: 1px solid rgba(255, 255, 255, 0.1); }
+        tr:nth-child(even) { background: rgba(255, 255, 255, 0.02); }
     </style>
 </head>
-<body class="p-4 md:p-8 text-white font-sans">
+<body class="p-4 md:p-8 font-sans">
 
-    <div class="max-w-4xl mx-auto">
-        <header class="mb-8 flex justify-between items-end">
-            <div>
-                <h1 class="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-emerald-400">HMO Hub Monitoring</h1>
-                <p class="text-slate-400">Patient Entry & Activity Log</p>
-            </div>
-            <div class="text-right">
-                <label class="block text-xs uppercase tracking-widest text-slate-500 mb-1">Time of Arrival</label>
-                <input type="text" id="toa_display" readonly class="bg-transparent border-none text-emerald-400 font-mono text-xl p-0 focus:ring-0 text-right" value="--:--:--">
-                <input type="hidden" id="time_of_arrival" name="time_of_arrival">
-            </div>
+    <div class="max-w-7xl mx-auto">
+        <header class="mb-8 flex justify-between items-center">
+            <h1 class="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-emerald-400">HMO Hub Dashboard</h1>
+            <button onclick="toggleForm()" class="bg-blue-600 hover:bg-blue-500 px-6 py-2 rounded-lg font-bold transition flex items-center gap-2">
+                <span id="toggleIcon">+</span> Add New Patient
+            </button>
         </header>
 
-        <form id="hmoForm" class="glass-card rounded-2xl p-6 md:p-8 space-y-6">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div class="space-y-2">
-                    <label class="text-sm font-medium text-slate-300">Patient Name</label>
-                    <input type="text" name="patient_name" required class="w-full rounded-lg p-2.5">
+        <div id="formSection" class="hidden mb-12">
+            <form id="hmoForm" class="glass-card rounded-2xl p-6 md:p-8 space-y-6">
+                <div class="flex justify-between items-end border-b border-slate-800 pb-4">
+                    <h2 class="text-xl font-semibold text-blue-400">Patient Entry</h2>
+                    <div class="text-right">
+                        <label class="block text-xs uppercase text-slate-500">Arrival Time</label>
+                        <input type="text" id="toa_display" readonly class="bg-transparent border-none text-emerald-400 font-mono text-lg p-0 focus:ring-0 text-right">
+                        <input type="hidden" id="time_of_arrival" name="time_of_arrival">
+                    </div>
                 </div>
-                <div class="space-y-2">
-                    <label class="text-sm font-medium text-slate-300">Card / Company</label>
-                    <input type="text" name="card_company" class="w-full rounded-lg p-2.5">
-                </div>
-                <div class="space-y-2">
-                    <label class="text-sm font-medium text-slate-300">Transaction Type</label>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <input type="text" name="patient_name" placeholder="Patient Name" required class="w-full rounded-lg p-2.5">
+                    <input type="text" name="card_company" placeholder="Card/Company" class="w-full rounded-lg p-2.5">
                     <select name="transaction_type" class="w-full rounded-lg p-2.5">
                         <option value="Consult">Consult</option>
                         <option value="Loa">LOA</option>
                         <option value="Procedure">Procedure</option>
                     </select>
-                </div>
-                <div class="space-y-2">
-                    <label class="text-sm font-medium text-slate-300">Patient Type</label>
+                    <input type="text" name="doctor_procedure" placeholder="Doctor/Procedure" class="w-full rounded-lg p-2.5">
+                    <input type="text" name="service" placeholder="Service" class="w-full rounded-lg p-2.5">
                     <select name="patient_type" class="w-full rounded-lg p-2.5">
-                        <option value="New">New</option>
                         <option value="Old">Old</option>
+                        <option value="New">New</option>
                     </select>
                 </div>
-            </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-end border-t border-slate-800 pt-6">
-                <div class="space-y-2">
-                    <label class="text-sm font-medium text-slate-300">Start Call</label>
-                    <div class="flex gap-2">
-                        <input type="text" id="start_time_display" readonly class="w-full rounded-lg p-2.5 text-slate-400 font-mono" placeholder="--:--:--">
-                        <button type="button" id="startBtn" class="bg-blue-600 hover:bg-blue-500 px-6 py-2 rounded-lg transition font-bold">START</button>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-end border-t border-slate-800 pt-6">
+                    <div class="space-y-2">
+                        <label class="text-sm text-slate-400">Start Call</label>
+                        <div class="flex gap-2">
+                            <input type="text" id="start_time_display" readonly class="w-full rounded-lg p-2.5 font-mono" placeholder="--:--:--">
+                            <button type="button" onclick="captureTime('start_time_display', 'start_time_of_call')" class="bg-slate-700 hover:bg-slate-600 px-4 py-2 rounded-lg transition">Log Start</button>
+                        </div>
+                        <input type="hidden" id="start_time_of_call" name="start_time_of_call">
                     </div>
-                    <input type="hidden" id="start_time_of_call" name="start_time_of_call">
+                    <div class="space-y-2">
+                        <label class="text-sm text-slate-400">End Call</label>
+                        <div class="flex gap-2">
+                            <input type="text" id="end_time_display" readonly class="w-full rounded-lg p-2.5 font-mono" placeholder="--:--:--">
+                            <button type="button" onclick="captureTime('end_time_display', 'end_time_of_call')" class="bg-slate-700 hover:bg-slate-600 px-4 py-2 rounded-lg transition">Log End</button>
+                        </div>
+                        <input type="hidden" id="end_time_of_call" name="end_time_of_call">
+                    </div>
                 </div>
 
-                <div class="space-y-2">
-                    <label class="text-sm font-medium text-slate-300">End Call</label>
-                    <div class="flex gap-2">
-                        <input type="text" id="end_time_display" readonly class="w-full rounded-lg p-2.5 text-slate-400 font-mono" placeholder="--:--:--">
-                        <button type="button" id="endBtn" class="bg-emerald-600 hover:bg-emerald-500 px-6 py-2 rounded-lg transition font-bold">END</button>
-                    </div>
-                    <input type="hidden" id="end_time_of_call" name="end_time_of_call">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <input type="text" name="name_of_associate" placeholder="Associate Name" class="w-full rounded-lg p-2.5">
+                    <input type="text" name="remarks" placeholder="Remarks" class="w-full rounded-lg p-2.5">
                 </div>
-            </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <input type="text" name="name_of_associate" placeholder="Associate Name" class="w-full rounded-lg p-2.5">
-                <input type="text" name="remarks" placeholder="Remarks" class="w-full rounded-lg p-2.5">
-            </div>
+                <button type="submit" id="submitBtn" class="w-full bg-blue-500 hover:bg-blue-400 text-white font-bold py-3 rounded-xl transition">SAVE RECORD</button>
+            </form>
+        </div>
 
-            <button type="submit" id="submitBtn" class="w-full bg-blue-500 hover:bg-blue-400 text-white font-bold py-4 rounded-xl shadow-lg transition active:scale-95">
-                SUBMIT RECORD
-            </button>
-        </form>
+        <div class="table-container bg-slate-900/50 backdrop-blur-sm">
+            <div class="p-4 border-b border-slate-800 bg-slate-800/50">
+                <h3 class="font-bold text-slate-300">Active Monitoring Log</h3>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead class="text-xs uppercase text-slate-500 bg-slate-900">
+                        <tr>
+                            <th class="p-4">Patient</th>
+                            <th class="p-4">Card</th>
+                            <th class="p-4">Type</th>
+                            <th class="p-4">Arrival</th>
+                            <th class="p-4">TAT</th>
+                            <th class="p-4">Call Mins</th>
+                            <th class="p-4">Associate</th>
+                        </tr>
+                    </thead>
+                    <tbody id="dataTableBody">
+                        <tr><td colspan="7" class="p-8 text-center text-slate-600">Loading records...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
     </div>
 
     <script>
         const SUPABASE_URL = "https://zqnqkxpseeuyovtqezbc.supabase.co";
         const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpxbnFreHBzZWV1eW92dHFlemJjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3OTYyOTEsImV4cCI6MjA5MjM3MjI5MX0.uR9TcF4_J58cx7XsKx4BbAQcIeYBElgJpKglbMEyHQs";
-        const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        // 1. SET ARRIVAL TIME ON LOAD
-        window.onload = () => {
+        function toggleForm() {
+            const form = document.getElementById('formSection');
+            const icon = document.getElementById('toggleIcon');
+            form.classList.toggle('hidden');
+            icon.innerText = form.classList.contains('hidden') ? '+' : '-';
+            if(!form.classList.contains('hidden')) setArrivalTime();
+        }
+
+        function setArrivalTime() {
             const now = new Date();
             document.getElementById('toa_display').value = now.toLocaleTimeString();
             document.getElementById('time_of_arrival').value = now.toISOString();
-        };
+        }
 
-        // 2. FIXED TIMESTAMP LOGIC
         function captureTime(displayId, hiddenId) {
             const now = new Date();
             document.getElementById(displayId).value = now.toLocaleTimeString();
             document.getElementById(hiddenId).value = now.toISOString();
         }
 
-        document.getElementById('startBtn').addEventListener('click', () => captureTime('start_time_display', 'start_time_of_call'));
-        document.getElementById('endBtn').addEventListener('click', () => captureTime('end_time_display', 'end_time_of_call'));
+        // Fetch and Render Table
+        async function fetchRecords() {
+            const { data, error } = await _supabase
+                .from('hmo_monitoring')
+                .select('*')
+                .order('created_at', { ascending: false });
 
-        // 3. SUBMIT
+            if (error) console.error(error);
+            else renderTable(data);
+        }
+
+        function renderTable(data) {
+            const tbody = document.getElementById('dataTableBody');
+            tbody.innerHTML = data.map(row => `
+                <tr class="border-b border-slate-800 hover:bg-white/5 transition">
+                    <td class="p-4 font-medium">${row.patient_name}</td>
+                    <td class="p-4 text-slate-400">${row.card_company || '-'}</td>
+                    <td class="p-4 text-xs"><span class="px-2 py-1 rounded bg-slate-800">${row.transaction_type}</span></td>
+                    <td class="p-4 font-mono text-sm">${new Date(row.time_of_arrival).toLocaleTimeString()}</td>
+                    <td class="p-4 text-blue-400 font-bold">${row.turnaround_time || '--'}</td>
+                    <td class="p-4">${row.total_mins_of_call ? Math.round(row.total_mins_of_call) + 'm' : '--'}</td>
+                    <td class="p-4 text-slate-400">${row.name_of_associate || '-'}</td>
+                </tr>
+            `).join('');
+        }
+
+        // Realtime Subscription
+        _supabase.channel('custom-all-channel')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'hmo_monitoring' }, () => {
+                fetchRecords();
+            }).subscribe();
+
+        // Handle Submit
         document.getElementById('hmoForm').addEventListener('submit', async (e) => {
             e.preventDefault();
-            const submitBtn = document.getElementById('submitBtn');
-            submitBtn.disabled = true;
-            submitBtn.innerText = "SAVING...";
+            const btn = document.getElementById('submitBtn');
+            btn.innerText = "SAVING...";
+            btn.disabled = true;
 
             const formData = new FormData(e.target);
-            // Append the Arrival Time from the hidden header input
-            const data = Object.fromEntries(formData.entries());
-            data.time_of_arrival = document.getElementById('time_of_arrival').value;
+            const entry = Object.fromEntries(formData.entries());
+            entry.time_of_arrival = document.getElementById('time_of_arrival').value;
 
-            const { error } = await supabase.from('hmo_monitoring').insert([data]);
+            const { error } = await _supabase.from('hmo_monitoring').insert([entry]);
 
-            if (error) {
-                alert("Error: " + error.message);
-                submitBtn.disabled = false;
-                submitBtn.innerText = "SUBMIT RECORD";
-            } else {
-                alert("Saved!");
-                location.reload(); // Refresh to reset arrival time for next patient
+            if (error) alert(error.message);
+            else {
+                e.target.reset();
+                document.getElementById('start_time_display').value = "";
+                document.getElementById('end_time_display').value = "";
+                toggleForm();
             }
+            btn.innerText = "SAVE RECORD";
+            btn.disabled = false;
         });
+
+        // Initial Load
+        fetchRecords();
     </script>
 </body>
 </html>
