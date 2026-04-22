@@ -16,10 +16,10 @@
         }
         .table-container { border-radius: 12px; overflow: hidden; border: 1px solid rgba(255, 255, 255, 0.1); }
         tr:nth-child(even) { background: rgba(255, 255, 255, 0.02); }
-        .status-pill { font-size: 10px; font-weight: 900; padding: 2px 8px; border-radius: 9999px; border-width: 1px; }
+        .status-pill { font-size: 10px; font-weight: 900; padding: 2px 10px; border-radius: 9999px; border-width: 1px; text-transform: uppercase; }
     </style>
 </head>
-<body class="p-4 md:p-8 font-sans">
+<body class="p-4 md:p-8 font-sans text-slate-200">
 
     <div class="max-w-7xl mx-auto">
         <header class="mb-8 flex justify-between items-center">
@@ -44,22 +44,40 @@
                 </div>
 
                 <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    <div class="md:col-span-2"><input type="text" name="patient_name" placeholder="Patient Name" required class="w-full rounded-lg p-2.5"></div>
-                    <input type="text" name="card_company" placeholder="Card / Company" class="w-full rounded-lg p-2.5">
-                    <select name="patient_type" class="w-full rounded-lg p-2.5">
-                        <option value="Old">Old Patient</option>
-                        <option value="New">New Patient</option>
-                    </select>
+                    <div class="md:col-span-2">
+                        <label class="text-[10px] text-slate-500 ml-1 uppercase font-bold">Patient Name</label>
+                        <input type="text" name="patient_name" placeholder="Full Name" required class="w-full rounded-lg p-2.5">
+                    </div>
+                    <div>
+                        <label class="text-[10px] text-slate-500 ml-1 uppercase font-bold">Card/Company</label>
+                        <input type="text" name="card_company" placeholder="e.g. Maxicare" class="w-full rounded-lg p-2.5">
+                    </div>
+                    <div>
+                        <label class="text-[10px] text-slate-500 ml-1 uppercase font-bold">Patient Type</label>
+                        <select name="patient_type" class="w-full rounded-lg p-2.5">
+                            <option value="Old">Old Patient</option>
+                            <option value="New">New Patient</option>
+                        </select>
+                    </div>
                 </div>
 
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <select name="transaction_type" id="transaction_type" class="w-full rounded-lg p-2.5">
-                        <option value="Consult">Consult (5m)</option>
-                        <option value="Loa">LOA (30m)</option>
-                        <option value="Procedure">Procedure (30m)</option>
-                    </select>
-                    <input type="text" name="doctor_procedure" placeholder="Doctor / Specific Procedure" class="w-full rounded-lg p-2.5">
-                    <input type="text" name="service" placeholder="Service (e.g. Lab, X-Ray)" class="w-full rounded-lg p-2.5">
+                    <div>
+                        <label class="text-[10px] text-slate-500 ml-1 uppercase font-bold">Transaction</label>
+                        <select name="transaction_type" id="transaction_type" class="w-full rounded-lg p-2.5">
+                            <option value="Consult">Consult (5m)</option>
+                            <option value="Loa">LOA (30m)</option>
+                            <option value="Procedure">Procedure (30m)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="text-[10px] text-slate-500 ml-1 uppercase font-bold">Doctor/Procedure</label>
+                        <input type="text" name="doctor_procedure" placeholder="Specific Procedure" class="w-full rounded-lg p-2.5">
+                    </div>
+                    <div>
+                        <label class="text-[10px] text-slate-500 ml-1 uppercase font-bold">Service</label>
+                        <input type="text" name="service" placeholder="e.g. X-Ray, Lab" class="w-full rounded-lg p-2.5">
+                    </div>
                 </div>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-end border-t border-slate-800 pt-6">
@@ -67,7 +85,7 @@
                         <label class="text-sm font-medium text-slate-300">Start Call</label>
                         <div class="flex gap-2">
                             <input type="text" id="start_time_display" readonly class="w-full rounded-lg p-2.5 font-mono text-blue-400" placeholder="--:--:--">
-                            <button type="button" id="startBtn" class="bg-blue-600/20 border border-blue-500 text-blue-400 px-4 py-2 rounded-lg font-bold">START</button>
+                            <button type="button" id="startBtn" class="bg-blue-600/20 border border-blue-500 text-blue-400 px-4 py-2 rounded-lg font-bold hover:bg-blue-600 hover:text-white transition">START</button>
                         </div>
                         <input type="hidden" id="start_time_of_call" name="start_time_of_call">
                     </div>
@@ -75,7 +93,7 @@
                         <label class="text-sm font-medium text-slate-300">End Call</label>
                         <div class="flex gap-2">
                             <input type="text" id="end_time_display" readonly class="w-full rounded-lg p-2.5 font-mono text-emerald-400" placeholder="--:--:--">
-                            <button type="button" id="endBtn" class="bg-emerald-600/20 border border-emerald-500 text-emerald-400 px-4 py-2 rounded-lg font-bold">END</button>
+                            <button type="button" id="endBtn" class="bg-emerald-600/20 border border-emerald-500 text-emerald-400 px-4 py-2 rounded-lg font-bold hover:bg-emerald-600 hover:text-white transition">END</button>
                         </div>
                         <input type="hidden" id="end_time_of_call" name="end_time_of_call">
                     </div>
@@ -86,7 +104,7 @@
                     <input type="text" name="remarks" placeholder="Remarks..." class="w-full rounded-lg p-2.5">
                 </div>
 
-                <button type="submit" id="submitBtn" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-4 rounded-xl shadow-lg transition">SAVE RECORD</button>
+                <button type="submit" id="submitBtn" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-4 rounded-xl shadow-lg transition">SAVE PATIENT RECORD</button>
             </form>
         </div>
 
@@ -95,9 +113,9 @@
                 <table class="w-full text-left border-collapse">
                     <thead class="text-[10px] uppercase tracking-widest text-slate-500 bg-slate-900">
                         <tr>
-                            <th class="p-4">Patient & Type</th>
-                            <th class="p-4">Transaction & Service</th>
-                            <th class="p-4">Arrival</th>
+                            <th class="p-4">Patient</th>
+                            <th class="p-4">Transaction</th>
+                            <th class="p-4">Arrival Date & Time</th>
                             <th class="p-4">Call Logs</th>
                             <th class="p-4">TAT Status</th>
                             <th class="p-4">Associate</th>
@@ -146,6 +164,8 @@
             const tbody = document.getElementById('dataTableBody');
             tbody.innerHTML = data.map(row => {
                 const arrival = new Date(row.time_of_arrival);
+                const dateStr = arrival.toISOString().split('T')[0];
+                
                 const start = row.start_time_of_call ? new Date(row.start_time_of_call).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : '--';
                 const end = row.end_time_of_call ? new Date(row.end_time_of_call).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : '--';
                 
@@ -156,22 +176,25 @@
                 return `
                     <tr class="border-b border-slate-800 hover:bg-white/5 transition">
                         <td class="p-4">
-                            <div class="font-bold text-sm">${row.patient_name}</div>
+                            <div class="font-bold text-sm text-white">${row.patient_name}</div>
                             <div class="text-[10px] text-slate-400 tracking-wider uppercase">${row.patient_type} | ${row.card_company || 'CASH'}</div>
                         </td>
                         <td class="p-4">
                             <div class="text-blue-400 font-semibold">${row.transaction_type}</div>
-                            <div class="text-[10px] text-slate-500">${row.doctor_procedure || ''} ${row.service ? '('+row.service+')' : ''}</div>
+                            <div class="text-[10px] text-slate-500 font-mono italic">${row.doctor_procedure || ''} ${row.service ? '('+row.service+')' : ''}</div>
                         </td>
-                        <td class="p-4 font-mono text-slate-300">${arrival.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</td>
+                        <td class="p-4 font-mono text-slate-300">
+                            <div class="text-xs font-bold">${dateStr}</div>
+                            <div class="text-[10px] text-slate-500">${arrival.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</div>
+                        </td>
                         <td class="p-4">
-                            <div class="text-[10px] text-blue-400">S: ${start}</div>
-                            <div class="text-[10px] text-emerald-400">E: ${end}</div>
+                            <div class="text-[10px] text-blue-400">START: ${start}</div>
+                            <div class="text-[10px] text-emerald-400">END: ${end}</div>
                         </td>
                         <td class="p-4">
                             <span class="status-pill border ${statusStyle}">${status}</span>
                         </td>
-                        <td class="p-4 text-slate-400">${row.name_of_associate || '-'}</td>
+                        <td class="p-4 text-slate-400 uppercase text-[10px]">${row.name_of_associate || '-'}</td>
                     </tr>
                 `;
             }).join('');
@@ -186,7 +209,6 @@
             const formData = new FormData(e.target);
             const entry = Object.fromEntries(formData.entries());
             
-            // TAT Calculation
             const arrival = new Date(document.getElementById('time_of_arrival').value);
             const endCall = document.getElementById('end_time_of_call').value ? new Date(document.getElementById('end_time_of_call').value) : null;
             
@@ -199,8 +221,8 @@
             }
             
             entry.time_of_arrival = arrival.toISOString();
-            entry.start_time_of_call = document.getElementById('start_time_of_call').value;
-            entry.end_time_of_call = document.getElementById('end_time_of_call').value;
+            entry.start_time_of_call = document.getElementById('start_time_of_call').value || null;
+            entry.end_time_of_call = document.getElementById('end_time_of_call').value || null;
 
             const { error } = await _supabase.from('hmo_monitoring').insert([entry]);
 
