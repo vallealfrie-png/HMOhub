@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HMO Hub Monitoring</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body {
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            min-height: 100vh;
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        }
+        input, select, textarea {
+            background: rgba(255, 255, 255, 0.05) !important;
+            border: 1px solid rgba(255, 255, 255, 0.2) !important;
+            color: white !important;
+        }
+        input:focus {
+            border-color: #38bdf8 !important;
+            outline: none;
+        }
+    </style>
+</head>
+<body class="p-4 md:p-8 text-white font-sans">
+
+    <div class="max-w-4xl mx-auto">
+        <header class="mb-8 flex justify-between items-center">
+            <div>
+                <h1 class="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-emerald-400">
+                    HMO Hub Monitoring
+                </h1>
+                <p class="text-slate-400">Patient Entry & Activity Log</p>
+            </div>
+            <div id="statusIndicator" class="text-xs font-mono px-3 py-1 rounded-full border border-slate-700 text-slate-500">
+                Supabase Connected
+            </div>
+        </header>
+
+        <form id="hmoForm" class="glass-card rounded-2xl p-6 md:p-8 space-y-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="space-y-2">
+                    <label class="text-sm font-medium text-slate-300">Patient Name</label>
+                    <input type="text" id="patient_name" name="patient_name" required class="w-full rounded-lg p-2.5" placeholder="Full Name">
+                </div>
+
+                <div class="space-y-2">
+                    <label class="text-sm font-medium text-slate-300">Card / Company</label>
+                    <input type="text" id="card_company" name="card_company" class="w-full rounded-lg p-2.5" placeholder="e.g. Maxicare">
+                </div>
+
+                <div class="space-y-2">
+                    <label class="text-sm font-medium text-slate-300">Transaction Type</label>
+                    <select id="transaction_type" name="transaction_type" class="w-full rounded-lg p-2.5">
+                        <option value="Consult">Consult</option>
+                        <option value="Loa">LOA</option>
+                        <option value="Procedure">Procedure</option>
+                    </select>
+                </div>
+
+                <div class="space-y-2">
+                    <label class="text-sm font-medium text-slate-300">Patient Type</label>
+                    <select id="patient_type" name="patient_type" class="w-full rounded-lg p-2.5">
+                        <option value="New">New</option>
+                        <option value="Old">Old</option>
+                    </select>
+                </div>
+
+                <div class="space-y-2">
+                    <label class="text-sm font-medium text-slate-300">Doctor / Procedure</label>
+                    <input type="text" id="doctor_procedure" name="doctor_procedure" class="w-full rounded-lg p-2.5">
+                </div>
+
+                <div class="space-y-2">
+                    <label class="text-sm font-medium text-slate-300">Service</label>
+                    <input type="text" id="service" name="service" class="w-full rounded-lg p-2.5">
+                </div>
+            </div>
+
+            <hr class="border-slate-700">
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
+                <div class="space-y-2">
+                    <label class="text-sm font-medium text-slate-300">Start Call</label>
+                    <div class="flex gap-2">
+                        <input type="text" id="start_time_display" readonly class="w-full rounded-lg p-2.5 text-slate-400 font-mono" placeholder="--:--:--">
+                        <button type="button" onclick="setTimestamp('start')" class="bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded-lg transition shrink-0">Start</button>
+                    </div>
+                    <input type="hidden" id="start_time_of_call" name="start_time_of_call">
+                </div>
+
+                <div class="space-y-2">
+                    <label class="text-sm font-medium text-slate-300">End Call</label>
+                    <div class="flex gap-2">
+                        <input type="text" id="end_time_display" readonly class="w-full rounded-lg p-2.5 text-slate-400 font-mono" placeholder="--:--:--">
+                        <button type="button" onclick="setTimestamp('end')" class="bg-emerald-600 hover:bg-emerald-500 px-4 py-2 rounded-lg transition shrink-0">End</button>
+                    </div>
+                    <input type="hidden" id="end_time_of_call" name="end_time_of_call">
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="space-y-2">
+                    <label class="text-sm font-medium text-slate-300">Associate Name</label>
+                    <input type="text" id="name_of_associate" name="name_of_associate" class="w-full rounded-lg p-2.5">
+                </div>
+                <div class="space-y-2">
+                    <label class="text-sm font-medium text-slate-300">Remarks</label>
+                    <textarea id="remarks" name="remarks" rows="1" class="w-full rounded-lg p-2.5"></textarea>
+                </div>
+            </div>
+
+            <button type="submit" id="submitBtn" class="w-full bg-gradient-to-r from-blue-500 to-emerald-500 hover:from-blue-400 hover:to-emerald-400 text-white font-bold py-3 rounded-xl shadow-lg transition transform hover:-translate-y-1 active:scale-95 flex justify-center items-center gap-2">
+                <span>Submit Record</span>
+            </button>
+        </form>
+    </div>
+
+    <script>
+        // Initialize Supabase Client
+        const SUPABASE_URL = "https://zqnqkxpseeuyovtqezbc.supabase.co";
+        const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpxbnFreHBzZWV1eW92dHFlemJjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3OTYyOTEsImV4cCI6MjA5MjM3MjI5MX0.uR9TcF4_J58cx7XsKx4BbAQcIeYBElgJpKglbMEyHQs";
+        const supabase = createClient.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        function setTimestamp(type) {
+            const now = new Date();
+            const displayTime = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            const isoTime = now.toISOString();
+
+            if (type === 'start') {
+                document.getElementById('start_time_display').value = displayTime;
+                document.getElementById('start_time_of_call').value = isoTime;
+            } else {
+                document.getElementById('end_time_display').value = displayTime;
+                document.getElementById('end_time_of_call').value = isoTime;
+            }
+        }
+
+        document.getElementById('hmoForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const submitBtn = document.getElementById('submitBtn');
+            const statusIndicator = document.getElementById('statusIndicator');
+            
+            // Visual feedback
+            submitBtn.disabled = true;
+            submitBtn.innerText = "Processing...";
+            
+            const formData = new FormData(e.target);
+            const data = Object.fromEntries(formData.entries());
+
+            // Add the data to Supabase
+            const { error } = await supabase
+                .from('hmo_monitoring')
+                .insert([data]);
+
+            if (error) {
+                console.error("Supabase Error:", error);
+                alert("Error saving record: " + error.message);
+                submitBtn.disabled = false;
+                submitBtn.innerText = "Submit Record";
+            } else {
+                statusIndicator.innerText = "Last Saved: " + new Date().toLocaleTimeString();
+                statusIndicator.classList.replace('text-slate-500', 'text-emerald-400');
+                
+                alert("Patient Record Saved Successfully!");
+                e.target.reset();
+                document.getElementById('start_time_display').value = "";
+                document.getElementById('end_time_display').value = "";
+                
+                submitBtn.disabled = false;
+                submitBtn.innerText = "Submit Record";
+            }
+        });
+    </script>
+</body>
+</html>
