@@ -3,228 +3,192 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HMO Hub | Command Center</title>
+    <title>HMO Hub | Command</title>
     <script src="https://code.highcharts.com/highcharts.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        body { background: #010101; color: #e5e5e5; font-family: 'Inter', sans-serif; overflow-x: hidden; }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
+        body { background: #000; color: #fff; font-family: 'Inter', sans-serif; }
         
-        /* Layout Transitions */
-        .sidebar { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); width: 260px; height: 100vh; position: fixed; left: 0; top: 0; z-index: 50; background: #050505; border-right: 1px solid #1a1a1a; }
-        .sidebar.collapsed { width: 0; transform: translateX(-100%); }
-        .main-content { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); margin-left: 260px; }
-        .main-content.expanded { margin-left: 0; }
-        
-        /* Glassmorphism & Borders */
-        .glass-card { background: rgba(255, 255, 255, 0.02); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 16px; }
-        .neon-border-blue { border-left: 4px solid #3b82f6; }
-        .neon-border-emerald { border-left: 4px solid #10b981; }
-        .neon-border-purple { border-left: 4px solid #8b5cf6; }
+        .glass { background: rgba(255, 255, 255, 0.02); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.05); }
+        .skeleton { background: linear-gradient(90deg, #050505 25%, #111 50%, #050505 75%); background-size: 200% 100%; animation: loading 1.5s infinite; }
+        @keyframes loading { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
 
-        /* Skeleton Loading Animation */
-        .skeleton { background: linear-gradient(90deg, #0a0a0a 25%, #1a1a1a 50%, #0a0a0a 75%); background-size: 200% 100%; animation: skeleton-loading 1.5s infinite; }
-        @keyframes skeleton-loading { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
-        
-        .highcharts-background { fill: transparent !important; }
+        /* Highcharts overrides */
+        .highcharts-container { border-radius: 20px !important; }
+        text { font-family: 'Inter', sans-serif !important; }
     </style>
 </head>
-<body>
+<body class="p-4 md:p-10">
 
-    <aside id="sidebar" class="sidebar flex flex-col">
-        <div class="p-6 border-b border-neutral-900">
-            <h2 class="text-xs font-black text-indigo-500 uppercase tracking-[0.3em]">HMO Associate Hub</h2>
-        </div>
-        <div id="associateList" class="flex-1 overflow-y-auto p-4 space-y-3">
-            <div class="skeleton h-12 w-full rounded-xl opacity-40"></div>
-            <div class="skeleton h-12 w-full rounded-xl opacity-30"></div>
-            <div class="skeleton h-12 w-full rounded-xl opacity-20"></div>
-        </div>
-        <div class="p-6 border-t border-neutral-900">
-            <a href="index.html" class="text-[10px] font-bold text-neutral-500 hover:text-white transition uppercase tracking-widest flex items-center gap-2">
-                <span>← Return to Entry</span>
-            </a>
-        </div>
-    </aside>
-
-    <main id="mainContent" class="main-content min-h-screen p-6 md:p-10">
-        <nav class="flex items-center justify-between mb-12">
-            <button onclick="toggleSidebar()" class="bg-neutral-900 p-3 rounded-xl border border-neutral-800 hover:border-indigo-500 transition shadow-2xl">
-                <svg class="w-5 h-5 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16m7 6H4" stroke-width="2" stroke-linecap="round"></path></svg>
-            </button>
-            <div class="text-right">
-                <h1 class="text-2xl font-black uppercase tracking-tighter text-white">Command <span class="text-indigo-500">Center</span></h1>
-                <p id="liveClock" class="text-emerald-500 font-mono text-xs font-bold mt-1"></p>
+    <div class="max-w-[1600px] mx-auto">
+        <header class="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 mb-12">
+            <div>
+                <h1 class="text-5xl font-black tracking-tighter uppercase italic">
+                    HMO <span class="text-indigo-600">Associate</span> Hub
+                </h1>
+                <p id="liveDate" class="text-[10px] font-bold text-neutral-500 tracking-[0.4em] uppercase mt-2">Connecting...</p>
             </div>
-        </nav>
-
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
-            <div class="glass-card p-8 neon-border-blue">
-                <p class="text-[10px] font-black text-neutral-500 uppercase tracking-widest">Consultations</p>
-                <h3 id="countConsult" class="text-6xl font-black text-white mt-2">--</h3>
-            </div>
-            <div class="glass-card p-8 neon-border-emerald">
-                <p class="text-[10px] font-black text-neutral-500 uppercase tracking-widest">LOA Issued</p>
-                <h3 id="countLoa" class="text-6xl font-black text-white mt-2">--</h3>
-            </div>
-            <div class="glass-card p-8 neon-border-purple">
-                <p class="text-[10px] font-black text-neutral-500 uppercase tracking-widest">Procedures</p>
-                <h3 id="countProcedure" class="text-6xl font-black text-white mt-2">--</h3>
-            </div>
-        </div>
-
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <div class="lg:col-span-1 glass-card p-6 h-[400px]">
-                <div id="patientPieChart" class="h-full w-full">
-                    <div class="flex items-center justify-center h-full">
-                        <div class="skeleton w-48 h-48 rounded-full opacity-10"></div>
-                    </div>
+            <div class="flex gap-4">
+                <div class="glass px-6 py-3 rounded-2xl border-l-4 border-indigo-600">
+                    <p class="text-[9px] font-black text-neutral-500 uppercase tracking-widest">Active Records</p>
+                    <p id="totalCount" class="text-2xl font-black">--</p>
                 </div>
             </div>
+        </header>
+
+        <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
             
-            <div class="lg:col-span-2 glass-card overflow-hidden flex flex-col h-[400px]">
-                <div class="p-4 bg-white/5 border-b border-white/5 flex justify-between items-center">
-                    <span class="text-[10px] font-black uppercase tracking-[0.2em] text-neutral-500">Live Traffic Logs</span>
-                    <div class="flex items-center gap-2">
-                        <div class="w-2 h-2 bg-emerald-500 rounded-full animate-ping"></div>
-                        <span class="text-[9px] font-black text-emerald-500 uppercase">System Active</span>
+            <div class="lg:col-span-1 space-y-6">
+                <div class="glass p-6 rounded-[2rem]">
+                    <div id="chartContainer" class="h-[300px] w-full flex items-center justify-center">
+                        <div class="skeleton w-40 h-40 rounded-full opacity-20"></div>
                     </div>
                 </div>
-                <div class="flex-1 overflow-y-auto">
-                    <table class="w-full text-left text-xs border-collapse">
-                        <thead class="sticky top-0 bg-neutral-950 text-neutral-600">
-                            <tr>
-                                <th class="p-4 uppercase font-black text-[9px]">Patient Details</th>
-                                <th class="p-4 uppercase font-black text-[9px]">Transaction</th>
-                                <th class="p-4 uppercase font-black text-[9px]">Status</th>
-                                <th class="p-4 uppercase font-black text-[9px]">Associate</th>
-                            </tr>
-                        </thead>
-                        <tbody id="liveTableBody">
-                            <tr><td colspan="4" class="p-6"><div class="skeleton h-4 w-full rounded opacity-10"></div></td></tr>
-                            <tr><td colspan="4" class="p-6"><div class="skeleton h-4 w-full rounded opacity-10"></div></td></tr>
-                            <tr><td colspan="4" class="p-6"><div class="skeleton h-4 w-full rounded opacity-10"></div></td></tr>
-                        </tbody>
-                    </table>
+                
+                <div class="glass p-8 rounded-[2rem] border-t border-white/10">
+                    <h4 class="text-[10px] font-black text-indigo-500 uppercase tracking-widest mb-6">Service Mix</h4>
+                    <div class="space-y-4" id="miniStats">
+                        <div class="flex justify-between items-center">
+                            <span class="text-xs font-bold text-neutral-400">Consultations</span>
+                            <span id="c1" class="font-black text-white italic">--</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-xs font-bold text-neutral-400">LOA Issued</span>
+                            <span id="c2" class="font-black text-white italic">--</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-xs font-bold text-neutral-400">Procedures</span>
+                            <span id="c3" class="font-black text-white italic">--</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="lg:col-span-3">
+                <div class="glass rounded-[2rem] overflow-hidden border border-white/5">
+                    <div class="p-6 bg-white/5 flex justify-between items-center">
+                        <h3 class="text-xs font-black tracking-widest uppercase text-neutral-400">Live Operations Feed</h3>
+                        <div class="flex items-center gap-2">
+                            <div class="w-2 h-2 bg-indigo-500 rounded-full animate-ping"></div>
+                            <span class="text-[9px] font-bold text-indigo-500">REAL-TIME SYNC</span>
+                        </div>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left">
+                            <thead>
+                                <tr class="text-[10px] text-neutral-600 uppercase font-black border-b border-white/5">
+                                    <th class="p-6">Patient Identification</th>
+                                    <th class="p-6">Transaction</th>
+                                    <th class="p-6">TAT Status</th>
+                                    <th class="p-6">Associate</th>
+                                </tr>
+                            </thead>
+                            <tbody id="mainTableBody">
+                                <tr><td colspan="4" class="p-6"><div class="skeleton h-6 w-full rounded-lg opacity-5"></div></td></tr>
+                                <tr><td colspan="4" class="p-6"><div class="skeleton h-6 w-full rounded-lg opacity-5"></div></td></tr>
+                                <tr><td colspan="4" class="p-6"><div class="skeleton h-6 w-full rounded-lg opacity-5"></div></td></tr>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>
-    </main>
+    </div>
 
     <script>
-        // Use the exact Supabase instance from your working index.html
         const SUPABASE_URL = "https://zqnqkxpseeuyovtqezbc.supabase.co";
         const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpxbnFreHBzZWV1eW92tHFlemJjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3OTYyOTEsImV4cCI6MjA5MjM3MjI5MX0.uR9TcF4_J58cx7XsKx4BbAQcIeYBElgJpKglbMEyHQs";
         const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        function toggleSidebar() {
-            document.getElementById('sidebar').classList.toggle('collapsed');
-            document.getElementById('mainContent').classList.toggle('expanded');
+        function updateTime() {
+            document.getElementById('liveDate').innerText = new Date().toLocaleString('en-US', { 
+                weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', 
+                hour: '2-digit', minute: '2-digit', second: '2-digit' 
+            }).toUpperCase();
         }
+        setInterval(updateTime, 1000);
+        updateTime();
 
-        function updateClock() {
-            document.getElementById('liveClock').innerText = new Date().toLocaleString('en-US', { hour12: true, hour: '2-digit', minute: '2-digit', second: '2-digit', weekday: 'short', month: 'short', day: 'numeric' }).toUpperCase();
-        }
-        setInterval(updateClock, 1000);
-        updateClock();
-
-        // Robust init pattern from your Marketing Intelligence project
-        async function init() {
+        // FAIL-SAFE DATA LOADER
+        async function loadHMODashboard() {
             try {
-                console.log("Syncing database...");
                 const { data, error } = await _supabase
                     .from('hmo_monitoring')
                     .select('*')
                     .order('created_at', { ascending: false });
 
                 if (error) throw error;
-                if (data) renderDashboard(data);
-
+                if (data) {
+                    refreshUI(data);
+                }
             } catch (err) {
-                console.error("Database Error:", err.message);
+                console.error("Sync Error:", err.message);
             }
         }
 
-        function renderDashboard(records) {
-            // 1. Update Metrics
-            document.getElementById('countConsult').innerText = records.filter(r => r.transaction_type === 'Consult').length;
-            document.getElementById('countLoa').innerText = records.filter(r => r.transaction_type === 'Loa').length;
-            document.getElementById('countProcedure').innerText = records.filter(r => r.transaction_type === 'Procedure').length;
+        function refreshUI(records) {
+            // 1. STATS
+            document.getElementById('totalCount').innerText = records.length;
+            document.getElementById('c1').innerText = records.filter(r => r.transaction_type === 'Consult').length;
+            document.getElementById('c2').innerText = records.filter(r => r.transaction_type === 'Loa').length;
+            document.getElementById('c3').innerText = records.filter(r => r.transaction_type === 'Procedure').length;
 
-            // 2. Sidebar Associates (Unique List)
-            const associates = [...new Set(records.map(r => r.name_of_associate).filter(n => n))];
-            document.getElementById('associateList').innerHTML = associates.map(name => `
-                <div class="flex items-center gap-3 p-3 rounded-xl hover:bg-white/5 transition border border-transparent hover:border-white/10 group cursor-pointer">
-                    <div class="w-8 h-8 rounded-lg bg-indigo-500/10 flex items-center justify-center text-indigo-500 font-black text-[10px] border border-indigo-500/20 shadow-inner">
-                        ${name[0].toUpperCase()}
-                    </div>
-                    <span class="text-xs font-bold text-neutral-400 group-hover:text-white transition uppercase tracking-tighter">${name}</span>
-                </div>
-            `).join('');
-
-            // 3. Highcharts Radial (Your favored drawHighRadial style)
-            const newCount = records.filter(r => r.patient_type === 'New').length;
-            const oldCount = records.filter(r => r.patient_type === 'Old').length;
-
-            Highcharts.chart('patientPieChart', {
-                chart: { type: 'pie', backgroundColor: 'transparent' },
-                title: { text: 'PATIENT MIX', style: { color: '#6366f1', fontSize: '10px', fontWeight: '900', letterSpacing: '0.2em' } },
-                credits: { enabled: false },
-                tooltip: { backgroundColor: '#0a0a0a', style: { color: '#fff' } },
-                plotOptions: {
-                    pie: {
-                        innerSize: '75%',
-                        borderWidth: 0,
-                        dataLabels: { enabled: false },
-                        showInLegend: true,
-                        states: { hover: { halo: { size: 5 } } }
-                    }
-                },
-                legend: { itemStyle: { color: '#555', fontSize: '9px', fontWeight: 'bold' } },
-                series: [{
-                    name: 'Count',
-                    data: [
-                        { name: 'NEW', y: newCount, color: '#6366f1' },
-                        { name: 'OLD', y: oldCount, color: '#10b981' }
-                    ]
-                }]
-            });
-
-            // 4. Live Log Table
-            const tbody = document.getElementById('liveTableBody');
-            tbody.innerHTML = records.slice(0, 10).map(row => `
-                <tr class="border-b border-white/5 hover:bg-white/[0.02] transition">
-                    <td class="p-4">
-                        <div class="font-black text-slate-200 text-sm tracking-tighter">${row.patient_name}</div>
-                        <div class="text-[9px] text-neutral-600 font-bold uppercase tracking-widest">${row.card_company || 'CASH'}</div>
+            // 2. TABLE
+            const tbody = document.getElementById('mainTableBody');
+            tbody.innerHTML = records.slice(0, 12).map(row => `
+                <tr class="border-b border-white/[0.03] hover:bg-white/[0.02] transition-all">
+                    <td class="p-6">
+                        <div class="font-black text-sm text-indigo-100 italic">${row.patient_name}</div>
+                        <div class="text-[9px] text-neutral-500 font-bold tracking-widest uppercase mt-1">${row.card_company || 'CASH'}</div>
                     </td>
-                    <td class="p-4">
-                        <div class="text-indigo-400 font-bold tracking-tighter">${row.transaction_type}</div>
+                    <td class="p-6">
+                        <div class="text-xs font-bold text-white">${row.transaction_type}</div>
                         <div class="text-[9px] text-neutral-600 font-mono">${row.patient_type}</div>
                     </td>
-                    <td class="p-4">
-                        <span class="px-3 py-1 rounded-full border text-[9px] font-black tracking-widest uppercase ${
-                            row.turnaround_time === 'MET' ? 'text-emerald-400 border-emerald-500/20 bg-emerald-500/5' : 
-                            row.turnaround_time === 'NOT MET' ? 'text-red-400 border-red-500/20 bg-red-500/5' : 'text-neutral-500 border-neutral-800'
-                        }">
-                            ${row.turnaround_time || 'PENDING'}
-                        </span>
+                    <td class="p-6">
+                        <span class="px-3 py-1 rounded-full border text-[9px] font-black tracking-tighter ${
+                            row.turnaround_time === 'MET' ? 'border-emerald-500/20 text-emerald-400 bg-emerald-500/5' : 'border-red-500/20 text-red-400 bg-red-500/5'
+                        }">${row.turnaround_time || 'PENDING'}</span>
                     </td>
-                    <td class="p-4 text-neutral-500 uppercase font-black text-[10px] tracking-widest">
-                        ${row.name_of_associate || '—'}
+                    <td class="p-6">
+                        <div class="text-[10px] font-black text-neutral-400 uppercase tracking-widest">${row.name_of_associate || '—'}</div>
                     </td>
                 </tr>
             `).join('');
+
+            // 3. CHART (Wrapped to prevent script death)
+            try {
+                const newP = records.filter(r => r.patient_type === 'New').length;
+                const oldP = records.filter(r => r.patient_type === 'Old').length;
+
+                Highcharts.chart('chartContainer', {
+                    chart: { type: 'pie', backgroundColor: 'transparent', height: 300 },
+                    title: { text: 'PATIENT MIX', style: { color: '#4f46e5', fontSize: '10px', fontWeight: '900', letterSpacing: '0.2em' } },
+                    credits: { enabled: false },
+                    plotOptions: {
+                        pie: { innerSize: '80%', borderSize: 0, dataLabels: { enabled: false }, showInLegend: true }
+                    },
+                    legend: { itemStyle: { color: '#555', fontSize: '9px', fontWeight: 'bold' } },
+                    series: [{
+                        name: 'Total',
+                        data: [
+                            { name: 'NEW', y: newP, color: '#4f46e5' },
+                            { name: 'OLD', y: oldP, color: '#10b981' }
+                        ]
+                    }]
+                });
+            } catch (cErr) { console.warn("Chart failed to render", cErr); }
         }
 
-        // Realtime Subscription (Exactly like index.html)
-        _supabase.channel('dashboard_v4').on('postgres_changes', { event: '*', schema: 'public', table: 'hmo_monitoring' }, (payload) => {
-            console.log("Realtime push received.");
-            init(); 
+        // Realtime Subscription (matches your working index.html)
+        _supabase.channel('dashboard_v2').on('postgres_changes', { event: '*', schema: 'public', table: 'hmo_monitoring' }, () => {
+            loadHMODashboard();
         }).subscribe();
 
-        // Initial Load
-        init();
+        // Initial Start
+        loadHMODashboard();
     </script>
 </body>
 </html>
