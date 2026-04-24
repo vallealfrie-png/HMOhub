@@ -10,13 +10,10 @@
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
         body { background: #020202; color: #fff; font-family: 'Inter', sans-serif; overflow-x: hidden; }
-        
         .glass { background: rgba(255, 255, 255, 0.02); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.05); border-radius: 2rem; }
         .associate-btn { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); cursor: pointer; border: 1px solid rgba(255,255,255,0.03); }
         .associate-btn:hover { background: rgba(99, 102, 241, 0.1); border-color: rgba(99, 102, 241, 0.3); transform: translateX(5px); }
         .associate-btn.active { background: #6366f1; border-color: #6366f1; color: #fff; box-shadow: 0 10px 20px -10px #6366f1; }
-        
-        /* Highcharts specific styles to match your theme */
         .highcharts-figure { margin: 0; }
         .highcharts-data-label text { fill: #999 !important; font-weight: bold !important; text-outline: none !important; }
     </style>
@@ -32,8 +29,7 @@
                 </div>
                 <button onclick="filterByAssociate(null)" class="text-[9px] bg-white/5 hover:bg-white/10 px-3 py-1 rounded-full text-neutral-400 hover:text-white uppercase font-black transition">Reset</button>
             </div>
-            <div id="associateList" class="space-y-3">
-                </div>
+            <div id="associateList" class="space-y-3"></div>
         </div>
     </aside>
 
@@ -41,7 +37,7 @@
         <header class="mb-12 flex justify-between items-end">
             <div>
                 <h1 class="text-5xl font-black italic uppercase tracking-tighter">HMO <span class="text-indigo-600">Hub</span></h1>
-                <p id="status" class="text-[10px] font-bold text-neutral-500 mt-2 uppercase tracking-[0.3em]">Connecting to Intelligence System...</p>
+                <p id="status" class="text-[10px] font-bold text-neutral-500 mt-2 uppercase tracking-[0.3em]">Connecting...</p>
             </div>
             <div id="filterTag" class="hidden glass px-6 py-2 border-indigo-500/30">
                 <p class="text-[9px] font-black text-indigo-500 uppercase tracking-widest">Active Filter</p>
@@ -70,7 +66,6 @@
                     <div id="patientDonutContainer"></div>
                 </figure>
             </div>
-            
             <div class="glass p-10 flex flex-col justify-center items-center text-center opacity-40">
                 <div class="w-16 h-16 border-2 border-dashed border-white/20 rounded-full mb-4"></div>
                 <p class="text-[10px] font-black uppercase tracking-widest">Operational Insights Placeholder</p>
@@ -79,8 +74,10 @@
     </main>
 
     <script>
+        // CLEANED URL: Removed /rest/v1/
         const SUPABASE_URL = "https://zqnqkxpseeuyovtqezbc.supabase.co";
-        const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpxbnFreHBzZWV1eW92tHFlemJjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3OTYyOTEsImV4cCI6MjA5MjM3MjI5MX0.uR9TcF4_J58cx7XsKx4BbAQcIeYBElgJpKglbMEyHQs";
+        const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpxbnFreHBzZWV1eW92dHFlemJjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3OTYyOTEsImV4cCI6MjA5MjM3MjI5MX0.uR9TcF4_J58cx7XsKx4BbAQcIeYBElgJpKglbMEyHQs";
+        
         const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
         let cachedData = [];
@@ -93,13 +90,18 @@
                     .select('transaction_type, name_of_associate, patient_type');
 
                 if (error) throw error;
+                
                 if (data) {
                     cachedData = data;
+                    document.getElementById('status').innerText = `Live: ${cachedData.length} Records Synced`;
+                    document.getElementById('status').classList.replace('text-red-500', 'text-neutral-500');
                     updateSidebar();
                     applyLogic();
                 }
             } catch (err) {
-                document.getElementById('status').innerText = "Sync Failed: " + err.message;
+                // This will display the 401 error message directly on your UI if it happens
+                document.getElementById('status').innerText = "ERROR: " + err.message;
+                document.getElementById('status').classList.replace('text-neutral-500', 'text-red-500');
             }
         }
 
@@ -147,9 +149,7 @@
 
                             if (!customLabel) {
                                 customLabel = chart.options.chart.custom.label =
-                                    chart.renderer.label(
-                                        'TOTAL<br/>' + `<strong>${total}</strong>`
-                                    )
+                                    chart.renderer.label('TOTAL<br/>' + `<strong>${total}</strong>`)
                                     .css({ color: '#fff', textAnchor: 'middle' })
                                     .add();
                             } else {
@@ -168,14 +168,11 @@
                     text: 'PATIENT FLOW', 
                     style: { color: '#6366f1', fontWeight: '900', fontSize: '10px', letterSpacing: '0.3em' } 
                 },
-                tooltip: { pointFormat: '{series.name}: <b>{point.percentage:.1f}%</b>' },
                 plotOptions: {
                     pie: {
                         innerSize: '75%',
                         borderRadius: 15,
                         borderWidth: 0,
-                        allowPointSelect: true,
-                        cursor: 'pointer',
                         dataLabels: [{
                             enabled: true,
                             distance: 25,
@@ -205,8 +202,6 @@
                 ? cachedData.filter(r => r.name_of_associate === selectedAssociate)
                 : cachedData;
 
-            document.getElementById('status').innerText = `Live: ${cachedData.length} Total Records Synced`;
-            
             document.getElementById('countConsult').innerText = displayData.filter(r => r.transaction_type === 'Consult').length;
             document.getElementById('countLoa').innerText = displayData.filter(r => r.transaction_type === 'Loa').length;
             document.getElementById('countProcedure').innerText = displayData.filter(r => r.transaction_type === 'Procedure').length;
