@@ -3,136 +3,168 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Analytics Dashboard | HMO Hub</title>
+    <title>HMO Hub | Command Center</title>
     <script src="https://code.highcharts.com/highcharts.js"></script>
-    <script src="https://code.highcharts.com/highcharts-more.js"></script>
-    <script src="https://code.highcharts.com/modules/accessibility.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        body { background: #0f172a; min-height: 100vh; color: white; }
+        body { background: #0f172a; color: white; overflow-x: hidden; }
+        .sidebar { transition: all 0.3s ease; width: 260px; height: 100vh; position: fixed; left: 0; top: 0; z-index: 50; }
+        .sidebar.collapsed { width: 0; transform: translateX(-100%); }
+        .main-content { transition: all 0.3s ease; margin-left: 260px; }
+        .main-content.expanded { margin-left: 0; }
         .glass-card { background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); }
-        .table-container { border-radius: 12px; overflow: hidden; border: 1px solid rgba(255, 255, 255, 0.1); }
-        tr:nth-child(even) { background: rgba(255, 255, 255, 0.02); }
-        .status-pill { font-size: 10px; font-weight: 900; padding: 2px 10px; border-radius: 9999px; border-width: 1px; text-transform: uppercase; }
-        .highcharts-background { fill: transparent !important; }
+        .score-card { border-left: 4px solid #3b82f6; }
     </style>
 </head>
-<body class="p-4 md:p-8 font-sans text-slate-200">
+<body class="font-sans">
 
-    <div class="max-w-7xl mx-auto">
-        <header class="mb-8 flex justify-between items-end">
-            <div>
-                <h1 class="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-emerald-400">Analytics Dashboard</h1>
-                <p class="text-slate-500 text-sm tracking-widest uppercase">Performance & Metrics</p>
-            </div>
-            <a href="index.html" class="text-blue-400 hover:text-blue-300 text-sm font-semibold flex items-center gap-2 mb-1">
-                ← Back to Entry Form
+    <aside id="sidebar" class="sidebar glass-card bg-slate-900 flex flex-col">
+        <div class="p-6 border-b border-slate-800">
+            <h2 class="text-xl font-bold text-blue-400">Team Roster</h2>
+            <p class="text-xs text-slate-500 uppercase tracking-tighter">Associates</p>
+        </div>
+        <div id="associateList" class="flex-1 overflow-y-auto p-4 space-y-2">
+            <div class="text-slate-500 italic text-sm p-4">Loading team...</div>
+        </div>
+        <div class="p-6 border-t border-slate-800">
+            <a href="index.html" class="text-sm text-slate-400 hover:text-white flex items-center gap-2">
+                <span>←</span> Entry Form
             </a>
-        </header>
+        </div>
+    </aside>
 
-        <div class="grid grid-cols-1 mb-8">
-            <div class="glass-card p-4 rounded-2xl shadow-2xl">
-                <div id="callDurationChart" style="width:100%; height:450px;"></div>
+    <main id="mainContent" class="main-content min-h-screen p-4 md:p-8">
+        <nav class="flex items-center justify-between mb-8">
+            <button onclick="toggleSidebar()" class="bg-slate-800 p-2 rounded-lg hover:bg-slate-700 transition">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m7 6H4"></path></svg>
+            </button>
+            <div class="text-right">
+                <h1 class="text-2xl font-bold">HMO Command Center</h1>
+                <p id="liveClock" class="text-emerald-400 font-mono text-sm"></p>
+            </div>
+        </nav>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <div class="glass-card p-6 rounded-2xl score-card border-blue-500">
+                <p class="text-slate-400 text-xs uppercase font-bold">Consults</p>
+                <h3 id="countConsult" class="text-4xl font-black text-white mt-1">0</h3>
+            </div>
+            <div class="glass-card p-6 rounded-2xl score-card border-emerald-500">
+                <p class="text-slate-400 text-xs uppercase font-bold">LOA Requests</p>
+                <h3 id="countLoa" class="text-4xl font-black text-white mt-1">0</h3>
+            </div>
+            <div class="glass-card p-6 rounded-2xl score-card border-purple-500">
+                <p class="text-slate-400 text-xs uppercase font-bold">Procedures</p>
+                <h3 id="countProcedure" class="text-4xl font-black text-white mt-1">0</h3>
             </div>
         </div>
 
-        <div class="table-container bg-slate-900/50 backdrop-blur-sm shadow-xl">
-            <div class="p-4 border-b border-slate-800 flex justify-between items-center bg-slate-900/80">
-                <h3 class="font-bold text-slate-300">Live Transaction Logs</h3>
-                <span class="text-[10px] bg-emerald-500/10 text-emerald-400 px-2 py-1 rounded border border-emerald-500/20 animate-pulse">LIVE UPDATING</span>
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+            <div class="lg:col-span-1 glass-card p-4 rounded-2xl">
+                <div id="patientPieChart" style="height: 300px;"></div>
             </div>
+            <div class="lg:col-span-2 glass-card p-4 rounded-2xl">
+                <div id="statusChart" style="height: 300px;"></div>
+            </div>
+        </div>
+
+        <div class="glass-card rounded-2xl overflow-hidden">
+            <div class="p-4 bg-white/5 border-b border-white/10 font-bold">Recent Live Activity</div>
             <div class="overflow-x-auto">
-                <table class="w-full text-left border-collapse">
-                    <thead class="text-[10px] uppercase tracking-widest text-slate-500 bg-slate-900">
+                <table class="w-full text-left text-xs">
+                    <thead class="bg-slate-900 uppercase text-slate-500 tracking-widest">
                         <tr>
                             <th class="p-4">Patient</th>
                             <th class="p-4">Transaction</th>
-                            <th class="p-4">Arrival</th>
-                            <th class="p-4">Call Logs</th>
-                            <th class="p-4">TAT Status</th>
+                            <th class="p-4">TAT</th>
                             <th class="p-4">Associate</th>
                         </tr>
                     </thead>
-                    <tbody id="dataTableBody" class="text-xs">
-                        </tbody>
+                    <tbody id="liveTableBody"></tbody>
                 </table>
             </div>
         </div>
-    </div>
+    </main>
 
     <script>
         const SUPABASE_URL = "https://zqnqkxpseeuyovtqezbc.supabase.co";
-        const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpxbnFreHBzZWV1eW92dHFlemJjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3OTYyOTEsImV4cCI6MjA5MjM3MjI5MX0.uR9TcF4_J58cx7XsKx4BbAQcIeYBElgJpKglbMEyHQs";
+        const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpxbnFreHBzZWV1eW92tHFlemJjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3OTYyOTEsImV4cCI6MjA5MjM3MjI5MX0.uR9TcF4_J58cx7XsKx4BbAQcIeYBElgJpKglbMEyHQs";
         const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        // Chart Initialization
-        function updateChart(records) {
-            const recent = records.slice(0, 12).reverse();
-            const categories = recent.map(r => r.patient_name);
-            const seriesData = recent.map(r => {
-                if (!r.start_time_of_call || !r.end_time_of_call) return [null, null];
-                return [new Date(r.start_time_of_call).getTime(), new Date(r.end_time_of_call).getTime()];
-            });
+        // --- UI LOGIC ---
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('collapsed');
+            document.getElementById('mainContent').classList.toggle('expanded');
+        }
 
-            Highcharts.chart('callDurationChart', {
-                chart: { type: 'columnrange', inverted: true, backgroundColor: 'transparent' },
-                title: { text: 'Call Duration Benchmarks', style: { color: '#38bdf8' } },
-                xAxis: { categories: categories, labels: { style: { color: '#94a3b8' } } },
-                yAxis: { type: 'datetime', title: { text: 'Time Log' }, labels: { style: { color: '#94a3b8' } } },
-                legend: { enabled: false },
-                tooltip: { xDateFormat: '%H:%M:%S' },
+        function updateClock() {
+            document.getElementById('liveClock').innerText = new Date().toLocaleTimeString();
+        }
+        setInterval(updateClock, 1000);
+
+        // --- DATA PROCESSING ---
+        async function fetchDashboardData() {
+            const { data, error } = await _supabase.from('hmo_monitoring').select('*').order('created_at', { ascending: false });
+            if (!error) processMetrics(data);
+        }
+
+        function processMetrics(records) {
+            // 1. Update Scorecards
+            document.getElementById('countConsult').innerText = records.filter(r => r.transaction_type === 'Consult').length;
+            document.getElementById('countLoa').innerText = records.filter(r => r.transaction_type === 'Loa').length;
+            document.getElementById('countProcedure').innerText = records.filter(r => r.transaction_type === 'Procedure').length;
+
+            // 2. Sidebar Associates
+            const associates = [...new Set(records.map(r => r.name_of_associate).filter(n => n))];
+            document.getElementById('associateList').innerHTML = associates.map(name => `
+                <div class="flex items-center gap-3 p-3 rounded-xl hover:bg-white/5 transition cursor-pointer group">
+                    <div class="w-8 h-8 rounded-full bg-blue-600/20 flex items-center justify-center text-blue-400 font-bold text-xs">${name[0]}</div>
+                    <span class="text-sm font-medium text-slate-300 group-hover:text-white">${name}</span>
+                </div>
+            `).join('');
+
+            // 3. Render Pie Chart
+            renderPie(records);
+            
+            // 4. Mini Table
+            const tbody = document.getElementById('liveTableBody');
+            tbody.innerHTML = records.slice(0, 8).map(row => `
+                <tr class="border-b border-white/5 hover:bg-white/5">
+                    <td class="p-4"><b>${row.patient_name}</b><br><span class="text-slate-500">${row.card_company || 'CASH'}</span></td>
+                    <td class="p-4 text-blue-400">${row.transaction_type}</td>
+                    <td class="p-4"><span class="px-2 py-1 rounded-full border text-[10px] ${row.turnaround_time === 'MET' ? 'border-emerald-500 text-emerald-400' : 'border-red-500 text-red-400'}">${row.turnaround_time}</span></td>
+                    <td class="p-4 text-slate-400 uppercase">${row.name_of_associate || '-'}</td>
+                </tr>
+            `).join('');
+        }
+
+        function renderPie(records) {
+            const newCount = records.filter(r => r.patient_type === 'New').length;
+            const oldCount = records.filter(r => r.patient_type === 'Old').length;
+
+            Highcharts.chart('patientPieChart', {
+                chart: { type: 'pie', backgroundColor: 'transparent' },
+                title: { text: 'Patient Demographics', style: { color: '#94a3b8', fontSize: '14px' } },
                 plotOptions: {
-                    columnrange: {
-                        borderRadius: 4,
-                        dataLabels: { enabled: true, format: '{y:%H:%M}', style: { color: '#64748b', fontSize: '9px' } },
-                        color: {
-                            linearGradient: { x1: 0, y1: 0, x2: 1, y2: 0 },
-                            stops: [[0, '#60a5fa'], [1, '#34d399']]
-                        }
+                    pie: {
+                        innerSize: '60%',
+                        borderWidth: 0,
+                        dataLabels: { enabled: true, format: '{point.name}: {point.y}', style: { color: '#cbd5e1' } }
                     }
                 },
-                series: [{ name: 'Active Call', data: seriesData }]
+                series: [{
+                    name: 'Patients',
+                    data: [
+                        { name: 'New', y: newCount, color: '#3b82f6' },
+                        { name: 'Old', y: oldCount, color: '#10b981' }
+                    ]
+                }]
             });
         }
 
-        async function fetchRecords() {
-            const { data, error } = await _supabase.from('hmo_monitoring').select('*').order('created_at', { ascending: false });
-            if (!error) {
-                renderTable(data);
-                updateChart(data);
-            }
-        }
-
-        function renderTable(data) {
-            const tbody = document.getElementById('dataTableBody');
-            tbody.innerHTML = data.map(row => {
-                const arrival = new Date(row.time_of_arrival);
-                const start = row.start_time_of_call ? new Date(row.start_time_of_call).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : '--';
-                const end = row.end_time_of_call ? new Date(row.end_time_of_call).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : '--';
-                const status = row.turnaround_time || 'PENDING';
-                const style = status === 'MET' ? 'text-emerald-400 bg-emerald-400/10 border-emerald-500/50' : 
-                             status === 'NOT MET' ? 'text-red-400 bg-red-400/10 border-red-500/50' : 'text-slate-500 bg-slate-800 border-slate-700';
-
-                return `
-                    <tr class="border-b border-slate-800 hover:bg-white/5 transition">
-                        <td class="p-4"><div class="font-bold">${row.patient_name}</div><div class="text-[10px] text-slate-500">${row.patient_type}</div></td>
-                        <td class="p-4"><div class="text-blue-400">${row.transaction_type}</div><div class="text-[10px] text-slate-600">${row.doctor_procedure || ''}</div></td>
-                        <td class="p-4 font-mono text-slate-400"><div>${arrival.toISOString().split('T')[0]}</div><div>${arrival.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</div></td>
-                        <td class="p-4 font-mono">
-                            <div class="text-blue-400/80">S: ${start}</div>
-                            <div class="text-emerald-400/80">E: ${end}</div>
-                        </td>
-                        <td class="p-4"><span class="status-pill border ${style}">${status}</span></td>
-                        <td class="p-4 text-slate-400 uppercase text-[10px]">${row.name_of_associate || '-'}</td>
-                    </tr>
-                `;
-            }).join('');
-        }
-
-        // Real-time listener
-        _supabase.channel('hmo_db_track').on('postgres_changes', { event: '*', schema: 'public', table: 'hmo_monitoring' }, fetchRecords).subscribe();
-        fetchRecords();
+        _supabase.channel('dashboard_realtime').on('postgres_changes', { event: '*', schema: 'public', table: 'hmo_monitoring' }, fetchDashboardData).subscribe();
+        fetchDashboardData();
     </script>
 </body>
 </html>
