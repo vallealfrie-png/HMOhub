@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>HMO Core | Command Center</title>
     <script src="https://code.highcharts.com/highcharts.js"></script>
+    <script src="https://code.highcharts.com/modules/drilldown.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
@@ -15,7 +16,8 @@
         .associate-btn:hover { background: rgba(99, 102, 241, 0.1); border-color: rgba(99, 102, 241, 0.3); transform: translateX(5px); }
         .associate-btn.active { background: #6366f1; border-color: #6366f1; color: #fff; box-shadow: 0 10px 20px -10px #6366f1; }
         .highcharts-figure { margin: 0; }
-        .highcharts-data-label text { fill: #999 !important; font-weight: bold !important; text-outline: none !important; }
+        /* Style breadcrumbs for drilldown */
+        .highcharts-breadcrumbs-button text { fill: #6366f1 !important; font-weight: bold !important; }
     </style>
 </head>
 <body class="flex min-h-screen">
@@ -61,23 +63,19 @@
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div class="glass p-10 min-h-[500px]">
-                <figure class="highcharts-figure">
-                    <div id="patientDonutContainer"></div>
-                </figure>
+            <div class="glass p-10">
+                <div id="patientDonutContainer"></div>
             </div>
-            <div class="glass p-10 flex flex-col justify-center items-center text-center opacity-40">
-                <div class="w-16 h-16 border-2 border-dashed border-white/20 rounded-full mb-4"></div>
-                <p class="text-[10px] font-black uppercase tracking-widest">Operational Insights Placeholder</p>
+            
+            <div class="glass p-10">
+                <div id="tatDrilldownContainer"></div>
             </div>
         </div>
     </main>
 
     <script>
-        // CLEANED URL: Removed /rest/v1/
         const SUPABASE_URL = "https://zqnqkxpseeuyovtqezbc.supabase.co";
-        const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpxbnFreHBzZWV1eW92dHFlemJjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3OTYyOTEsImV4cCI6MjA5MjM3MjI5MX0.uR9TcF4_J58cx7XsKx4BbAQcIeYBElgJpKglbMEyHQs";
-        
+        const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpxbnFreHBzZWV1eW92tHFlemJjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3OTYyOTEsImV4cCI6MjA5MjM3MjI5MX0.uR9TcF4_J58cx7XsKx4BbAQcIeYBElgJpKglbMEyHQs";
         const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
         let cachedData = [];
@@ -87,28 +85,23 @@
             try {
                 const { data, error } = await _supabase
                     .from('hmo_monitoring')
-                    .select('transaction_type, name_of_associate, patient_type');
+                    .select('transaction_type, name_of_associate, patient_type, turnaround_time');
 
                 if (error) throw error;
-                
                 if (data) {
                     cachedData = data;
                     document.getElementById('status').innerText = `Live: ${cachedData.length} Records Synced`;
-                    document.getElementById('status').classList.replace('text-red-500', 'text-neutral-500');
                     updateSidebar();
                     applyLogic();
                 }
             } catch (err) {
-                // This will display the 401 error message directly on your UI if it happens
-                document.getElementById('status').innerText = "ERROR: " + err.message;
-                document.getElementById('status').classList.replace('text-neutral-500', 'text-red-500');
+                document.getElementById('status').innerText = "Sync Failed: " + err.message;
             }
         }
 
         function updateSidebar() {
             const list = document.getElementById('associateList');
             const uniqueNames = [...new Set(cachedData.map(r => r.name_of_associate).filter(n => n))].sort();
-            
             list.innerHTML = uniqueNames.map(name => `
                 <div onclick="filterByAssociate('${name}')" 
                      class="associate-btn p-4 rounded-2xl flex justify-between items-center ${selectedAssociate === name ? 'active' : 'bg-white/5'}">
@@ -137,62 +130,53 @@
             const total = newP + oldP;
 
             Highcharts.chart('patientDonutContainer', {
-                chart: {
-                    type: 'pie',
-                    backgroundColor: 'transparent',
-                    custom: {},
-                    events: {
-                        render() {
-                            const chart = this,
-                                series = chart.series[0];
-                            let customLabel = chart.options.chart.custom.label;
-
-                            if (!customLabel) {
-                                customLabel = chart.options.chart.custom.label =
-                                    chart.renderer.label('TOTAL<br/>' + `<strong>${total}</strong>`)
-                                    .css({ color: '#fff', textAnchor: 'middle' })
-                                    .add();
-                            } else {
-                                customLabel.attr({ text: 'TOTAL<br/>' + `<strong>${total}</strong>` });
-                            }
-
-                            const x = series.center[0] + chart.plotLeft,
-                                  y = series.center[1] + chart.plotTop - (customLabel.attr('height') / 2);
-
-                            customLabel.attr({ x, y });
-                            customLabel.css({ fontSize: `${series.center[2] / 12}px` });
-                        }
+                chart: { type: 'pie', backgroundColor: 'transparent', height: 400, events: {
+                    render() {
+                        const chart = this, series = chart.series[0];
+                        let label = chart.options.chart.customLabel || (chart.options.chart.customLabel = chart.renderer.label('').css({color:'#fff', textAnchor:'middle'}).add());
+                        label.attr({ text: `TOTAL<br><strong>${total}</strong>` });
+                        const x = series.center[0] + chart.plotLeft, y = series.center[1] + chart.plotTop - (label.attr('height')/2);
+                        label.attr({ x, y }).css({ fontSize: '14px' });
                     }
+                }},
+                title: { text: 'PATIENT FLOW', style: { color: '#6366f1', fontWeight: '900', fontSize: '10px', letterSpacing: '0.3em' } },
+                plotOptions: { pie: { innerSize: '80%', borderRadius: 10, borderWidth: 0, dataLabels: { enabled: false } } },
+                series: [{ name: 'Patients', data: [{name: 'NEW', y: newP, color:'#6366f1'}, {name: 'OLD', y: oldP, color:'#10b981'}] }],
+                credits: { enabled: false }
+            });
+        }
+
+        function renderTATDrilldown(records) {
+            // Processing TAT data into brackets
+            const brackets = {
+                'Fast (<15m)': records.filter(r => r.turnaround_time <= 15),
+                'Standard (15-30m)': records.filter(r => r.turnaround_time > 15 && r.turnaround_time <= 30),
+                'Slow (>30m)': records.filter(r => r.turnaround_time > 30)
+            };
+
+            const mainData = Object.keys(brackets).map(key => ({
+                name: key,
+                y: brackets[key].length,
+                drilldown: key
+            }));
+
+            const drilldownSeries = Object.keys(brackets).map(key => ({
+                name: key,
+                id: key,
+                data: brackets[key].map(r => [`${r.turnaround_time} mins`, 1]) // Grouping individual instances
+            }));
+
+            Highcharts.chart('tatDrilldownContainer', {
+                chart: { type: 'pie', backgroundColor: 'transparent', height: 400 },
+                title: { text: 'TURNAROUND TIME (TAT)', style: { color: '#6366f1', fontWeight: '900', fontSize: '10px', letterSpacing: '0.3em' } },
+                subtitle: { text: 'Click slices to view specific minute details', style: { color: '#666', fontSize: '9px' } },
+                plotOptions: { pie: { shadow: false, center: ['50%', '50%'], borderRadius: 10, borderWidth: 0 } },
+                tooltip: { valueSuffix: ' cases' },
+                series: [{ name: 'Brackets', colorByPoint: true, data: mainData }],
+                drilldown: { 
+                    series: drilldownSeries,
+                    activeDataLabelStyle: { color: '#fff', textDecoration: 'none' }
                 },
-                title: { 
-                    text: 'PATIENT FLOW', 
-                    style: { color: '#6366f1', fontWeight: '900', fontSize: '10px', letterSpacing: '0.3em' } 
-                },
-                plotOptions: {
-                    pie: {
-                        innerSize: '75%',
-                        borderRadius: 15,
-                        borderWidth: 0,
-                        dataLabels: [{
-                            enabled: true,
-                            distance: 25,
-                            format: '{point.name}',
-                            style: { color: '#666', fontSize: '10px', textOutline: 'none' }
-                        }, {
-                            enabled: true,
-                            distance: -20,
-                            format: '{point.percentage:.0f}%',
-                            style: { color: '#fff', fontSize: '12px', textOutline: 'none' }
-                        }]
-                    }
-                },
-                series: [{
-                    name: 'Patients',
-                    data: [
-                        { name: 'NEW', y: newP, color: '#6366f1' },
-                        { name: 'OLD', y: oldP, color: '#10b981' }
-                    ]
-                }],
                 credits: { enabled: false }
             });
         }
@@ -207,10 +191,11 @@
             document.getElementById('countProcedure').innerText = displayData.filter(r => r.transaction_type === 'Procedure').length;
 
             renderDonut(displayData);
+            renderTATDrilldown(displayData);
         }
 
         syncData();
-        setInterval(syncData, 10000);
+        setInterval(syncData, 15000);
     </script>
 </body>
 </html>
