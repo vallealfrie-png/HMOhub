@@ -3,32 +3,39 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HMO Core | Minimalist</title>
+    <title>HMO Core | Interactive</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         body { background: #050505; color: #fff; font-family: 'Inter', sans-serif; }
         .glass { background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 1.5rem; }
-        .skeleton { background: #111; animation: pulse 1.5s infinite; border-radius: 0.5rem; }
-        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+        .associate-btn { transition: all 0.2s ease; cursor: pointer; }
+        .associate-btn:hover { background: rgba(99, 102, 241, 0.1); border-color: rgba(99, 102, 241, 0.5); color: #fff; }
+        .associate-btn.active { background: #6366f1; border-color: #6366f1; color: #fff; }
     </style>
 </head>
 <body class="flex min-h-screen">
 
-    <aside class="w-64 border-r border-white/5 p-6 flex flex-col gap-6">
+    <aside class="w-72 border-r border-white/5 p-6 flex flex-col gap-6">
         <div>
-            <h2 class="text-[10px] font-black text-indigo-500 uppercase tracking-[0.3em] mb-6">Associates</h2>
-            <div id="associateList" class="space-y-2">
-                <div class="skeleton h-10 w-full"></div>
-                <div class="skeleton h-10 w-full"></div>
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-[10px] font-black text-indigo-500 uppercase tracking-[0.3em]">Associates</h2>
+                <button onclick="filterByAssociate(null)" class="text-[9px] text-neutral-500 hover:text-white uppercase font-bold transition">Clear</button>
             </div>
+            <div id="associateList" class="space-y-2">
+                </div>
         </div>
     </aside>
 
     <main class="flex-1 p-10">
-        <header class="mb-12">
-            <h1 class="text-3xl font-black italic uppercase tracking-tighter">Command <span class="text-indigo-600">Core</span></h1>
-            <p id="status" class="text-[9px] font-bold text-neutral-500 mt-1 uppercase tracking-widest">Initialising Database...</p>
+        <header class="mb-12 flex justify-between items-start">
+            <div>
+                <h1 class="text-3xl font-black italic uppercase tracking-tighter">Command <span class="text-indigo-600">Core</span></h1>
+                <p id="status" class="text-[9px] font-bold text-neutral-500 mt-1 uppercase tracking-widest">Initialising...</p>
+            </div>
+            <div id="filterTag" class="hidden bg-indigo-600/20 text-indigo-400 text-[10px] font-black px-4 py-1.5 rounded-full border border-indigo-500/30 uppercase tracking-widest">
+                Viewing: <span id="currentFilterName">All</span>
+            </div>
         </header>
 
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -52,7 +59,10 @@
         const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpxbnFreHBzZWV1eW92dHFlemJjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3OTYyOTEsImV4cCI6MjA5MjM3MjI5MX0.uR9TcF4_J58cx7XsKx4BbAQcIeYBElgJpKglbMEyHQs";
         const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        async function syncCoreData() {
+        let cachedData = []; // Store data globally
+        let selectedAssociate = null;
+
+        async function syncData() {
             try {
                 const { data, error } = await _supabase
                     .from('hmo_monitoring')
@@ -61,33 +71,63 @@
                 if (error) throw error;
 
                 if (data) {
-                    // Update Status
-                    document.getElementById('status').innerText = `Live: ${data.length} Records Synced`;
-                    
-                    // 1. Update Scorecards
-                    document.getElementById('countConsult').innerText = data.filter(r => r.transaction_type === 'Consult').length;
-                    document.getElementById('countLoa').innerText = data.filter(r => r.transaction_type === 'Loa').length;
-                    document.getElementById('countProcedure').innerText = data.filter(r => r.transaction_type === 'Procedure').length;
-
-                    // 2. Update Associate Sidebar
-                    const uniqueAssociates = [...new Set(data.map(r => r.name_of_associate).filter(n => n))];
-                    document.getElementById('associateList').innerHTML = uniqueAssociates.map(name => `
-                        <div class="p-3 text-[11px] font-bold text-neutral-400 bg-white/5 rounded-xl border border-white/5 uppercase tracking-tighter">
-                            ${name}
-                        </div>
-                    `).join('');
+                    cachedData = data;
+                    updateSidebar();
+                    applyLogic();
                 }
             } catch (err) {
-                document.getElementById('status').innerText = "Sync Failed: " + err.message;
-                document.getElementById('status').classList.replace('text-neutral-500', 'text-red-500');
+                document.getElementById('status').innerText = "Error: " + err.message;
             }
         }
 
-        // Run once
-        syncCoreData();
+        function updateSidebar() {
+            const list = document.getElementById('associateList');
+            const uniqueNames = [...new Set(cachedData.map(r => r.name_of_associate).filter(n => n))].sort();
+            
+            list.innerHTML = uniqueNames.map(name => `
+                <div onclick="filterByAssociate('${name}')" 
+                     class="associate-btn p-3 text-[11px] font-bold text-neutral-400 bg-white/5 rounded-xl border border-white/5 uppercase tracking-tighter ${selectedAssociate === name ? 'active' : ''}">
+                    ${name}
+                </div>
+            `).join('');
+        }
 
-        // Optional: Simple 10-second poll instead of buggy WebSockets for now
-        setInterval(syncCoreData, 10000);
+        function filterByAssociate(name) {
+            selectedAssociate = name;
+            
+            // Show/Hide filter tag
+            const tag = document.getElementById('filterTag');
+            if (name) {
+                tag.classList.remove('hidden');
+                document.getElementById('currentFilterName').innerText = name;
+            } else {
+                tag.classList.add('hidden');
+            }
+
+            updateSidebar(); // Refresh active states
+            applyLogic();    // Refresh cards
+        }
+
+        function applyLogic() {
+            // Filter data based on selection
+            const displayData = selectedAssociate 
+                ? cachedData.filter(r => r.name_of_associate === selectedAssociate)
+                : cachedData;
+
+            // Update Status
+            document.getElementById('status').innerText = `Live: ${cachedData.length} Total Records`;
+            
+            // Update Scorecards
+            document.getElementById('countConsult').innerText = displayData.filter(r => r.transaction_type === 'Consult').length;
+            document.getElementById('countLoa').innerText = displayData.filter(r => r.transaction_type === 'Loa').length;
+            document.getElementById('countProcedure').innerText = displayData.filter(r => r.transaction_type === 'Procedure').length;
+        }
+
+        // Initial Load
+        syncData();
+
+        // Background Sync every 15 seconds
+        setInterval(syncData, 15000);
     </script>
 </body>
 </html>
