@@ -72,9 +72,9 @@
                             <option value="Procedure">Procedure (30m)</option>
                         </select>
                     </div>
-                    <div>
+                    <div id="doctor_field_container">
                         <label class="text-[10px] text-slate-500 ml-1 uppercase font-bold">Doctor/Procedure</label>
-                        <input type="text" name="doctor_procedure" placeholder="Specific Procedure" class="w-full rounded-lg p-2.5">
+                        <input type="text" name="doctor_procedure" id="doctor_procedure" placeholder="Specific Procedure" class="w-full rounded-lg p-2.5">
                     </div>
                     <div>
                         <label class="text-[10px] text-slate-500 ml-1 uppercase font-bold">Service</label>
@@ -134,25 +134,59 @@
         const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpxbnFreHBzZWV1eW92dHFlemJjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3OTYyOTEsImV4cCI6MjA5MjM3MjI5MX0.uR9TcF4_J58cx7XsKx4BbAQcIeYBElgJpKglbMEyHQs";
         const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        // New function to load guarantors into the dropdown
+        let cachedItems = [];
+
+        // --- DATA LOADERS ---
+
         async function loadGuarantors() {
             const select = document.getElementById('card_company_select');
-            const { data, error } = await _supabase
-                .from('hmo')
-                .select('guarantors')
-                .order('guarantors', { ascending: true });
-
+            const { data, error } = await _supabase.from('hmo').select('guarantors').order('guarantors', { ascending: true });
             if (!error && data) {
-                const uniqueGuarantors = [...new Set(data.map(item => item.guarantors))].filter(Boolean);
-                select.innerHTML = `
-                    <option value="">-- SELECT COMPANY --</option>
-                    <option value="CASH">CASH</option>
-                    ${uniqueGuarantors.map(g => `<option value="${g}">${g}</option>`).join('')}
-                `;
-            } else {
-                select.innerHTML = `<option value="">Error loading list</option>`;
+                const unique = [...new Set(data.map(i => i.guarantors))].filter(Boolean);
+                select.innerHTML = `<option value="">-- SELECT COMPANY --</option><option value="CASH">CASH</option>` + 
+                                  unique.map(g => `<option value="${g}">${g}</option>`).join('');
             }
         }
+
+        // Recursive Fetch for Items (>1000 rows)
+        async function loadItems(from = 0) {
+            const limit = 1000;
+            const { data, error } = await _supabase
+                .from('items')
+                .select('item_name')
+                .order('item_name', { ascending: true })
+                .range(from, from + limit - 1);
+
+            if (!error && data) {
+                cachedItems = [...cachedItems, ...data];
+                if (data.length === limit) {
+                    await loadItems(from + limit); // Recurse
+                }
+            }
+        }
+
+        // --- UI LOGIC ---
+
+        const transTypeSelect = document.getElementById('transaction_type');
+        const doctorFieldContainer = document.getElementById('doctor_field_container');
+
+        transTypeSelect.addEventListener('change', (e) => {
+            const val = e.target.value;
+            if (val === 'Loa' || val === 'Procedure') {
+                doctorFieldContainer.innerHTML = `
+                    <label class="text-[10px] text-slate-500 ml-1 uppercase font-bold">Doctor/Procedure</label>
+                    <select name="doctor_procedure" id="doctor_procedure" class="w-full rounded-lg p-2.5">
+                        <option value="">-- SELECT ITEM --</option>
+                        ${cachedItems.map(item => `<option value="${item.item_name}">${item.item_name}</option>`).join('')}
+                    </select>
+                `;
+            } else {
+                doctorFieldContainer.innerHTML = `
+                    <label class="text-[10px] text-slate-500 ml-1 uppercase font-bold">Doctor/Procedure</label>
+                    <input type="text" name="doctor_procedure" id="doctor_procedure" placeholder="Specific Procedure" class="w-full rounded-lg p-2.5">
+                `;
+            }
+        });
 
         function toggleForm() {
             const form = document.getElementById('formSection');
@@ -187,10 +221,8 @@
             tbody.innerHTML = data.map(row => {
                 const arrival = new Date(row.time_of_arrival);
                 const dateStr = arrival.toISOString().split('T')[0];
-                
                 const start = row.start_time_of_call ? new Date(row.start_time_of_call).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : '--';
                 const end = row.end_time_of_call ? new Date(row.end_time_of_call).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : '--';
-                
                 const status = row.turnaround_time || 'PENDING';
                 const statusStyle = status === 'MET' ? 'text-emerald-400 bg-emerald-400/10 border-emerald-500/50' : 
                                    status === 'NOT MET' ? 'text-red-400 bg-red-400/10 border-red-500/50' : 'text-slate-500 bg-slate-800 border-slate-700';
@@ -225,8 +257,7 @@
         document.getElementById('hmoForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const btn = document.getElementById('submitBtn');
-            btn.innerText = "SAVING...";
-            btn.disabled = true;
+            btn.innerText = "SAVING..."; btn.disabled = true;
 
             const formData = new FormData(e.target);
             const entry = Object.fromEntries(formData.entries());
@@ -247,23 +278,27 @@
             entry.end_time_of_call = document.getElementById('end_time_of_call').value || null;
 
             const { error } = await _supabase.from('hmo_monitoring').insert([entry]);
-
             if (error) alert(error.message);
             else {
                 e.target.reset();
                 document.getElementById('start_time_display').value = "";
                 document.getElementById('end_time_display').value = "";
+                // Reset doctor field back to input if it was a select
+                doctorFieldContainer.innerHTML = `
+                    <label class="text-[10px] text-slate-500 ml-1 uppercase font-bold">Doctor/Procedure</label>
+                    <input type="text" name="doctor_procedure" id="doctor_procedure" placeholder="Specific Procedure" class="w-full rounded-lg p-2.5">
+                `;
                 toggleForm();
                 fetchRecords();
             }
-            btn.innerText = "SAVE RECORD";
-            btn.disabled = false;
+            btn.innerText = "SAVE RECORD"; btn.disabled = false;
         });
 
         _supabase.channel('hmo_realtime').on('postgres_changes', { event: '*', schema: 'public', table: 'hmo_monitoring' }, fetchRecords).subscribe();
         
-        // Initial data loads
+        // Initial Startup
         loadGuarantors();
+        loadItems(); // Fetches all items recursively
         fetchRecords();
     </script>
 </body>
