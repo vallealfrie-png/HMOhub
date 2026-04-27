@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HMO Intelligence | Minimal</title>
+    <title>HMO Intelligence | Direct Sync</title>
     <script src="https://code.highcharts.com/highcharts.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -37,7 +37,7 @@
                 <h1 class="text-xl font-black uppercase tracking-tighter text-white">
                     HMO Central <span class="text-indigo-500">Intelligence</span>
                 </h1>
-                <p id="status" class="text-[8px] font-bold text-neutral-600 uppercase tracking-widest">Link Stable</p>
+                <p id="status" class="text-[8px] font-bold text-neutral-600 uppercase tracking-widest text-emerald-500">System Ready</p>
             </div>
             <div id="filterTag" class="hidden glass px-3 py-1 border-indigo-500/30">
                 <p id="currentFilterName" class="text-[9px] font-black uppercase text-indigo-500 tracking-widest">Global</p>
@@ -84,9 +84,11 @@
             
             if (data) {
                 masterData = data;
-                document.getElementById('status').innerText = `${masterData.length} Records Decrypted`;
                 setupSidebar();
                 render('all');
+            } else if (error) {
+                document.getElementById('status').innerText = "LINK ERROR";
+                console.error(error);
             }
         }
 
@@ -128,12 +130,15 @@
                 { name: 'OLD', y: data.filter(r => r.patient_type === 'Old').length, color: '#10b981' }
             ], '70%');
 
-            // Chart 2: SLA Status (Pie - Solid)
-            const met = data.filter(r => r.turnaround_time <= 20).length;
-            const notMet = data.filter(r => r.turnaround_time > 20).length;
+            // Chart 2: SLA Status (Direct mapping of turnaround_time column)
+            const met = data.filter(r => r.turnaround_time === 'Met').length;
+            const notMet = data.filter(r => r.turnaround_time === 'Not Met').length;
+            const pending = data.filter(r => r.turnaround_time === 'Pending').length;
+
             drawHigh('slaPie', 'SLA Status', [
                 { name: 'MET', y: met, color: '#10b981' },
-                { name: 'NOT MET', y: notMet, color: '#f43f5e' }
+                { name: 'NOT MET', y: notMet, color: '#f43f5e' },
+                { name: 'PENDING', y: pending, color: '#f59e0b' }
             ], '0%');
         }
 
@@ -142,7 +147,11 @@
                 chart: { type: 'pie', backgroundColor: 'transparent', height: 280 },
                 title: { text: title.toUpperCase(), style: { color: '#FFFFFF', fontSize: '10px', fontWeight: '900', letterSpacing: '2px' } },
                 credits: { enabled: false },
-                tooltip: { enabled: true, backgroundColor: '#000', style: { color: '#fff' } },
+                tooltip: { 
+                    backgroundColor: '#000', 
+                    style: { color: '#fff' },
+                    pointFormat: '{series.name}: <b>{point.y}</b>'
+                },
                 plotOptions: {
                     pie: {
                         innerSize: innerSize,
@@ -150,8 +159,7 @@
                         dataLabels: {
                             enabled: true,
                             format: '{point.name}',
-                            distance: 15,
-                            style: { color: '#666', fontSize: '8px', fontWeight: 'bold', textOutline: 'none' }
+                            style: { color: '#888', fontSize: '9px', textOutline: 'none' }
                         }
                     }
                 },
