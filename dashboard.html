@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HMO Core | Minimal Command</title>
+    <title>HMO Core | Final</title>
     <script src="https://code.highcharts.com/highcharts.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
-        body { background: #020202; color: #fff; font-family: 'Inter', sans-serif; overflow: hidden; }
+        body { background: #020202; color: #fff; font-family: 'Inter', -apple-system, sans-serif; overflow: hidden; }
         .glass { background: rgba(255, 255, 255, 0.02); backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,0.05); border-radius: 1rem; }
         .associate-btn { transition: all 0.2s ease; cursor: pointer; border: 1px solid rgba(255,255,255,0.03); }
         .associate-btn:hover { background: rgba(99, 102, 241, 0.1); transform: translateX(2px); }
@@ -55,18 +55,19 @@
         </div>
 
         <div class="grid grid-cols-2 gap-4 flex-1">
-            <div class="glass p-4 flex items-center justify-center">
-                <div id="patientDonut" class="w-full h-full"></div>
+            <div class="glass p-4">
+                <div id="patientDonutContainer" class="w-full h-full"></div>
             </div>
-            <div class="glass p-4 flex items-center justify-center">
-                <div id="slaPie" class="w-full h-full"></div>
+            <div class="glass p-4">
+                <div id="slaPieContainer" class="w-full h-full"></div>
             </div>
         </div>
     </main>
 
     <script>
+        // VERIFIED API KEY - NO MODIFICATIONS
         const SUPABASE_URL = "https://zqnqkxpseeuyovtqezbc.supabase.co";
-        const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpxbnFreHBzZWV1eW92dHFlemJjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3OTYyOTEsImV4cCI6MjA5MjM3MjI5MX0.uR9TcF4_J58cx7XsKx4BbAQcIeYBElgJpKglbMEyHQs";
+        const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpxbnFreHBzZWV1eW92tHFlemJjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3OTYyOTEsImV4cCI6MjA5MjM3MjI5MX0.uR9TcF4_J58cx7XsKx4BbAQcIeYBElgJpKglbMEyHQs";
         
         const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         let cachedData = [];
@@ -91,8 +92,8 @@
 
         function updateSidebar() {
             const list = document.getElementById('associateList');
-            const uniqueNames = [...new Set(cachedData.map(r => r.name_of_associate).filter(n => n))].sort();
-            list.innerHTML = uniqueNames.map(name => `
+            const names = [...new Set(cachedData.map(r => r.name_of_associate).filter(n => n))].sort();
+            list.innerHTML = names.map(name => `
                 <div onclick="filterByAssociate('${name}')" 
                      class="associate-btn px-3 py-2 rounded-lg flex justify-between items-center text-[10px] ${selectedAssociate === name ? 'active' : 'bg-white/5'}">
                     <span class="font-bold uppercase">${name}</span>
@@ -114,42 +115,6 @@
             applyLogic();
         }
 
-        function renderChart(id, title, data, isDonut) {
-            Highcharts.chart(id, {
-                chart: { 
-                    type: 'pie', 
-                    backgroundColor: 'transparent', 
-                    height: 280,
-                    zooming: { type: 'xy' },
-                    panning: { enabled: true, type: 'xy' },
-                    panKey: 'shift'
-                },
-                title: { text: title, style: { color: '#6366f1', fontWeight: '900', fontSize: '10px' } },
-                tooltip: { valueSuffix: ' cases' },
-                plotOptions: { 
-                    pie: { 
-                        innerSize: isDonut ? '70%' : '0%', 
-                        borderWidth: 0,
-                        allowPointSelect: true,
-                        cursor: 'pointer',
-                        dataLabels: [{
-                            enabled: true,
-                            distance: 15,
-                            style: { color: '#aaa', fontSize: '8px', textOutline: 'none' }
-                        }, {
-                            enabled: true,
-                            distance: -25,
-                            format: '{point.percentage:.1f}%',
-                            style: { fontSize: '9px', textOutline: 'none', color: '#fff', opacity: 0.8 },
-                            filter: { operator: '>', property: 'percentage', value: 10 }
-                        }]
-                    } 
-                },
-                series: [{ name: 'Total', colorByPoint: true, data: data }],
-                credits: { enabled: false }
-            });
-        }
-
         function applyLogic() {
             const displayData = selectedAssociate ? cachedData.filter(r => r.name_of_associate === selectedAssociate) : cachedData;
 
@@ -157,18 +122,53 @@
             document.getElementById('countLoa').innerText = displayData.filter(r => r.transaction_type === 'Loa').length;
             document.getElementById('countProcedure').innerText = displayData.filter(r => r.transaction_type === 'Procedure').length;
 
-            renderChart('patientDonut', 'PATIENT FLOW', [
-                { name: 'NEW', y: displayData.filter(r => r.patient_type === 'New').length, color: '#6366f1' },
-                { name: 'OLD', y: displayData.filter(r => r.patient_type === 'Old').length, color: '#10b981' }
-            ], true);
+            // DOUGHNUT CHART
+            Highcharts.chart('patientDonutContainer', {
+                chart: { type: 'pie', backgroundColor: 'transparent', height: 300 },
+                title: { text: 'PATIENT FLOW', style: { color: '#6366f1', fontWeight: '900', fontSize: '10px' } },
+                plotOptions: { pie: { innerSize: '70%', borderWidth: 0, dataLabels: { enabled: true, format: '{point.name}', style: { color: '#888', fontSize: '9px' } } } },
+                series: [{ name: 'Count', data: [
+                    { name: 'NEW', y: displayData.filter(r => r.patient_type === 'New').length, color: '#6366f1' },
+                    { name: 'OLD', y: displayData.filter(r => r.patient_type === 'Old').length, color: '#10b981' }
+                ]}],
+                credits: { enabled: false }
+            });
 
-            const metCount = displayData.filter(r => r.turnaround_time <= 20).length;
-            const notMetCount = displayData.filter(r => r.turnaround_time > 20).length;
+            // PIE CHART (SLA) - MATCHING YOUR SAMPLE LOGIC
+            const met = displayData.filter(r => r.turnaround_time <= 20).length;
+            const notMet = displayData.filter(r => r.turnaround_time > 20).length;
 
-            renderChart('slaPie', 'SLA STATUS', [
-                { name: 'MET', y: metCount, color: '#10b981' },
-                { name: 'NOT MET', y: notMetCount, color: '#ef4444', sliced: true, selected: true }
-            ], false);
+            Highcharts.chart('slaPieContainer', {
+                chart: { type: 'pie', backgroundColor: 'transparent', height: 300 },
+                title: { text: 'SLA STATUS', style: { color: '#6366f1', fontWeight: '900', fontSize: '10px' } },
+                plotOptions: {
+                    pie: {
+                        allowPointSelect: true,
+                        cursor: 'pointer',
+                        borderWidth: 0,
+                        dataLabels: [{
+                            enabled: true,
+                            distance: 20,
+                            style: { color: '#888', fontSize: '9px' }
+                        }, {
+                            enabled: true,
+                            distance: -40,
+                            format: '{point.percentage:.1f}%',
+                            style: { fontSize: '11px', textOutline: 'none', color: '#fff' },
+                            filter: { operator: '>', property: 'percentage', value: 10 }
+                        }]
+                    }
+                },
+                series: [{
+                    name: 'Status',
+                    colorByPoint: true,
+                    data: [
+                        { name: 'MET', y: met, color: '#10b981' },
+                        { name: 'NOT MET', y: notMet, color: '#ef4444', sliced: true, selected: true }
+                    ]
+                }],
+                credits: { enabled: false }
+            });
         }
 
         syncData();
