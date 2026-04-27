@@ -3,76 +3,72 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HMO Core | Command Center</title>
+    <title>HMO Core | Minimal</title>
     <script src="https://code.highcharts.com/highcharts.js"></script>
     <script src="https://code.highcharts.com/modules/drilldown.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
-        body { background: #020202; color: #fff; font-family: 'Inter', sans-serif; overflow-x: hidden; }
-        .glass { background: rgba(255, 255, 255, 0.02); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.05); border-radius: 2rem; }
-        .associate-btn { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); cursor: pointer; border: 1px solid rgba(255,255,255,0.03); }
-        .associate-btn:hover { background: rgba(99, 102, 241, 0.1); border-color: rgba(99, 102, 241, 0.3); transform: translateX(5px); }
-        .associate-btn.active { background: #6366f1; border-color: #6366f1; color: #fff; box-shadow: 0 10px 20px -10px #6366f1; }
-        .highcharts-breadcrumbs-button text { fill: #6366f1 !important; font-weight: bold !important; }
+        body { background: #020202; color: #fff; font-family: 'Inter', sans-serif; overflow: hidden; }
+        .glass { background: rgba(255, 255, 255, 0.02); backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,0.05); border-radius: 1rem; }
+        .associate-btn { transition: all 0.2s ease; cursor: pointer; border: 1px solid rgba(255,255,255,0.03); }
+        .associate-btn:hover { background: rgba(99, 102, 241, 0.1); transform: translateX(2px); }
+        .associate-btn.active { background: #6366f1; color: #fff; }
+        /* Minimal Scrollbar */
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-thumb { background: #333; border-radius: 10px; }
     </style>
 </head>
-<body class="flex min-h-screen">
+<body class="flex h-screen overflow-hidden">
 
-    <aside class="w-80 border-r border-white/5 p-8 flex flex-col gap-8 bg-black/50">
-        <div>
-            <div class="flex justify-between items-center mb-8">
-                <div>
-                    <h2 class="text-[10px] font-black text-indigo-500 uppercase tracking-[0.4em]">Operations</h2>
-                    <h3 class="text-xl font-black italic uppercase">Associates</h3>
-                </div>
-                <button onclick="filterByAssociate(null)" class="text-[9px] bg-white/5 hover:bg-white/10 px-3 py-1 rounded-full text-neutral-400 hover:text-white uppercase font-black transition">Reset</button>
-            </div>
-            <div id="associateList" class="space-y-3"></div>
+    <aside class="w-64 border-r border-white/5 p-5 flex flex-col gap-4 bg-black/50 overflow-y-auto">
+        <div class="flex justify-between items-center">
+            <h3 class="text-xs font-black uppercase tracking-tighter text-indigo-500">Associates</h3>
+            <button onclick="filterByAssociate(null)" class="text-[8px] bg-white/5 px-2 py-1 rounded text-neutral-400 uppercase font-bold">Reset</button>
         </div>
+        <div id="associateList" class="space-y-1"></div>
     </aside>
 
-    <main class="flex-1 p-10 overflow-y-auto">
-        <header class="mb-12 flex justify-between items-end">
+    <main class="flex-1 p-6 flex flex-col gap-6 overflow-y-auto">
+        <header class="flex justify-between items-center">
             <div>
-                <h1 class="text-5xl font-black italic uppercase tracking-tighter">HMO <span class="text-indigo-600">Hub</span></h1>
-                <p id="status" class="text-[10px] font-bold text-neutral-500 mt-2 uppercase tracking-[0.3em]">Connecting...</p>
+                <h1 class="text-2xl font-black italic uppercase tracking-tighter">HMO <span class="text-indigo-600">Hub</span></h1>
+                <p id="status" class="text-[8px] font-bold text-neutral-600 uppercase tracking-widest">Initial Sync...</p>
             </div>
-            <div id="filterTag" class="hidden glass px-6 py-2 border-indigo-500/30">
-                <p class="text-[9px] font-black text-indigo-500 uppercase tracking-widest">Active Filter</p>
-                <p id="currentFilterName" class="text-sm font-black uppercase italic">All Staff</p>
+            <div id="filterTag" class="hidden glass px-3 py-1 border-indigo-500/30">
+                <p id="currentFilterName" class="text-[10px] font-black uppercase">All</p>
             </div>
         </header>
 
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
-            <div class="glass p-8 border-l-4 border-indigo-600">
-                <p class="text-[10px] font-black text-neutral-500 uppercase tracking-widest">Consultations</p>
-                <h3 id="countConsult" class="text-6xl font-black mt-2 tabular-nums">--</h3>
+        <div class="grid grid-cols-3 gap-3">
+            <div class="glass p-4 border-l-2 border-indigo-600">
+                <p class="text-[8px] font-black text-neutral-500 uppercase">Consults</p>
+                <h3 id="countConsult" class="text-3xl font-black tabular-nums">--</h3>
             </div>
-            <div class="glass p-8 border-l-4 border-emerald-600">
-                <p class="text-[10px] font-black text-neutral-500 uppercase tracking-widest">LOA Issued</p>
-                <h3 id="countLoa" class="text-6xl font-black mt-2 tabular-nums">--</h3>
+            <div class="glass p-4 border-l-2 border-emerald-600">
+                <p class="text-[8px] font-black text-neutral-500 uppercase">LOAs</p>
+                <h3 id="countLoa" class="text-3xl font-black tabular-nums">--</h3>
             </div>
-            <div class="glass p-8 border-l-4 border-purple-600">
-                <p class="text-[10px] font-black text-neutral-500 uppercase tracking-widest">Procedures</p>
-                <h3 id="countProcedure" class="text-6xl font-black mt-2 tabular-nums">--</h3>
+            <div class="glass p-4 border-l-2 border-purple-600">
+                <p class="text-[8px] font-black text-neutral-500 uppercase">Procedures</p>
+                <h3 id="countProcedure" class="text-3xl font-black tabular-nums">--</h3>
             </div>
         </div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div class="glass p-10">
-                <div id="patientDonutContainer"></div>
+        <div class="grid grid-cols-2 gap-4 flex-1">
+            <div class="glass p-4 flex items-center justify-center">
+                <div id="patientPieContainer" class="w-full h-full"></div>
             </div>
-            <div class="glass p-10">
-                <div id="slaChartContainer"></div>
+            <div class="glass p-4 flex items-center justify-center">
+                <div id="slaPieContainer" class="w-full h-full"></div>
             </div>
         </div>
     </main>
 
     <script>
         const SUPABASE_URL = "https://zqnqkxpseeuyovtqezbc.supabase.co";
-        const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpxbnFreHBzZWV1eW92dHFlemJjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3OTYyOTEsImV4cCI6MjA5MjM3MjI5MX0.uR9TcF4_J58cx7XsKx4BbAQcIeYBElgJpKglbMEyHQs";
+        const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpxbnFreHBzZWV1eW92tHFlemJjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3OTYyOTEsImV4cCI6MjA5MjM3MjI5MX0.uR9TcF4_J58cx7XsKx4BbAQcIeYBElgJpKglbMEyHQs";
         
         const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
@@ -88,12 +84,12 @@
                 if (error) throw error;
                 if (data) {
                     cachedData = data;
-                    document.getElementById('status').innerText = `Live: ${cachedData.length} Records Synced`;
+                    document.getElementById('status').innerText = `${cachedData.length} Records Loaded`;
                     updateSidebar();
                     applyLogic();
                 }
             } catch (err) {
-                document.getElementById('status').innerText = "Sync Failed: " + err.message;
+                document.getElementById('status').innerText = "ERROR: " + err.message;
             }
         }
 
@@ -102,9 +98,9 @@
             const uniqueNames = [...new Set(cachedData.map(r => r.name_of_associate).filter(n => n))].sort();
             list.innerHTML = uniqueNames.map(name => `
                 <div onclick="filterByAssociate('${name}')" 
-                     class="associate-btn p-4 rounded-2xl flex justify-between items-center ${selectedAssociate === name ? 'active' : 'bg-white/5'}">
-                    <span class="text-[11px] font-black uppercase tracking-tighter">${name}</span>
-                    <span class="text-[9px] opacity-40 font-mono">${cachedData.filter(r => r.name_of_associate === name).length}</span>
+                     class="associate-btn px-3 py-2 rounded-lg flex justify-between items-center text-[10px] ${selectedAssociate === name ? 'active' : 'bg-white/5'}">
+                    <span class="font-bold uppercase">${name}</span>
+                    <span class="opacity-40">${cachedData.filter(r => r.name_of_associate === name).length}</span>
                 </div>
             `).join('');
         }
@@ -122,49 +118,23 @@
             applyLogic();
         }
 
-        function renderDonut(records) {
-            const newP = records.filter(r => r.patient_type === 'New').length;
-            const oldP = records.filter(r => r.patient_type === 'Old').length;
-            Highcharts.chart('patientDonutContainer', {
-                chart: { type: 'pie', backgroundColor: 'transparent', height: 400 },
-                title: { text: 'PATIENT FLOW', style: { color: '#6366f1', fontWeight: '900', fontSize: '10px', letterSpacing: '0.3em' } },
-                plotOptions: { pie: { innerSize: '80%', borderRadius: 10, borderWidth: 0, dataLabels: { enabled: false }, showInLegend: true } },
-                legend: { itemStyle: { color: '#aaa', fontSize: '10px' } },
-                series: [{ name: 'Patients', data: [{name: 'NEW', y: newP, color:'#6366f1'}, {name: 'OLD', y: oldP, color:'#10b981'}] }],
-                credits: { enabled: false }
-            });
-        }
-
-        function renderSLAChart(records) {
-            // Logic: Met is <= 20 mins, Not Met is > 20 mins
-            const metData = records.filter(r => r.turnaround_time <= 20);
-            const notMetData = records.filter(r => r.turnaround_time > 20);
-
-            const getTypes = (arr) => {
-                const types = ['Consult', 'Loa', 'Procedure'];
-                return types.map(t => [t, arr.filter(r => r.transaction_type === t).length]);
-            };
-
-            Highcharts.chart('slaChartContainer', {
-                chart: { type: 'pie', backgroundColor: 'transparent', height: 400 },
-                title: { text: 'SLA PERFORMANCE', style: { color: '#6366f1', fontWeight: '900', fontSize: '10px', letterSpacing: '0.3em' } },
-                subtitle: { text: 'Target: 20 Minutes', style: { color: '#666', fontSize: '9px' } },
-                plotOptions: { pie: { borderRadius: 10, borderWidth: 0 } },
-                series: [{
-                    name: 'Status',
-                    colorByPoint: true,
-                    data: [
-                        { name: 'MET', y: metData.length, color: '#10b981', drilldown: 'met' },
-                        { name: 'NOT MET', y: notMetData.length, color: '#ef4444', drilldown: 'notmet' }
-                    ]
-                }],
-                drilldown: {
-                    series: [
-                        { id: 'met', name: 'Met Breakdown', data: getTypes(metData) },
-                        { id: 'notmet', name: 'Not Met Breakdown', data: getTypes(notMetData) }
-                    ],
-                    activeDataLabelStyle: { color: '#fff', textDecoration: 'none' }
+        function renderPie(id, title, data, seriesName) {
+            Highcharts.chart(id, {
+                chart: { type: 'pie', backgroundColor: 'transparent', height: 280 },
+                title: { text: title, style: { color: '#6366f1', fontWeight: '900', fontSize: '9px', letterSpacing: '0.1em' } },
+                plotOptions: { 
+                    pie: { 
+                        borderWidth: 0, 
+                        dataLabels: { 
+                            enabled: true, 
+                            format: '{point.name}: {point.y}', 
+                            style: { color: '#888', fontSize: '8px', textOutline: 'none' },
+                            distance: 10
+                        },
+                        showInLegend: false
+                    } 
                 },
+                series: [{ name: seriesName, colorByPoint: true, data: data }],
                 credits: { enabled: false }
             });
         }
@@ -178,12 +148,25 @@
             document.getElementById('countLoa').innerText = displayData.filter(r => r.transaction_type === 'Loa').length;
             document.getElementById('countProcedure').innerText = displayData.filter(r => r.transaction_type === 'Procedure').length;
 
-            renderDonut(displayData);
-            renderSLAChart(displayData);
+            // Patient Flow Pie
+            const newP = displayData.filter(r => r.patient_type === 'New').length;
+            const oldP = displayData.filter(r => r.patient_type === 'Old').length;
+            renderPie('patientPieContainer', 'PATIENT FLOW', [
+                { name: 'NEW', y: newP, color: '#6366f1' },
+                { name: 'OLD', y: oldP, color: '#10b981' }
+            ], 'Count');
+
+            // SLA Pie (Target 20m)
+            const met = displayData.filter(r => r.turnaround_time <= 20).length;
+            const notMet = displayData.filter(r => r.turnaround_time > 20).length;
+            renderPie('slaPieContainer', 'SLA STATUS', [
+                { name: 'MET', y: met, color: '#10b981' },
+                { name: 'NOT MET', y: notMet, color: '#ef4444' }
+            ], 'Cases');
         }
 
+        // Removed setInterval to prevent auto-refresh on charts
         syncData();
-        setInterval(syncData, 15000);
     </script>
 </body>
 </html>
