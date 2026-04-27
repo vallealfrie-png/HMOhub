@@ -3,11 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HMO Hub</title>
+    <title>HMO Hub | Integrated Intelligence</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://code.highcharts.com/highcharts.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        body { background: #0f172a; min-height: 100vh; color: white; }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
+        body { background: #0f172a; min-height: 100vh; color: white; font-family: 'Inter', sans-serif; }
         .glass-card { background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); }
         input, select, textarea { 
             background: rgba(15, 23, 42, 0.8) !important; 
@@ -17,23 +19,34 @@
         .table-container { border-radius: 12px; overflow: hidden; border: 1px solid rgba(255, 255, 255, 0.1); }
         tr:nth-child(even) { background: rgba(255, 255, 255, 0.02); }
         .status-pill { font-size: 10px; font-weight: 900; padding: 2px 10px; border-radius: 9999px; border-width: 1px; text-transform: uppercase; }
+        /* Fix for Highcharts height collapse */
+        .chart-frame { height: 320px; width: 100%; }
     </style>
 </head>
-<body class="p-4 md:p-8 font-sans text-slate-200">
+<body class="p-4 md:p-8">
 
     <div class="max-w-7xl mx-auto">
         <header class="mb-8 flex justify-between items-center">
             <div>
-                <h1 class="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-emerald-400">HMO Hub Dashboard</h1>
-                <p class="text-slate-500 text-sm">Real-time Patient Monitoring</p>
+                <h1 class="text-3xl font-black bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-emerald-400 uppercase tracking-tighter">HMO Hub Intelligence</h1>
+                <p class="text-slate-500 text-xs font-bold uppercase tracking-widest" id="db_status">System Online</p>
             </div>
             <button onclick="toggleForm()" class="bg-blue-600 hover:bg-blue-500 px-6 py-2 rounded-lg font-bold transition flex items-center gap-2">
                 <span id="toggleIcon">+</span> Add New Patient
             </button>
         </header>
 
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+            <div class="glass-card p-4 rounded-2xl">
+                <div id="patientDonut" class="chart-frame"></div>
+            </div>
+            <div class="glass-card p-4 rounded-2xl">
+                <div id="slaPie" class="chart-frame"></div>
+            </div>
+        </div>
+
         <div id="formSection" class="hidden mb-12">
-            <form id="hmoForm" class="glass-card rounded-2xl p-6 md:p-8 space-y-6 shadow-2xl">
+            <form id="hmoForm" class="glass-card rounded-2xl p-6 md:p-8 space-y-6 shadow-2xl border-blue-500/20">
                 <div class="flex justify-between items-center border-b border-slate-800 pb-4">
                     <h2 class="text-xl font-semibold text-blue-400">New Patient Entry</h2>
                     <div class="text-right">
@@ -50,7 +63,9 @@
                     </div>
                     <div>
                         <label class="text-[10px] text-slate-500 ml-1 uppercase font-bold">Card/Company</label>
-                        <input type="text" name="card_company" placeholder="e.g. Maxicare" class="w-full rounded-lg p-2.5">
+                        <select name="card_company" id="card_company_select" class="w-full rounded-lg p-2.5">
+                            <option value="">Loading Guarantors...</option>
+                        </select>
                     </div>
                     <div>
                         <label class="text-[10px] text-slate-500 ml-1 uppercase font-bold">Patient Type</label>
@@ -115,9 +130,9 @@
                         <tr>
                             <th class="p-4">Patient</th>
                             <th class="p-4">Transaction</th>
-                            <th class="p-4">Arrival Date & Time</th>
+                            <th class="p-4">Arrival</th>
                             <th class="p-4">Call Logs</th>
-                            <th class="p-4">TAT Status</th>
+                            <th class="p-4">SLA Status</th>
                             <th class="p-4">Associate</th>
                         </tr>
                     </thead>
@@ -132,6 +147,7 @@
         const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpxbnFreHBzZWV1eW92dHFlemJjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3OTYyOTEsImV4cCI6MjA5MjM3MjI5MX0.uR9TcF4_J58cx7XsKx4BbAQcIeYBElgJpKglbMEyHQs";
         const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
+        // --- CORE UI FUNCTIONS ---
         function toggleForm() {
             const form = document.getElementById('formSection');
             form.classList.toggle('hidden');
@@ -155,56 +171,89 @@
             document.getElementById('end_time_of_call').value = now.toISOString();
         });
 
-        async function fetchRecords() {
-            const { data, error } = await _supabase.from('hmo_monitoring').select('*').order('created_at', { ascending: false });
-            if (!error) renderTable(data);
+        // --- DATA FETCHING ---
+        async function loadGuarantors() {
+            const select = document.getElementById('card_company_select');
+            const { data, error } = await _supabase.from('hmo').select('guarantors').order('guarantors', { ascending: true });
+            if (!error && data) {
+                const unique = [...new Set(data.map(i => i.guarantors))].filter(Boolean);
+                select.innerHTML = `<option value="">-- SELECT COMPANY --</option><option value="CASH">CASH</option>` + 
+                                  unique.map(g => `<option value="${g}">${g}</option>`).join('');
+            }
         }
 
+        async function fetchRecords() {
+            const { data, error } = await _supabase.from('hmo_monitoring').select('*').order('created_at', { ascending: false });
+            if (!error) {
+                renderTable(data);
+                updateCharts(data);
+            }
+        }
+
+        // --- RENDERING ---
         function renderTable(data) {
             const tbody = document.getElementById('dataTableBody');
             tbody.innerHTML = data.map(row => {
                 const arrival = new Date(row.time_of_arrival);
-                const dateStr = arrival.toISOString().split('T')[0];
-                
                 const start = row.start_time_of_call ? new Date(row.start_time_of_call).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : '--';
                 const end = row.end_time_of_call ? new Date(row.end_time_of_call).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : '--';
-                
                 const status = row.turnaround_time || 'PENDING';
-                const statusStyle = status === 'MET' ? 'text-emerald-400 bg-emerald-400/10 border-emerald-500/50' : 
-                                   status === 'NOT MET' ? 'text-red-400 bg-red-400/10 border-red-500/50' : 'text-slate-500 bg-slate-800 border-slate-700';
+                
+                let pillColor = 'text-slate-500 bg-slate-800 border-slate-700';
+                if(status === 'MET') pillColor = 'text-emerald-400 bg-emerald-400/10 border-emerald-500/50';
+                if(status === 'NOT MET') pillColor = 'text-red-400 bg-red-400/10 border-red-500/50';
 
-                return `
-                    <tr class="border-b border-slate-800 hover:bg-white/5 transition">
-                        <td class="p-4">
-                            <div class="font-bold text-sm text-white">${row.patient_name}</div>
-                            <div class="text-[10px] text-slate-400 tracking-wider uppercase">${row.patient_type} | ${row.card_company || 'CASH'}</div>
-                        </td>
-                        <td class="p-4">
-                            <div class="text-blue-400 font-semibold">${row.transaction_type}</div>
-                            <div class="text-[10px] text-slate-500 font-mono italic">${row.doctor_procedure || ''} ${row.service ? '('+row.service+')' : ''}</div>
-                        </td>
-                        <td class="p-4 font-mono text-slate-300">
-                            <div class="text-xs font-bold">${dateStr}</div>
-                            <div class="text-[10px] text-slate-500">${arrival.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</div>
-                        </td>
-                        <td class="p-4">
-                            <div class="text-[10px] text-blue-400">START: ${start}</div>
-                            <div class="text-[10px] text-emerald-400">END: ${end}</div>
-                        </td>
-                        <td class="p-4">
-                            <span class="status-pill border ${statusStyle}">${status}</span>
-                        </td>
-                        <td class="p-4 text-slate-400 uppercase text-[10px]">${row.name_of_associate || '-'}</td>
-                    </tr>
-                `;
+                return `<tr class="border-b border-slate-800 hover:bg-white/5 transition">
+                    <td class="p-4">
+                        <div class="font-bold text-white">${row.patient_name}</div>
+                        <div class="text-[9px] text-slate-400 uppercase">${row.patient_type} | ${row.card_company || 'CASH'}</div>
+                    </td>
+                    <td class="p-4 text-blue-400 font-semibold">${row.transaction_type}</td>
+                    <td class="p-4 font-mono text-[10px] text-slate-400">${arrival.toLocaleTimeString()}</td>
+                    <td class="p-4 text-[9px]"><div class="text-blue-400">S: ${start}</div><div class="text-emerald-400">E: ${end}</div></td>
+                    <td class="p-4"><span class="status-pill border ${pillColor}">${status}</span></td>
+                    <td class="p-4 text-slate-500 uppercase text-[10px]">${row.name_of_associate || '-'}</td>
+                </tr>`;
             }).join('');
         }
 
+        // --- CHARTS LOGIC ---
+        function updateCharts(data) {
+            // Patient Flow
+            drawHigh('patientDonut', 'Patient Volume', [
+                { name: 'NEW', y: data.filter(r => r.patient_type === 'New').length, color: '#6366f1' },
+                { name: 'OLD', y: data.filter(r => r.patient_type === 'Old').length, color: '#10b981' }
+            ], '70%');
+
+            // SLA Status (Direct Column Map)
+            drawHigh('slaPie', 'SLA Status', [
+                { name: 'MET', y: data.filter(r => r.turnaround_time === 'MET').length, color: '#10b981' },
+                { name: 'NOT MET', y: data.filter(r => r.turnaround_time === 'NOT MET').length, color: '#f43f5e' },
+                { name: 'PENDING', y: data.filter(r => !r.turnaround_time || r.turnaround_time === 'PENDING').length, color: '#64748b' }
+            ], '0%');
+        }
+
+        function drawHigh(id, title, data, innerSize) {
+            Highcharts.chart(id, {
+                chart: { type: 'pie', backgroundColor: 'transparent' },
+                title: { text: title.toUpperCase(), style: { color: '#94a3b8', fontSize: '10px', fontWeight: '900', letterSpacing: '2px' } },
+                credits: { enabled: false },
+                plotOptions: {
+                    pie: {
+                        innerSize: innerSize,
+                        borderWidth: 0,
+                        dataLabels: { enabled: true, format: '{point.name}', style: { color: '#64748b', fontSize: '9px', textOutline: 'none' } }
+                    }
+                },
+                series: [{ name: 'Total', data: data }]
+            });
+        }
+
+        // --- FORM SUBMISSION ---
         document.getElementById('hmoForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const btn = document.getElementById('submitBtn');
-            btn.innerText = "SAVING...";
-            btn.disabled = true;
+            btn.innerText = "SAVING..."; btn.disabled = true;
 
             const formData = new FormData(e.target);
             const entry = Object.fromEntries(formData.entries());
@@ -219,27 +268,21 @@
             } else {
                 entry.turnaround_time = "PENDING";
             }
-            
-            entry.time_of_arrival = arrival.toISOString();
-            entry.start_time_of_call = document.getElementById('start_time_of_call').value || null;
-            entry.end_time_of_call = document.getElementById('end_time_of_call').value || null;
 
             const { error } = await _supabase.from('hmo_monitoring').insert([entry]);
-
             if (error) alert(error.message);
             else {
                 e.target.reset();
-                document.getElementById('start_time_display').value = "";
-                document.getElementById('end_time_display').value = "";
                 toggleForm();
                 fetchRecords();
             }
-            btn.innerText = "SAVE RECORD";
-            btn.disabled = false;
+            btn.innerText = "SAVE PATIENT RECORD"; btn.disabled = false;
         });
 
-        _supabase.channel('hmo_realtime').on('postgres_changes', { event: '*', schema: 'public', table: 'hmo_monitoring' }, fetchRecords).subscribe();
+        // Initialize
+        loadGuarantors();
         fetchRecords();
+        _supabase.channel('hmo_realtime').on('postgres_changes', { event: '*', schema: 'public', table: 'hmo_monitoring' }, fetchRecords).subscribe();
     </script>
 </body>
 </html>
