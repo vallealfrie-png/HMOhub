@@ -3,9 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HMO Core | Minimal</title>
+    <title>HMO Core | Minimal Command</title>
     <script src="https://code.highcharts.com/highcharts.js"></script>
-    <script src="https://code.highcharts.com/modules/drilldown.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
@@ -15,16 +14,15 @@
         .associate-btn { transition: all 0.2s ease; cursor: pointer; border: 1px solid rgba(255,255,255,0.03); }
         .associate-btn:hover { background: rgba(99, 102, 241, 0.1); transform: translateX(2px); }
         .associate-btn.active { background: #6366f1; color: #fff; }
-        /* Minimal Scrollbar */
         ::-webkit-scrollbar { width: 4px; }
         ::-webkit-scrollbar-thumb { background: #333; border-radius: 10px; }
     </style>
 </head>
 <body class="flex h-screen overflow-hidden">
 
-    <aside class="w-64 border-r border-white/5 p-5 flex flex-col gap-4 bg-black/50 overflow-y-auto">
+    <aside class="w-60 border-r border-white/5 p-4 flex flex-col gap-4 bg-black/50 overflow-y-auto">
         <div class="flex justify-between items-center">
-            <h3 class="text-xs font-black uppercase tracking-tighter text-indigo-500">Associates</h3>
+            <h3 class="text-[10px] font-black uppercase tracking-widest text-indigo-500">Associates</h3>
             <button onclick="filterByAssociate(null)" class="text-[8px] bg-white/5 px-2 py-1 rounded text-neutral-400 uppercase font-bold">Reset</button>
         </div>
         <div id="associateList" class="space-y-1"></div>
@@ -58,10 +56,10 @@
 
         <div class="grid grid-cols-2 gap-4 flex-1">
             <div class="glass p-4 flex items-center justify-center">
-                <div id="patientPieContainer" class="w-full h-full"></div>
+                <div id="patientDonut" class="w-full h-full"></div>
             </div>
             <div class="glass p-4 flex items-center justify-center">
-                <div id="slaPieContainer" class="w-full h-full"></div>
+                <div id="slaPie" class="w-full h-full"></div>
             </div>
         </div>
     </main>
@@ -71,7 +69,6 @@
         const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpxbnFreHBzZWV1eW92dHFlemJjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3OTYyOTEsImV4cCI6MjA5MjM3MjI5MX0.uR9TcF4_J58cx7XsKx4BbAQcIeYBElgJpKglbMEyHQs";
         
         const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
         let cachedData = [];
         let selectedAssociate = null;
 
@@ -80,7 +77,6 @@
                 const { data, error } = await _supabase
                     .from('hmo_monitoring')
                     .select('transaction_type, name_of_associate, patient_type, turnaround_time');
-
                 if (error) throw error;
                 if (data) {
                     cachedData = data;
@@ -100,7 +96,7 @@
                 <div onclick="filterByAssociate('${name}')" 
                      class="associate-btn px-3 py-2 rounded-lg flex justify-between items-center text-[10px] ${selectedAssociate === name ? 'active' : 'bg-white/5'}">
                     <span class="font-bold uppercase">${name}</span>
-                    <span class="opacity-40">${cachedData.filter(r => r.name_of_associate === name).length}</span>
+                    <span class="opacity-40 font-mono">${cachedData.filter(r => r.name_of_associate === name).length}</span>
                 </div>
             `).join('');
         }
@@ -118,54 +114,46 @@
             applyLogic();
         }
 
-        function renderPie(id, title, data, seriesName) {
+        function renderChart(id, type, title, data, isDonut) {
             Highcharts.chart(id, {
                 chart: { type: 'pie', backgroundColor: 'transparent', height: 280 },
-                title: { text: title, style: { color: '#6366f1', fontWeight: '900', fontSize: '9px', letterSpacing: '0.1em' } },
+                title: { text: title, style: { color: '#6366f1', fontWeight: '900', fontSize: '10px' } },
                 plotOptions: { 
                     pie: { 
+                        innerSize: isDonut ? '70%' : '0%', 
                         borderWidth: 0, 
                         dataLabels: { 
                             enabled: true, 
                             format: '{point.name}: {point.y}', 
-                            style: { color: '#888', fontSize: '8px', textOutline: 'none' },
-                            distance: 10
-                        },
-                        showInLegend: false
+                            style: { color: '#aaa', fontSize: '8px', textOutline: 'none' } 
+                        } 
                     } 
                 },
-                series: [{ name: seriesName, colorByPoint: true, data: data }],
+                series: [{ name: 'Count', colorByPoint: true, data: data }],
                 credits: { enabled: false }
             });
         }
 
         function applyLogic() {
-            const displayData = selectedAssociate 
-                ? cachedData.filter(r => r.name_of_associate === selectedAssociate)
-                : cachedData;
+            const displayData = selectedAssociate ? cachedData.filter(r => r.name_of_associate === selectedAssociate) : cachedData;
 
             document.getElementById('countConsult').innerText = displayData.filter(r => r.transaction_type === 'Consult').length;
             document.getElementById('countLoa').innerText = displayData.filter(r => r.transaction_type === 'Loa').length;
             document.getElementById('countProcedure').innerText = displayData.filter(r => r.transaction_type === 'Procedure').length;
 
-            // Patient Flow Pie
-            const newP = displayData.filter(r => r.patient_type === 'New').length;
-            const oldP = displayData.filter(r => r.patient_type === 'Old').length;
-            renderPie('patientPieContainer', 'PATIENT FLOW', [
-                { name: 'NEW', y: newP, color: '#6366f1' },
-                { name: 'OLD', y: oldP, color: '#10b981' }
-            ], 'Count');
+            // Doughnut for Patient Flow
+            renderChart('patientDonut', 'pie', 'PATIENT FLOW', [
+                { name: 'NEW', y: displayData.filter(r => r.patient_type === 'New').length, color: '#6366f1' },
+                { name: 'OLD', y: displayData.filter(r => r.patient_type === 'Old').length, color: '#10b981' }
+            ], true);
 
-            // SLA Pie (Target 20m)
-            const met = displayData.filter(r => r.turnaround_time <= 20).length;
-            const notMet = displayData.filter(r => r.turnaround_time > 20).length;
-            renderPie('slaPieContainer', 'SLA STATUS', [
-                { name: 'MET', y: met, color: '#10b981' },
-                { name: 'NOT MET', y: notMet, color: '#ef4444' }
-            ], 'Cases');
+            // Pie for SLA
+            renderChart('slaPie', 'pie', 'SLA STATUS', [
+                { name: 'MET', y: displayData.filter(r => r.turnaround_time <= 20).length, color: '#10b981' },
+                { name: 'NOT MET', y: displayData.filter(r => r.turnaround_time > 20).length, color: '#ef4444' }
+            ], false);
         }
 
-        // Removed setInterval to prevent auto-refresh on charts
         syncData();
     </script>
 </body>
