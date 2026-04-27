@@ -15,7 +15,6 @@
         .associate-btn { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); cursor: pointer; border: 1px solid rgba(255,255,255,0.03); }
         .associate-btn:hover { background: rgba(99, 102, 241, 0.1); border-color: rgba(99, 102, 241, 0.3); transform: translateX(5px); }
         .associate-btn.active { background: #6366f1; border-color: #6366f1; color: #fff; box-shadow: 0 10px 20px -10px #6366f1; }
-        .highcharts-figure { margin: 0; }
         .highcharts-breadcrumbs-button text { fill: #6366f1 !important; font-weight: bold !important; }
     </style>
 </head>
@@ -65,17 +64,14 @@
             <div class="glass p-10">
                 <div id="patientDonutContainer"></div>
             </div>
-            
             <div class="glass p-10">
-                <div id="tatDrilldownContainer"></div>
+                <div id="slaChartContainer"></div>
             </div>
         </div>
     </main>
 
     <script>
-        // CONFIGURATION
         const SUPABASE_URL = "https://zqnqkxpseeuyovtqezbc.supabase.co";
-        // Correct Key restored below:
         const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpxbnFreHBzZWV1eW92dHFlemJjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3OTYyOTEsImV4cCI6MjA5MjM3MjI5MX0.uR9TcF4_J58cx7XsKx4BbAQcIeYBElgJpKglbMEyHQs";
         
         const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -92,18 +88,12 @@
                 if (error) throw error;
                 if (data) {
                     cachedData = data;
-                    const statusEl = document.getElementById('status');
-                    statusEl.innerText = `Live: ${cachedData.length} Records Synced`;
-                    statusEl.classList.remove('text-red-500');
-                    statusEl.classList.add('text-neutral-500');
+                    document.getElementById('status').innerText = `Live: ${cachedData.length} Records Synced`;
                     updateSidebar();
                     applyLogic();
                 }
             } catch (err) {
-                console.error("Sync Error:", err.message);
-                const statusEl = document.getElementById('status');
-                statusEl.innerText = "Sync Failed: " + err.message;
-                statusEl.classList.add('text-red-500');
+                document.getElementById('status').innerText = "Sync Failed: " + err.message;
             }
         }
 
@@ -135,53 +125,44 @@
         function renderDonut(records) {
             const newP = records.filter(r => r.patient_type === 'New').length;
             const oldP = records.filter(r => r.patient_type === 'Old').length;
-            const total = newP + oldP;
-
             Highcharts.chart('patientDonutContainer', {
-                chart: { type: 'pie', backgroundColor: 'transparent', height: 400, events: {
-                    render() {
-                        const chart = this, series = chart.series[0];
-                        let label = chart.options.chart.customLabel || (chart.options.chart.customLabel = chart.renderer.label('').css({color:'#fff', textAnchor:'middle'}).add());
-                        label.attr({ text: `TOTAL<br><strong>${total}</strong>` });
-                        const x = series.center[0] + chart.plotLeft, y = series.center[1] + chart.plotTop - (label.attr('height')/2);
-                        label.attr({ x, y }).css({ fontSize: '14px' });
-                    }
-                }},
+                chart: { type: 'pie', backgroundColor: 'transparent', height: 400 },
                 title: { text: 'PATIENT FLOW', style: { color: '#6366f1', fontWeight: '900', fontSize: '10px', letterSpacing: '0.3em' } },
-                plotOptions: { pie: { innerSize: '80%', borderRadius: 10, borderWidth: 0, dataLabels: { enabled: false } } },
+                plotOptions: { pie: { innerSize: '80%', borderRadius: 10, borderWidth: 0, dataLabels: { enabled: false }, showInLegend: true } },
+                legend: { itemStyle: { color: '#aaa', fontSize: '10px' } },
                 series: [{ name: 'Patients', data: [{name: 'NEW', y: newP, color:'#6366f1'}, {name: 'OLD', y: oldP, color:'#10b981'}] }],
                 credits: { enabled: false }
             });
         }
 
-        function renderTATDrilldown(records) {
-            const brackets = {
-                'Fast (<15m)': records.filter(r => r.turnaround_time <= 15),
-                'Standard (15-30m)': records.filter(r => r.turnaround_time > 15 && r.turnaround_time <= 30),
-                'Slow (>30m)': records.filter(r => r.turnaround_time > 30)
+        function renderSLAChart(records) {
+            // Logic: Met is <= 20 mins, Not Met is > 20 mins
+            const metData = records.filter(r => r.turnaround_time <= 20);
+            const notMetData = records.filter(r => r.turnaround_time > 20);
+
+            const getTypes = (arr) => {
+                const types = ['Consult', 'Loa', 'Procedure'];
+                return types.map(t => [t, arr.filter(r => r.transaction_type === t).length]);
             };
 
-            const mainData = Object.keys(brackets).map(key => ({
-                name: key,
-                y: brackets[key].length,
-                drilldown: key
-            }));
-
-            const drilldownSeries = Object.keys(brackets).map(key => ({
-                name: key,
-                id: key,
-                data: brackets[key].map(r => [`${r.turnaround_time} mins`, 1])
-            }));
-
-            Highcharts.chart('tatDrilldownContainer', {
+            Highcharts.chart('slaChartContainer', {
                 chart: { type: 'pie', backgroundColor: 'transparent', height: 400 },
-                title: { text: 'TURNAROUND TIME (TAT)', style: { color: '#6366f1', fontWeight: '900', fontSize: '10px', letterSpacing: '0.3em' } },
-                subtitle: { text: 'Click slices to view specific minute details', style: { color: '#666', fontSize: '9px' } },
-                plotOptions: { pie: { shadow: false, center: ['50%', '50%'], borderRadius: 10, borderWidth: 0 } },
-                tooltip: { valueSuffix: ' cases' },
-                series: [{ name: 'Brackets', colorByPoint: true, data: mainData }],
-                drilldown: { 
-                    series: drilldownSeries,
+                title: { text: 'SLA PERFORMANCE', style: { color: '#6366f1', fontWeight: '900', fontSize: '10px', letterSpacing: '0.3em' } },
+                subtitle: { text: 'Target: 20 Minutes', style: { color: '#666', fontSize: '9px' } },
+                plotOptions: { pie: { borderRadius: 10, borderWidth: 0 } },
+                series: [{
+                    name: 'Status',
+                    colorByPoint: true,
+                    data: [
+                        { name: 'MET', y: metData.length, color: '#10b981', drilldown: 'met' },
+                        { name: 'NOT MET', y: notMetData.length, color: '#ef4444', drilldown: 'notmet' }
+                    ]
+                }],
+                drilldown: {
+                    series: [
+                        { id: 'met', name: 'Met Breakdown', data: getTypes(metData) },
+                        { id: 'notmet', name: 'Not Met Breakdown', data: getTypes(notMetData) }
+                    ],
                     activeDataLabelStyle: { color: '#fff', textDecoration: 'none' }
                 },
                 credits: { enabled: false }
@@ -198,10 +179,9 @@
             document.getElementById('countProcedure').innerText = displayData.filter(r => r.transaction_type === 'Procedure').length;
 
             renderDonut(displayData);
-            renderTATDrilldown(displayData);
+            renderSLAChart(displayData);
         }
 
-        // INITIAL LOAD & REFRESH INTERVAL
         syncData();
         setInterval(syncData, 15000);
     </script>
