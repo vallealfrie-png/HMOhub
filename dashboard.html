@@ -66,7 +66,7 @@
 
     <script>
         const SUPABASE_URL = "https://zqnqkxpseeuyovtqezbc.supabase.co";
-        const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpxbnFreHBzZWV1eW92dHFlemJjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3OTYyOTEsImV4cCI6MjA5MjM3MjI5MX0.uR9TcF4_J58cx7XsKx4BbAQcIeYBElgJpKglbMEyHQs";
+        const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpxbnFreHBzZWV1eW92tHFlemJjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3OTYyOTEsImV4cCI6MjA5MjM3MjI5MX0.uR9TcF4_J58cx7XsKx4BbAQcIeYBElgJpKglbMEyHQs";
         
         const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         let cachedData = [];
@@ -114,22 +114,38 @@
             applyLogic();
         }
 
-        function renderChart(id, type, title, data, isDonut) {
+        function renderChart(id, title, data, isDonut) {
             Highcharts.chart(id, {
-                chart: { type: 'pie', backgroundColor: 'transparent', height: 280 },
+                chart: { 
+                    type: 'pie', 
+                    backgroundColor: 'transparent', 
+                    height: 280,
+                    zooming: { type: 'xy' },
+                    panning: { enabled: true, type: 'xy' },
+                    panKey: 'shift'
+                },
                 title: { text: title, style: { color: '#6366f1', fontWeight: '900', fontSize: '10px' } },
+                tooltip: { valueSuffix: ' cases' },
                 plotOptions: { 
                     pie: { 
                         innerSize: isDonut ? '70%' : '0%', 
-                        borderWidth: 0, 
-                        dataLabels: { 
-                            enabled: true, 
-                            format: '{point.name}: {point.y}', 
-                            style: { color: '#aaa', fontSize: '8px', textOutline: 'none' } 
-                        } 
+                        borderWidth: 0,
+                        allowPointSelect: true,
+                        cursor: 'pointer',
+                        dataLabels: [{
+                            enabled: true,
+                            distance: 15,
+                            style: { color: '#aaa', fontSize: '8px', textOutline: 'none' }
+                        }, {
+                            enabled: true,
+                            distance: -25,
+                            format: '{point.percentage:.1f}%',
+                            style: { fontSize: '9px', textOutline: 'none', color: '#fff', opacity: 0.8 },
+                            filter: { operator: '>', property: 'percentage', value: 10 }
+                        }]
                     } 
                 },
-                series: [{ name: 'Count', colorByPoint: true, data: data }],
+                series: [{ name: 'Total', colorByPoint: true, data: data }],
                 credits: { enabled: false }
             });
         }
@@ -141,16 +157,17 @@
             document.getElementById('countLoa').innerText = displayData.filter(r => r.transaction_type === 'Loa').length;
             document.getElementById('countProcedure').innerText = displayData.filter(r => r.transaction_type === 'Procedure').length;
 
-            // Doughnut for Patient Flow
-            renderChart('patientDonut', 'pie', 'PATIENT FLOW', [
+            renderChart('patientDonut', 'PATIENT FLOW', [
                 { name: 'NEW', y: displayData.filter(r => r.patient_type === 'New').length, color: '#6366f1' },
                 { name: 'OLD', y: displayData.filter(r => r.patient_type === 'Old').length, color: '#10b981' }
             ], true);
 
-            // Pie for SLA
-            renderChart('slaPie', 'pie', 'SLA STATUS', [
-                { name: 'MET', y: displayData.filter(r => r.turnaround_time <= 20).length, color: '#10b981' },
-                { name: 'NOT MET', y: displayData.filter(r => r.turnaround_time > 20).length, color: '#ef4444' }
+            const metCount = displayData.filter(r => r.turnaround_time <= 20).length;
+            const notMetCount = displayData.filter(r => r.turnaround_time > 20).length;
+
+            renderChart('slaPie', 'SLA STATUS', [
+                { name: 'MET', y: metCount, color: '#10b981' },
+                { name: 'NOT MET', y: notMetCount, color: '#ef4444', sliced: true, selected: true }
             ], false);
         }
 
