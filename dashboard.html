@@ -19,6 +19,13 @@
         }
         .associate-btn:hover { color: #888; border-color: #333; }
         .associate-btn.active { color: #fff; border-color: #6366f1; background: #0c0c1e; border-left: 3px solid #6366f1; }
+        
+        /* FIX: Highcharts needs a container with a defined height to render */
+        .chart-container {
+            width: 100%;
+            height: 300px;
+        }
+
         ::-webkit-scrollbar { width: 3px; }
         ::-webkit-scrollbar-thumb { background: #222; }
     </style>
@@ -59,12 +66,12 @@
             </div>
         </div>
 
-        <div class="grid grid-cols-2 gap-4 flex-1 min-h-0">
-            <div class="glass p-2">
-                <div id="patientDonut" class="w-full h-full"></div>
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <div class="glass p-4">
+                <div id="patientDonut" class="chart-container"></div>
             </div>
-            <div class="glass p-2">
-                <div id="slaPie" class="w-full h-full"></div>
+            <div class="glass p-4">
+                <div id="slaPie" class="chart-container"></div>
             </div>
         </div>
     </main>
@@ -120,20 +127,21 @@
         function render(filter) {
             const data = filter === 'all' ? masterData : masterData.filter(r => r.name_of_associate === filter);
             
-            document.getElementById('countConsult').innerText = data.filter(r => r.transaction_type === 'Consult').length;
-            document.getElementById('countLoa').innerText = data.filter(r => r.transaction_type === 'Loa').length;
-            document.getElementById('countProcedure').innerText = data.filter(r => r.transaction_type === 'Procedure').length;
+            // Fixed case-insensitivity to be safer
+            document.getElementById('countConsult').innerText = data.filter(r => String(r.transaction_type).toLowerCase() === 'consult').length;
+            document.getElementById('countLoa').innerText = data.filter(r => String(r.transaction_type).toLowerCase() === 'loa').length;
+            document.getElementById('countProcedure').innerText = data.filter(r => String(r.transaction_type).toLowerCase() === 'procedure').length;
 
             // Chart 1: Patient Flow (Donut)
             drawHigh('patientDonut', 'Patient Flow', [
-                { name: 'NEW', y: data.filter(r => r.patient_type === 'New').length, color: '#6366f1' },
-                { name: 'OLD', y: data.filter(r => r.patient_type === 'Old').length, color: '#10b981' }
+                { name: 'NEW', y: data.filter(r => String(r.patient_type).toLowerCase() === 'new').length, color: '#6366f1' },
+                { name: 'OLD', y: data.filter(r => String(r.patient_type).toLowerCase() === 'old').length, color: '#10b981' }
             ], '70%');
 
-            // Chart 2: SLA Status (Direct mapping of turnaround_time column)
-            const met = data.filter(r => r.turnaround_time === 'Met').length;
-            const notMet = data.filter(r => r.turnaround_time === 'Not Met').length;
-            const pending = data.filter(r => r.turnaround_time === 'Pending').length;
+            // Chart 2: SLA Status
+            const met = data.filter(r => String(r.turnaround_time).toLowerCase() === 'met').length;
+            const notMet = data.filter(r => String(r.turnaround_time).toLowerCase() === 'not met').length;
+            const pending = data.filter(r => String(r.turnaround_time).toLowerCase() === 'pending').length;
 
             drawHigh('slaPie', 'SLA Status', [
                 { name: 'MET', y: met, color: '#10b981' },
@@ -144,8 +152,15 @@
 
         function drawHigh(id, title, data, innerSize) {
             Highcharts.chart(id, {
-                chart: { type: 'pie', backgroundColor: 'transparent', height: 280 },
-                title: { text: title.toUpperCase(), style: { color: '#FFFFFF', fontSize: '10px', fontWeight: '900', letterSpacing: '2px' } },
+                chart: { 
+                    type: 'pie', 
+                    backgroundColor: 'transparent',
+                    height: 300 // Match the CSS height
+                },
+                title: { 
+                    text: title.toUpperCase(), 
+                    style: { color: '#FFFFFF', fontSize: '10px', fontWeight: '900', letterSpacing: '2px' } 
+                },
                 credits: { enabled: false },
                 tooltip: { 
                     backgroundColor: '#000', 
