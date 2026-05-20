@@ -17,6 +17,8 @@
         .table-container { border-radius: 12px; overflow: hidden; border: 1px solid rgba(255, 255, 255, 0.1); }
         tr:nth-child(even) { background: rgba(255, 255, 255, 0.02); }
         .status-pill { font-size: 10px; font-weight: 900; padding: 2px 10px; border-radius: 9999px; border-width: 1px; text-transform: uppercase; }
+        .dropdown-menu { display: none; max-height: 200px; overflow-y: auto; z-index: 50; }
+        .dropdown-menu.show { display: block; }
     </style>
 </head>
 <body class="p-4 md:p-8 font-sans text-slate-200">
@@ -72,12 +74,16 @@
                             <option value="Procedure">Procedure (30m)</option>
                         </select>
                     </div>
-                    <div>
-                        <label class="text-[10px] text-slate-500 ml-1 uppercase font-bold">Doctor List (Auto-suggest)</label>
-                        <input type="text" name="doctor_procedure" id="doctor_procedure" list="doctors" placeholder="Type doctor name..." class="w-full rounded-lg p-2.5" autocomplete="off">
-                        <datalist id="doctors"></datalist>
+                    <div class="relative">
+                        <label class="text-[10px] text-slate-500 ml-1 uppercase font-bold">Doctor List</label>
+                        <div class="relative flex items-center">
+                            <input type="text" id="doctor_input" placeholder="Search doctor..." class="w-full rounded-lg p-2.5 pr-8" autocomplete="off">
+                            <button type="button" id="clear_doctor_btn" class="hidden absolute right-2.5 text-slate-400 hover:text-red-400 text-lg">&times;</button>
+                        </div>
+                        <input type="hidden" name="doctor_procedure" id="doctor_hidden_value">
+                        <div id="doctor_dropdown" class="dropdown-menu absolute left-0 right-0 mt-1 bg-slate-900 border border-slate-700 rounded-lg shadow-xl max-h-60 overflow-y-auto"></div>
                     </div>
-                    <div id="service_field_container">
+                    <div id="service_field_container" class="md:col-span-1">
                         <label class="text-[10px] text-slate-500 ml-1 uppercase font-bold">Service</label>
                         <input type="text" name="service" id="service_field" placeholder="e.g. X-Ray, Lab" class="w-full rounded-lg p-2.5">
                     </div>
@@ -86,6 +92,8 @@
                         <input type="number" step="0.01" name="amount" id="amount_field" placeholder="0.00" class="w-full rounded-lg p-2.5">
                     </div>
                 </div>
+
+                <div id="selected_services_container" class="hidden flex flex-wrap gap-2 p-3 bg-slate-950/40 border border-slate-800 rounded-xl"></div>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-end border-t border-slate-800 pt-6">
                     <div class="space-y-2">
@@ -141,6 +149,7 @@
 
         let cachedItems = [];
         let cachedDoctors = [];
+        let selectedServices = [];
 
         // --- DATA LOADERS ---
 
@@ -154,7 +163,6 @@
             }
         }
 
-        // Recursive Load to guarantee all 1,560+ doctors are fetched successfully
         async function loadDoctors(from = 0) {
             const limit = 1000;
             const { data, error } = await _supabase
@@ -166,21 +174,16 @@
             if (!error && data) {
                 cachedDoctors = [...cachedDoctors, ...data];
                 if (data.length === limit) {
-                    await loadDoctors(from + limit); // Page up to next 1000 records
-                } else {
-                    // All pages loaded, render out options
-                    const datalist = document.getElementById('doctors');
-                    datalist.innerHTML = cachedDoctors.map(doc => `<option value="${doc.name}"> Specialty: ${doc.specialization}</option>`).join('');
+                    await loadDoctors(from + limit);
                 }
             }
         }
 
-        // Recursive Fetch for Items (>1000 rows). Grabbing 'price' column if available.
         async function loadItems(from = 0) {
             const limit = 1000;
             const { data, error } = await _supabase
                 .from('items')
-                .select('item_name, price') // Note: update 'price' to your actual price column name if different
+                .select('item_name, price')
                 .order('item_name', { ascending: true })
                 .range(from, from + limit - 1);
 
@@ -192,52 +195,150 @@
             }
         }
 
-        // --- UI LOGIC ---
+        // --- CUSTOM SMART LOGIC AND AUTO-SUGGEST MENUS ---
+
+        const docInput = document.getElementById('doctor_input');
+        const docHidden = document.getElementById('doctor_hidden_value');
+        const docDropdown = document.getElementById('doctor_dropdown');
+        const clearDocBtn = document.getElementById('clear_doctor_btn');
+
+        // Render Doctor matches
+        function filterDoctors(searchVal) {
+            if (!searchVal) { docDropdown.classList.remove('show'); return; }
+            const matches = cachedDoctors.filter(d => d.name.toLowerCase().includes(searchVal.toLowerCase()));
+            
+            if (matches.length === 0) {
+                docDropdown.innerHTML = `<div class="p-3 text-slate-500 text-xs">No doctors found</div>`;
+            } else {
+                docDropdown.innerHTML = matches.map(d => `
+                    <div class="p-2.5 hover:bg-blue-600/30 cursor-pointer transition text-xs border-b border-slate-800/40" 
+                         onclick="selectDoctor('${d.name}', '${d.specialization}')">
+                        <span class="font-bold text-white">${d.name}</span> 
+                        <span class="text-slate-400 block text-[10px] uppercase tracking-wider mt-0.5">${d.specialization}</span>
+                    </div>
+                `).join('');
+            }
+            docDropdown.classList.add('show');
+        }
+
+        function selectDoctor(name, spec) {
+            const formatted = `${name} (${spec})`;
+            docInput.value = formatted;
+            docHidden.value = formatted;
+            docInput.disabled = true;
+            clearDocBtn.classList.remove('hidden');
+            docDropdown.classList.remove('show');
+        }
+
+        clearDocBtn.addEventListener('click', () => {
+            docInput.value = "";
+            docHidden.value = "";
+            docInput.disabled = false;
+            clearDocBtn.classList.add('hidden');
+            docInput.focus();
+        });
+
+        docInput.addEventListener('input', (e) => filterDoctors(e.target.value));
+        document.addEventListener('click', (e) => {
+            if (!docInput.contains(e.target) && !docDropdown.contains(e.target)) docDropdown.classList.remove('show');
+        });
+
+        // --- SMART SERVICE MULTI-SELECT HANDLERS ---
 
         const transTypeSelect = document.getElementById('transaction_type');
-        const serviceFieldContainer = document.getElementById('service_field_container');
-        const doctorInput = document.getElementById('doctor_procedure');
+        const serviceContainer = document.getElementById('service_field_container');
+        const badgeContainer = document.getElementById('selected_services_container');
         const amountField = document.getElementById('amount_field');
 
-        // Handle Specialization when Doctor is picked
-        doctorInput.addEventListener('change', (e) => {
-            const selectedDoc = cachedDoctors.find(d => d.name === e.target.value);
-            if (selectedDoc) {
-                e.target.value = `${selectedDoc.name} (${selectedDoc.specialization})`;
-            }
-        });
+        function filterServices(searchVal) {
+            const drop = document.getElementById('service_smart_dropdown');
+            if (!drop) return;
+            if (!searchVal) { drop.classList.remove('show'); return; }
 
-        // Event listener safely delegated for dynamic Service select drop updates
-        serviceFieldContainer.addEventListener('change', (e) => {
-            if (e.target && e.target.id === 'service_select_field') {
-                const selectedItem = cachedItems.find(i => i.item_name === e.target.value);
-                if (selectedItem && selectedItem.price) {
-                    amountField.value = parseFloat(selectedItem.price).toFixed(2);
-                } else {
-                    amountField.value = "0.00";
-                }
+            const matches = cachedItems.filter(i => i.item_name.toLowerCase().includes(searchVal.toLowerCase()));
+            if(matches.length === 0) {
+                drop.innerHTML = `<div class="p-3 text-slate-500 text-xs">No items found</div>`;
+            } else {
+                drop.innerHTML = matches.map(i => `
+                    <div class="p-2.5 hover:bg-emerald-600/30 cursor-pointer transition text-xs flex justify-between items-center border-b border-slate-800/40"
+                         onclick="addServiceToken('${i.item_name}', ${i.price || 0})">
+                        <span class="text-white font-medium">${i.item_name}</span>
+                        <span class="text-emerald-400 font-mono text-[10px]">₱${Number(i.price || 0).toFixed(2)}</span>
+                    </div>
+                `).join('');
             }
-        });
+            drop.classList.add('show');
+        }
 
-        // Toggle service between input text or dynamic select menu tracking prices
+        function addServiceToken(name, price) {
+            if (selectedServices.some(s => s.name === name)) return; // Prevent duplicate appends
+            selectedServices.push({ name, price });
+            renderBadges();
+            calculateTotalAmount();
+            
+            const searchInput = document.getElementById('service_search_input');
+            if (searchInput) { searchInput.value = ""; searchInput.focus(); }
+            document.getElementById('service_smart_dropdown').classList.remove('show');
+        }
+
+        function removeServiceToken(name) {
+            selectedServices = selectedServices.filter(s => s.name !== name);
+            renderBadges();
+            calculateTotalAmount();
+        }
+
+        function renderBadges() {
+            if (selectedServices.length === 0) {
+                badgeContainer.classList.add('hidden');
+                badgeContainer.innerHTML = "";
+                return;
+            }
+            badgeContainer.classList.remove('hidden');
+            badgeContainer.innerHTML = selectedServices.map(s => `
+                <span class="inline-flex items-center gap-1.5 bg-blue-500/10 border border-blue-500/30 text-blue-300 text-xs font-semibold px-3 py-1.5 rounded-lg">
+                    ${s.name}
+                    <button type="button" onclick="removeServiceToken('${s.name}')" class="text-red-400 hover:text-red-300 font-bold ml-1 text-sm transition">&times;</button>
+                </span>
+            `).join('');
+        }
+
+        function calculateTotalAmount() {
+            const sum = selectedServices.reduce((acc, curr) => acc + parseFloat(curr.price || 0), 0);
+            amountField.value = sum > 0 ? sum.toFixed(2) : "0.00";
+        }
+
         transTypeSelect.addEventListener('change', (e) => {
             const val = e.target.value;
+            selectedServices = [];
+            renderBadges();
+            amountField.value = "";
+
             if (val === 'Loa' || val === 'Procedure') {
-                serviceFieldContainer.innerHTML = `
-                    <label class="text-[10px] text-slate-500 ml-1 uppercase font-bold">Service</label>
-                    <select name="service" id="service_select_field" class="w-full rounded-lg p-2.5">
-                        <option value="">-- SELECT ITEM SERVICE --</option>
-                        ${cachedItems.map(item => `<option value="${item.item_name}">${item.item_name}</option>`).join('')}
-                    </select>
+                serviceContainer.innerHTML = `
+                    <label class="text-[10px] text-slate-500 ml-1 uppercase font-bold">Service (Smart Array)</label>
+                    <input type="text" id="service_search_input" placeholder="Type test/procedure..." class="w-full rounded-lg p-2.5" autocomplete="off">
+                    <div id="service_smart_dropdown" class="dropdown-menu absolute left-0 right-0 mt-1 bg-slate-900 border border-slate-700 rounded-lg shadow-xl max-h-60 overflow-y-auto"></div>
                 `;
+                const searchInput = document.getElementById('service_search_input');
+                searchInput.addEventListener('input', (el) => filterServices(el.target.value));
             } else {
-                serviceFieldContainer.innerHTML = `
+                serviceContainer.innerHTML = `
                     <label class="text-[10px] text-slate-500 ml-1 uppercase font-bold">Service</label>
                     <input type="text" name="service" id="service_field" placeholder="e.g. X-Ray, Lab" class="w-full rounded-lg p-2.5">
                 `;
-                amountField.value = ""; // Clear amount for standard Consult entry
             }
         });
+
+        // Close service search layout drops if viewport losing interaction target focus
+        document.addEventListener('click', (e) => {
+            const searchInput = document.getElementById('service_search_input');
+            const drop = document.getElementById('service_smart_dropdown');
+            if (searchInput && !searchInput.contains(e.target) && drop && !drop.contains(e.target)) {
+                drop.classList.remove('show');
+            }
+        });
+
+        // --- ORIGINAL HOOKS AND UI CONTROLS ---
 
         function toggleForm() {
             const form = document.getElementById('formSection');
@@ -278,6 +379,14 @@
                 const statusStyle = status === 'MET' ? 'text-emerald-400 bg-emerald-400/10 border-emerald-500/50' : 
                                    status === 'NOT MET' ? 'text-red-400 bg-red-400/10 border-red-500/50' : 'text-slate-500 bg-slate-800 border-slate-700';
 
+                // Safely convert array or string data types into printable badges inside dashboard data row logs
+                let parsedServices = "";
+                if (Array.isArray(row.service)) {
+                    parsedServices = row.service.join(', ');
+                } else {
+                    parsedServices = row.service || '';
+                }
+
                 return `
                     <tr class="border-b border-slate-800 hover:bg-white/5 transition">
                         <td class="p-4">
@@ -286,7 +395,7 @@
                         </td>
                         <td class="p-4">
                             <div class="text-blue-400 font-semibold">${row.transaction_type}</div>
-                            <div class="text-[10px] text-slate-500 font-mono italic">${row.doctor_procedure || ''} ${row.service ? '('+row.service+')' : ''}</div>
+                            <div class="text-[10px] text-slate-500 font-mono italic">${row.doctor_procedure || ''} ${parsedServices ? '('+parsedServices+')' : ''}</div>
                             ${row.amount ? `<div class="text-emerald-400 font-bold mt-0.5">₱${Number(row.amount).toFixed(2)}</div>` : ''}
                         </td>
                         <td class="p-4 font-mono text-slate-300">
@@ -330,6 +439,11 @@
             entry.end_time_of_call = document.getElementById('end_time_of_call').value || null;
             entry.amount = entry.amount ? parseFloat(entry.amount) : 0.00;
 
+            // Decide whether to capture standard input string or structural multi-entry tokens array array values
+            if (entry.transaction_type === 'Loa' || entry.transaction_type === 'Procedure') {
+                entry.service = selectedServices.map(s => s.name); // Sends array format matching PostgreSQL text[] rules
+            }
+
             const { error } = await _supabase.from('hmo_monitoring').insert([entry]);
             if (error) alert(error.message);
             else {
@@ -337,7 +451,13 @@
                 document.getElementById('start_time_display').value = "";
                 document.getElementById('end_time_display').value = "";
                 
-                serviceFieldContainer.innerHTML = `
+                // Clear state containers safely
+                selectedServices = [];
+                renderBadges();
+                docInput.disabled = false;
+                clearDocBtn.classList.add('hidden');
+
+                serviceContainer.innerHTML = `
                     <label class="text-[10px] text-slate-500 ml-1 uppercase font-bold">Service</label>
                     <input type="text" name="service" id="service_field" placeholder="e.g. X-Ray, Lab" class="w-full rounded-lg p-2.5">
                 `;
@@ -351,7 +471,7 @@
         
         // Initial Startup Configs
         loadGuarantors();
-        loadDoctors(); // Now loads all 1,560+ recursively
+        loadDoctors();
         loadItems(); 
         fetchRecords();
     </script>
