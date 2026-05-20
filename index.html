@@ -83,7 +83,7 @@
                     </div>
                     <div>
                         <label class="text-[10px] text-slate-500 ml-1 uppercase font-bold">Amount</label>
-                        <input type="number" step="0.01" name="amount" placeholder="0.00" class="w-full rounded-lg p-2.5">
+                        <input type="number" step="0.01" name="amount" id="amount_field" placeholder="0.00" class="w-full rounded-lg p-2.5">
                     </div>
                 </div>
 
@@ -154,22 +154,33 @@
             }
         }
 
-        // Fetch doctors and configure auto-suggestions
-        async function loadDoctors() {
-            const datalist = document.getElementById('doctors');
-            const { data, error } = await _supabase.from('doctorlist').select('name, specialization').order('name', { ascending: true });
+        // Recursive Load to guarantee all 1,560+ doctors are fetched successfully
+        async function loadDoctors(from = 0) {
+            const limit = 1000;
+            const { data, error } = await _supabase
+                .from('doctorlist')
+                .select('name, specialization')
+                .order('name', { ascending: true })
+                .range(from, from + limit - 1);
+
             if (!error && data) {
-                cachedDoctors = data;
-                datalist.innerHTML = data.map(doc => `<option value="${doc.name}"> Specialty: ${doc.specialization}</option>`).join('');
+                cachedDoctors = [...cachedDoctors, ...data];
+                if (data.length === limit) {
+                    await loadDoctors(from + limit); // Page up to next 1000 records
+                } else {
+                    // All pages loaded, render out options
+                    const datalist = document.getElementById('doctors');
+                    datalist.innerHTML = cachedDoctors.map(doc => `<option value="${doc.name}"> Specialty: ${doc.specialization}</option>`).join('');
+                }
             }
         }
 
-        // Recursive Fetch for Items (>1000 rows)
+        // Recursive Fetch for Items (>1000 rows). Grabbing 'price' column if available.
         async function loadItems(from = 0) {
             const limit = 1000;
             const { data, error } = await _supabase
                 .from('items')
-                .select('item_name')
+                .select('item_name, price') // Note: update 'price' to your actual price column name if different
                 .order('item_name', { ascending: true })
                 .range(from, from + limit - 1);
 
@@ -186,23 +197,35 @@
         const transTypeSelect = document.getElementById('transaction_type');
         const serviceFieldContainer = document.getElementById('service_field_container');
         const doctorInput = document.getElementById('doctor_procedure');
+        const amountField = document.getElementById('amount_field');
 
         // Handle Specialization when Doctor is picked
         doctorInput.addEventListener('change', (e) => {
             const selectedDoc = cachedDoctors.find(d => d.name === e.target.value);
             if (selectedDoc) {
-                // Formatting name dynamically to group item strings
                 e.target.value = `${selectedDoc.name} (${selectedDoc.specialization})`;
             }
         });
 
-        // Toggle service between static input text or recursive dynamic database select
+        // Event listener safely delegated for dynamic Service select drop updates
+        serviceFieldContainer.addEventListener('change', (e) => {
+            if (e.target && e.target.id === 'service_select_field') {
+                const selectedItem = cachedItems.find(i => i.item_name === e.target.value);
+                if (selectedItem && selectedItem.price) {
+                    amountField.value = parseFloat(selectedItem.price).toFixed(2);
+                } else {
+                    amountField.value = "0.00";
+                }
+            }
+        });
+
+        // Toggle service between input text or dynamic select menu tracking prices
         transTypeSelect.addEventListener('change', (e) => {
             const val = e.target.value;
             if (val === 'Loa' || val === 'Procedure') {
                 serviceFieldContainer.innerHTML = `
                     <label class="text-[10px] text-slate-500 ml-1 uppercase font-bold">Service</label>
-                    <select name="service" id="service_field" class="w-full rounded-lg p-2.5">
+                    <select name="service" id="service_select_field" class="w-full rounded-lg p-2.5">
                         <option value="">-- SELECT ITEM SERVICE --</option>
                         ${cachedItems.map(item => `<option value="${item.item_name}">${item.item_name}</option>`).join('')}
                     </select>
@@ -212,6 +235,7 @@
                     <label class="text-[10px] text-slate-500 ml-1 uppercase font-bold">Service</label>
                     <input type="text" name="service" id="service_field" placeholder="e.g. X-Ray, Lab" class="w-full rounded-lg p-2.5">
                 `;
+                amountField.value = ""; // Clear amount for standard Consult entry
             }
         });
 
@@ -313,7 +337,6 @@
                 document.getElementById('start_time_display').value = "";
                 document.getElementById('end_time_display').value = "";
                 
-                // Fallback reset for element layouts back to basic inputs
                 serviceFieldContainer.innerHTML = `
                     <label class="text-[10px] text-slate-500 ml-1 uppercase font-bold">Service</label>
                     <input type="text" name="service" id="service_field" placeholder="e.g. X-Ray, Lab" class="w-full rounded-lg p-2.5">
@@ -328,7 +351,7 @@
         
         // Initial Startup Configs
         loadGuarantors();
-        loadDoctors();
+        loadDoctors(); // Now loads all 1,560+ recursively
         loadItems(); 
         fetchRecords();
     </script>
