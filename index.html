@@ -14,6 +14,12 @@
             border: 1px solid rgba(255, 255, 255, 0.2) !important; 
             color: white !important; 
         }
+        input:disabled, select:disabled {
+            background: rgba(30, 41, 59, 0.5) !important;
+            color: #94a3b8 !important;
+            border: 1px solid rgba(255, 255, 255, 0.05) !important;
+            cursor: not-allowed;
+        }
         .table-container { border-radius: 12px; overflow: hidden; border: 1px solid rgba(255, 255, 255, 0.1); }
         tr:nth-child(even) { background: rgba(255, 255, 255, 0.02); }
         .status-pill { font-size: 10px; font-weight: 900; padding: 2px 10px; border-radius: 9999px; border-width: 1px; text-transform: uppercase; }
@@ -29,15 +35,17 @@
                 <h1 class="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-emerald-400">HMO Hub Dashboard</h1>
                 <p class="text-slate-500 text-sm">Concurrent Multi-Patient Processing Queue</p>
             </div>
-            <button onclick="toggleForm()" class="bg-blue-600 hover:bg-blue-500 px-6 py-2 rounded-lg font-bold transition flex items-center gap-2">
+            <button onclick="prepareNewCheckIn()" class="bg-blue-600 hover:bg-blue-500 px-6 py-2 rounded-lg font-bold transition flex items-center gap-2">
                 <span id="toggleIcon">+</span> New Check-In
             </button>
         </header>
 
         <div id="formSection" class="hidden mb-12">
             <form id="hmoForm" class="glass-card rounded-2xl p-6 md:p-8 space-y-6 shadow-2xl">
+                <input type="hidden" id="edit_row_id" value="">
+                
                 <div class="flex justify-between items-center border-b border-slate-800 pb-4">
-                    <h2 class="text-xl font-semibold text-blue-400">Initial Patient Check-In</h2>
+                    <h2 id="formHeaderTitle" class="text-xl font-semibold text-blue-400">Initial Patient Check-In</h2>
                     <div class="text-right">
                         <label class="block text-[10px] uppercase tracking-widest text-slate-500">Arrival Time</label>
                         <input type="text" id="toa_display" readonly class="bg-transparent border-none text-emerald-400 font-mono text-xl p-0 text-right focus:ring-0 w-32">
@@ -48,7 +56,7 @@
                 <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
                     <div class="md:col-span-2">
                         <label class="text-[10px] text-slate-500 ml-1 uppercase font-bold">Patient Name</label>
-                        <input type="text" name="patient_name" placeholder="Full Name" required class="w-full rounded-lg p-2.5">
+                        <input type="text" name="patient_name" id="field_patient_name" placeholder="Full Name" required class="w-full rounded-lg p-2.5">
                     </div>
                     <div>
                         <label class="text-[10px] text-slate-500 ml-1 uppercase font-bold">Card/Company</label>
@@ -58,7 +66,7 @@
                     </div>
                     <div>
                         <label class="text-[10px] text-slate-500 ml-1 uppercase font-bold">Patient Type</label>
-                        <select name="patient_type" class="w-full rounded-lg p-2.5">
+                        <select name="patient_type" id="field_patient_type" class="w-full rounded-lg p-2.5">
                             <option value="Old">Old Patient</option>
                             <option value="New">New Patient</option>
                         </select>
@@ -98,18 +106,38 @@
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                         <label class="text-[10px] text-slate-500 ml-1 uppercase font-bold">Associate Name</label>
-                        <input type="text" name="name_of_associate" placeholder="Who checked in this patient?" class="w-full rounded-lg p-2.5">
+                        <input type="text" name="name_of_associate" id="field_name_of_associate" placeholder="Who checked in this patient?" class="w-full rounded-lg p-2.5">
                     </div>
                     <div>
-                        <label class="text-[10px] text-slate-500 ml-1 uppercase font-bold">HMO Agent Name (Optional Now)</label>
-                        <input type="text" name="agent_name" placeholder="Can be updated later" class="w-full rounded-lg p-2.5">
+                        <label class="text-[10px] text-slate-500 ml-1 uppercase font-bold text-blue-400">HMO Status Verification Option</label>
+                        <select name="status" id="field_status" class="w-full rounded-lg p-2.5 font-bold text-amber-400">
+                            <option value="On Process" class="text-amber-400">On Process</option>
+                            <option value="Approved" class="text-emerald-400">Approved</option>
+                            <option value="Disapproved" class="text-red-400">Disapproved</option>
+                            <option value="Cancel" class="text-slate-400">Cancel</option>
+                        </select>
                     </div>
                 </div>
 
-                <button type="submit" id="submitBtn" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-4 rounded-xl shadow-lg transition">
+                <div id="updateFieldsContainer" class="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 border border-dashed border-slate-700 rounded-xl bg-slate-950/30">
+                    <div>
+                        <label class="text-[10px] text-slate-400 ml-1 uppercase font-bold tracking-wider">HMO Verification Code</label>
+                        <input type="text" name="approval_code" id="field_approval_code" placeholder="Alphanumeric Code Required" class="w-full rounded-lg p-2.5 font-mono uppercase">
+                    </div>
+                    <div>
+                        <label class="text-[10px] text-slate-400 ml-1 uppercase font-bold tracking-wider">HMO Agent Name Contacted</label>
+                        <input type="text" name="agent_name" id="field_agent_name" placeholder="Full Agent Identity Name Required" class="w-full rounded-lg p-2.5">
+                    </div>
+                </div>
+
+                <button type="submit" id="submitBtn" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-4 rounded-xl shadow-lg transition tracking-wide uppercase">
                     INITIALIZE CALL & QUEUE PATIENT
                 </button>
             </form>
+        </div>
+
+        <div class="mb-4 relative max-w-md">
+            <input type="text" id="patientSearchInput" oninput="filterTableBySearch()" placeholder="🔍 Search patient by name..." class="w-full rounded-xl p-3 pl-10 text-sm bg-slate-900 border border-slate-800 focus:outline-none focus:border-blue-500 text-white">
         </div>
 
         <div class="table-container bg-slate-900/50 backdrop-blur-sm">
@@ -119,7 +147,7 @@
                         <tr>
                             <th class="p-4">Patient</th>
                             <th class="p-4">Transaction / Service Details</th>
-                            <th class="p-4">HMO Verification & Actions</th>
+                            <th class="p-4">HMO Status</th>
                             <th class="p-4">Arrival</th>
                             <th class="p-4">Call Logs</th>
                             <th class="p-4">TAT Status</th>
@@ -140,6 +168,7 @@
         let cachedItems = [];
         let cachedDoctors = [];
         let selectedServices = [];
+        let currentRecordDataset = []; 
 
         // --- DATA LOADERS ---
         async function loadGuarantors() {
@@ -179,15 +208,11 @@
         function filterDoctors(searchVal) {
             if (!searchVal) { docDropdown.classList.remove('show'); return; }
             const matches = cachedDoctors.filter(d => d.name.toLowerCase().includes(searchVal.toLowerCase()));
-            if (matches.length === 0) {
-                docDropdown.innerHTML = `<div class="p-3 text-slate-500 text-xs">No doctors found</div>`;
-            } else {
-                docDropdown.innerHTML = matches.map(d => `
-                    <div class="p-2.5 hover:bg-blue-600/30 cursor-pointer transition text-xs border-b border-slate-800/40" onclick="selectDoctor('${d.name}', '${d.specialization}')">
-                        <span class="font-bold text-white">${d.name}</span> <span class="text-slate-400 block text-[10px] uppercase tracking-wider">${d.specialization}</span>
-                    </div>
-                `).join('');
-            }
+            docDropdown.innerHTML = matches.map(d => `
+                <div class="p-2.5 hover:bg-blue-600/30 cursor-pointer text-xs" onclick="selectDoctor('${d.name}', '${d.specialization}')">
+                    <span class="font-bold text-white">${d.name}</span> <span class="text-slate-400 block text-[10px] uppercase">${d.specialization}</span>
+                </div>
+            `).join('');
             docDropdown.classList.add('show');
         }
 
@@ -204,7 +229,7 @@
         });
         docInput.addEventListener('input', (e) => filterDoctors(e.target.value));
 
-        // --- MULTI-SELECT SERVICE HANDLERS ---
+        // --- SERVICE TOKEN LOGIC ---
         const transTypeSelect = document.getElementById('transaction_type');
         const serviceContainer = document.getElementById('service_field_container');
         const badgeContainer = document.getElementById('selected_services_container');
@@ -215,8 +240,8 @@
             if (!drop || !searchVal) { drop?.classList.remove('show'); return; }
             const matches = cachedItems.filter(i => i.item_name.toLowerCase().includes(searchVal.toLowerCase()));
             drop.innerHTML = matches.map(i => `
-                <div class="p-2.5 hover:bg-emerald-600/30 cursor-pointer transition text-xs flex justify-between items-center" onclick="addServiceToken('${i.item_name}', ${i.price || 0})">
-                    <span class="text-white">${i.item_name}</span> <span class="text-emerald-400 font-mono">₱${Number(i.price || 0).toFixed(2)}</span>
+                <div class="p-2.5 hover:bg-emerald-600/30 cursor-pointer text-xs flex justify-between items-center" onclick="addServiceToken('${i.item_name}', ${i.price || 0})">
+                    <span>${i.item_name}</span> <span class="text-emerald-400 font-mono">₱${Number(i.price || 0).toFixed(2)}</span>
                 </div>
             `).join('');
             drop.classList.add('show');
@@ -267,54 +292,108 @@
             }
         });
 
-        // --- QUEUE PROCESS CONTROLLER ---
-        function toggleForm() {
-            const form = document.getElementById('formSection');
-            form.classList.toggle('hidden');
-            document.getElementById('toggleIcon').innerText = form.classList.contains('hidden') ? '+' : '-';
-            if(!form.classList.contains('hidden')) {
-                const now = new Date();
-                document.getElementById('toa_display').value = now.toLocaleTimeString();
-                document.getElementById('time_of_arrival').value = now.toISOString();
+        // --- WORKFLOW ENGINE STATE MUTATIONS ---
+        function setFormDisabledState(disabled) {
+            document.getElementById('field_patient_name').disabled = disabled;
+            document.getElementById('card_company_select').disabled = disabled;
+            document.getElementById('field_patient_type').disabled = disabled;
+            document.getElementById('transaction_type').disabled = disabled;
+            document.getElementById('doctor_input').disabled = disabled;
+            if (document.getElementById('service_search_input')) document.getElementById('service_search_input').disabled = disabled;
+            if (document.getElementById('service_field')) document.getElementById('service_field').disabled = disabled;
+            document.getElementById('amount_field').disabled = disabled;
+            document.getElementById('field_name_of_associate').disabled = disabled;
+        }
+
+        function prepareNewCheckIn() {
+            document.getElementById('hmoForm').reset();
+            document.getElementById('edit_row_id').value = "";
+            selectedServices = []; renderBadges();
+            
+            setFormDisabledState(false);
+            document.getElementById('field_status').disabled = false;
+            
+            // Revert default interface choices
+            document.getElementById('field_status').value = "On Process";
+            document.getElementById('formHeaderTitle').innerText = "Initial Patient Check-In";
+            document.getElementById('submitBtn').innerText = "INITIALIZE CALL & QUEUE PATIENT";
+            
+            const now = new Date();
+            document.getElementById('toa_display').value = now.toLocaleTimeString();
+            document.getElementById('time_of_arrival').value = now.toISOString();
+            
+            document.getElementById('formSection').classList.remove('hidden');
+            document.getElementById('toggleIcon').innerText = '-';
+        }
+
+        // TRIGGER ON CLICKING ROW: OPEN QUEUED PATIENT SECURELY
+        function openRowForVerificationUpdate(id) {
+            const match = currentRecordDataset.find(r => r.id === id);
+            if (!match) return;
+            
+            // Blocks editing if row is finalized already
+            if (match.end_time_of_call) {
+                alert("ℹ️ Record Finalized: This transaction log has been closed and can no longer be edited.");
+                return;
             }
+
+            document.getElementById('hmoForm').reset();
+            document.getElementById('edit_row_id').value = match.id;
+            
+            // Populating visual locked properties
+            document.getElementById('field_patient_name').value = match.patient_name;
+            document.getElementById('card_company_select').value = match.card_company || '';
+            document.getElementById('field_patient_type').value = match.patient_type;
+            document.getElementById('transaction_type').value = match.transaction_type;
+            document.getElementById('field_name_of_associate').value = match.name_of_associate || '';
+            document.getElementById('amount_field').value = match.amount || '0.00';
+            
+            const toaDate = new Date(match.time_of_arrival);
+            document.getElementById('toa_display').value = toaDate.toLocaleTimeString();
+            document.getElementById('time_of_arrival').value = match.time_of_arrival;
+
+            // Handle service arrays visually
+            if (Array.isArray(match.service)) {
+                selectedServices = match.service.map(s => ({ name: s, price: 0 }));
+                renderBadges();
+            } else if (match.service) {
+                if (document.getElementById('service_field')) document.getElementById('service_field').value = match.service;
+            }
+
+            // ENFORCE SECURITY LOCKS
+            setFormDisabledState(true);
+            
+            // Enable Verification Actions exclusively
+            document.getElementById('field_status').disabled = false;
+            document.getElementById('field_status').value = "Approved"; // Guess default step transition choice
+            document.getElementById('field_approval_code').value = match.approval_code || '';
+            document.getElementById('field_agent_name').value = match.agent_name || '';
+
+            document.getElementById('formHeaderTitle').innerText = `Process HMO Code for: ${match.patient_name}`;
+            document.getElementById('submitBtn').innerText = "FINALIZE & CLOSE PATIENT TRANSACTION";
+            
+            document.getElementById('formSection').classList.remove('hidden');
+            document.getElementById('toggleIcon').innerText = '-';
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        // LIVE INPUT ENGINE ROW FILTERING LOGIC
+        function filterTableBySearch() {
+            const value = document.getElementById('patientSearchInput').value.toLowerCase().trim();
+            if (!value) {
+                renderTable(currentRecordDataset);
+                return;
+            }
+            const items = currentRecordDataset.filter(r => r.patient_name.toLowerCase().includes(value));
+            renderTable(items);
         }
 
         async function fetchRecords() {
             const { data, error } = await _supabase.from('hmo_monitoring').select('*').order('created_at', { ascending: false });
-            if (!error) renderTable(data);
-        }
-
-        // PHASE 2 PROCESS CONDITIONAL VALIDATION GUARD
-        async function completeRowCall(id, arrivalTime, transactionType) {
-            const codeInput = document.getElementById(`inline_code_${id}`).value.trim();
-            const statusSelect = document.getElementById(`inline_status_${id}`).value;
-            const agentInput = document.getElementById(`inline_agent_${id}`).value.trim();
-
-            // ADJUSTED EXPLICIT VALIDATION: ONLY 'Approved' CLAIMS ARE BLOCKED FOR NULLS
-            if (statusSelect === 'Approved') {
-                if (!codeInput || !agentInput) {
-                    alert("⚠️ Data Validation Error: Both 'Approval Code' and 'Agent Name' fields are required before finalizing an Approved transaction record.");
-                    return;
-                }
+            if (!error) {
+                currentRecordDataset = data;
+                filterTableBySearch(); // Ensure searching criteria remains intact during mutation stream cycles
             }
-
-            const endCallTime = new Date();
-            const arrival = new Date(arrivalTime);
-            
-            const diffMins = Math.floor((endCallTime - arrival) / 60000);
-            const limit = transactionType === 'Consult' ? 5 : 30;
-            const turnaround_time = diffMins <= limit ? "MET" : "NOT MET";
-
-            const { error } = await _supabase.from('hmo_monitoring').update({
-                approval_code: codeInput || null,
-                status: statusSelect,
-                agent_name: agentInput || null,
-                end_time_of_call: endCallTime.toISOString(),
-                turnaround_time: turnaround_time
-            }).eq('id', id);
-
-            if (error) alert(error.message);
-            else fetchRecords();
         }
 
         function renderTable(data) {
@@ -329,39 +408,16 @@
                 const tatStyle = tatStatus === 'MET' ? 'text-emerald-400 bg-emerald-400/10 border-emerald-500/50' : 
                                  tatStatus === 'NOT MET' ? 'text-red-400 bg-red-400/10 border-red-500/50' : 'text-amber-400 bg-amber-400/10 border-amber-500/30 animate-pulse';
 
-                let parsedServices = Array.isArray(row.service) ? row.service.join(', ') : (row.service || '');
+                const hmoStatus = row.status || 'On Process';
+                const statusStyle = hmoStatus === 'Approved' ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30' :
+                                    hmoStatus === 'On Process' ? 'text-amber-400 bg-amber-500/10 border-amber-500/30 animate-pulse' :
+                                    hmoStatus === 'Disapproved' ? 'text-red-400 bg-red-500/10 border-red-500/30' : 'text-slate-400 bg-slate-500/10 border-slate-500/30';
 
-                let verificationColumnHTML = "";
-                if (row.end_time_of_call) {
-                    const hmoStatus = row.status || 'Approved';
-                    const statusStyle = hmoStatus === 'Approved' ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30' :
-                                        hmoStatus === 'Disapproved' ? 'text-red-400 bg-red-500/10 border-red-500/30' : 'text-amber-500 bg-amber-500/10 border-amber-500/30';
-                    verificationColumnHTML = `
-                        <div class="mb-1"><span class="status-pill border ${statusStyle}">${hmoStatus}</span></div>
-                        <div class="text-xs font-mono font-bold text-slate-300 uppercase">${row.approval_code || 'NO CODE'}</div>
-                        <div class="text-[10px] text-slate-500 italic mt-0.5">${row.agent_name ? 'Agent: ' + row.agent_name : ''}</div>
-                    `;
-                } else {
-                    verificationColumnHTML = `
-                        <div class="space-y-1.5 p-1 bg-white/5 border border-white/10 rounded-lg max-w-[220px]">
-                            <input type="text" id="inline_code_${row.id}" placeholder="Approval Code" class="w-full text-[11px] p-1 rounded border border-slate-700 font-mono uppercase">
-                            <input type="text" id="inline_agent_${row.id}" placeholder="Agent Name" class="w-full text-[11px] p-1 rounded border border-slate-700">
-                            <div class="flex gap-1">
-                                <select id="inline_status_${row.id}" class="text-[11px] p-1 rounded border border-slate-700 w-1/2 bg-slate-950">
-                                    <option value="Approved">Approved</option>
-                                    <option value="Disapproved">Disapproved</option>
-                                    <option value="Cancel">Cancel</option>
-                                </select>
-                                <button onclick="completeRowCall(${row.id}, '${row.time_of_arrival}', '${row.transaction_type}')" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-2 py-1 rounded text-[10px] w-1/2 transition">
-                                    SAVE & END
-                                </button>
-                            </div>
-                        </div>
-                    `;
-                }
+                let parsedServices = Array.isArray(row.service) ? row.service.join(', ') : (row.service || '');
+                const isClickableClass = !row.end_time_of_call ? 'cursor-pointer hover:bg-blue-500/5' : 'opacity-80';
 
                 return `
-                    <tr class="border-b border-slate-800 hover:bg-white/5 transition">
+                    <tr onclick="if(!${!!row.end_time_of_call}) openRowForVerificationUpdate(${row.id})" class="border-b border-slate-800 transition ${isClickableClass}">
                         <td class="p-4">
                             <div class="font-bold text-sm text-white">${row.patient_name}</div>
                             <div class="text-[10px] text-slate-400 uppercase">${row.patient_type} | ${row.card_company || 'CASH'}</div>
@@ -371,7 +427,12 @@
                             <div class="text-[10px] text-slate-500 font-mono italic">${row.doctor_procedure || ''} ${parsedServices ? '📂 ('+parsedServices+')' : ''}</div>
                             ${row.amount ? `<div class="text-emerald-400 font-bold mt-0.5">₱${Number(row.amount).toFixed(2)}</div>` : ''}
                         </td>
-                        <td class="p-4">${verificationColumnHTML}</td>
+                        <td class="p-4">
+                            <div class="mb-1"><span class="status-pill border ${statusStyle}">${hmoStatus}</span></div>
+                            <div class="text-xs font-mono font-bold text-slate-300 uppercase">${row.approval_code || ''}</div>
+                            <div class="text-[10px] text-slate-500 italic mt-0.5">${row.agent_name ? 'Agent: ' + row.agent_name : ''}</div>
+                            ${!row.end_time_of_call ? '<span class="text-[9px] text-blue-400 block mt-1 animate-pulse">⚡ Click row to update</span>' : ''}
+                        </td>
                         <td class="p-4 font-mono text-slate-300">
                             <div class="text-xs font-bold">${dateStr}</div>
                             <div class="text-[10px] text-slate-500">${arrival.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</div>
@@ -387,37 +448,76 @@
             }).join('');
         }
 
+        // MASTER CONTROL SUBMISSION ROUTING SYSTEM
         document.getElementById('hmoForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const btn = document.getElementById('submitBtn');
-            btn.innerText = "QUEUEING..."; btn.disabled = true;
-
+            const targetRowId = document.getElementById('edit_row_id').value;
+            
             const formData = new FormData(e.target);
             const entry = Object.fromEntries(formData.entries());
-            const arrival = new Date(document.getElementById('time_of_arrival').value);
+
+            btn.innerText = "PROCESSING SUBMIT..."; btn.disabled = true;
+
+            if (targetRowId) {
+                // --- PHASE 2 FLOW: CLOSING ACTIVE ON-PROCESS TICKETS ---
+                if (entry.status === 'On Process') {
+                    alert("⚠️ Action Denied: Please update the HMO Status to Approved, Disapproved, or Cancel to close this patient file.");
+                    btn.innerText = "FINALIZE & CLOSE PATIENT TRANSACTION"; btn.disabled = false;
+                    return;
+                }
+
+                if (entry.status === 'Approved') {
+                    if (!entry.approval_code.trim() || !entry.agent_name.trim()) {
+                        alert("⚠️ Validation Protection Error: Both 'Approval Code' and 'Agent Name' fields are mandatory to clear an Approved transaction.");
+                        btn.innerText = "FINALIZE & CLOSE PATIENT TRANSACTION"; btn.disabled = false;
+                        return;
+                    }
+                }
+
+                const endCallTime = new Date();
+                const arrival = new Date(document.getElementById('time_of_arrival').value);
+                const diffMins = Math.floor((endCallTime - arrival) / 60000);
+                const limit = entry.transaction_type === 'Consult' ? 5 : 30;
+                const turnaround_time = diffMins <= limit ? "MET" : "NOT MET";
+
+                const { error } = await _supabase.from('hmo_monitoring').update({
+                    approval_code: entry.approval_code.trim().toUpperCase() || null,
+                    status: entry.status,
+                    agent_name: entry.agent_name.trim() || null,
+                    end_time_of_call: endCallTime.toISOString(),
+                    turnaround_time: turnaround_time
+                }).eq('id', targetRowId);
+
+                if (error) alert(error.message);
+                else {
+                    document.getElementById('formSection').classList.add('hidden');
+                    fetchRecords();
+                }
+
+            } else {
+                // --- PHASE 1 FLOW: CREATING NEW TICKET FROM CHECK-IN ---
+                const arrival = new Date(document.getElementById('time_of_arrival').value);
+                entry.time_of_arrival = arrival.toISOString();
+                entry.start_time_of_call = arrival.toISOString(); 
+                entry.end_time_of_call = null;
+                entry.turnaround_time = "PENDING";
+                entry.amount = entry.amount ? parseFloat(entry.amount) : 0.00;
+                entry.status = "On Process"; 
+
+                if (entry.transaction_type === 'Loa' || entry.transaction_type === 'Procedure') {
+                    entry.service = selectedServices.map(s => s.name); 
+                }
+
+                const { error } = await _supabase.from('hmo_monitoring').insert([entry]);
+                if (error) alert(error.message);
+                else {
+                    document.getElementById('formSection').classList.add('hidden');
+                    fetchRecords();
+                }
+            }
             
-            entry.time_of_arrival = arrival.toISOString();
-            entry.start_time_of_call = arrival.toISOString(); 
-            entry.end_time_of_call = null;
-            entry.turnaround_time = "PENDING";
-            entry.amount = entry.amount ? parseFloat(entry.amount) : 0.00;
-            entry.status = "Approved"; 
-
-            if (entry.transaction_type === 'Loa' || entry.transaction_type === 'Procedure') {
-                entry.service = selectedServices.map(s => s.name); 
-            }
-
-            const { error } = await _supabase.from('hmo_monitoring').insert([entry]);
-            if (error) alert(error.message);
-            else {
-                e.target.reset();
-                selectedServices = []; renderBadges();
-                docInput.disabled = false; clearDocBtn.classList.add('hidden');
-                serviceContainer.innerHTML = `<label class="text-[10px] text-slate-500 ml-1 uppercase font-bold">Service</label><input type="text" name="service" id="service_field" placeholder="e.g. Consult" class="w-full rounded-lg p-2.5">`;
-                toggleForm();
-                fetchRecords();
-            }
-            btn.innerText = "INITIALIZE CALL & QUEUE PATIENT"; btn.disabled = false;
+            btn.disabled = false;
         });
 
         _supabase.channel('hmo_realtime').on('postgres_changes', { event: '*', schema: 'public', table: 'hmo_monitoring' }, fetchRecords).subscribe();
