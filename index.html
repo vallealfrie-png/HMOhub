@@ -63,7 +63,7 @@
                     </div>
                 </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
                     <div>
                         <label class="text-[10px] text-slate-500 ml-1 uppercase font-bold">Transaction</label>
                         <select name="transaction_type" id="transaction_type" class="w-full rounded-lg p-2.5">
@@ -72,13 +72,18 @@
                             <option value="Procedure">Procedure (30m)</option>
                         </select>
                     </div>
-                    <div id="doctor_field_container">
-                        <label class="text-[10px] text-slate-500 ml-1 uppercase font-bold">Doctor/Procedure</label>
-                        <input type="text" name="doctor_procedure" id="doctor_procedure" placeholder="Specific Procedure" class="w-full rounded-lg p-2.5">
+                    <div>
+                        <label class="text-[10px] text-slate-500 ml-1 uppercase font-bold">Doctor List (Auto-suggest)</label>
+                        <input type="text" name="doctor_procedure" id="doctor_procedure" list="doctors" placeholder="Type doctor name..." class="w-full rounded-lg p-2.5" autocomplete="off">
+                        <datalist id="doctors"></datalist>
+                    </div>
+                    <div id="service_field_container">
+                        <label class="text-[10px] text-slate-500 ml-1 uppercase font-bold">Service</label>
+                        <input type="text" name="service" id="service_field" placeholder="e.g. X-Ray, Lab" class="w-full rounded-lg p-2.5">
                     </div>
                     <div>
-                        <label class="text-[10px] text-slate-500 ml-1 uppercase font-bold">Service</label>
-                        <input type="text" name="service" placeholder="e.g. X-Ray, Lab" class="w-full rounded-lg p-2.5">
+                        <label class="text-[10px] text-slate-500 ml-1 uppercase font-bold">Amount</label>
+                        <input type="number" step="0.01" name="amount" placeholder="0.00" class="w-full rounded-lg p-2.5">
                     </div>
                 </div>
 
@@ -135,6 +140,7 @@
         const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
         let cachedItems = [];
+        let cachedDoctors = [];
 
         // --- DATA LOADERS ---
 
@@ -145,6 +151,16 @@
                 const unique = [...new Set(data.map(i => i.guarantors))].filter(Boolean);
                 select.innerHTML = `<option value="">-- SELECT COMPANY --</option><option value="CASH">CASH</option>` + 
                                   unique.map(g => `<option value="${g}">${g}</option>`).join('');
+            }
+        }
+
+        // Fetch doctors and configure auto-suggestions
+        async function loadDoctors() {
+            const datalist = document.getElementById('doctors');
+            const { data, error } = await _supabase.from('doctorlist').select('name, specialization').order('name', { ascending: true });
+            if (!error && data) {
+                cachedDoctors = data;
+                datalist.innerHTML = data.map(doc => `<option value="${doc.name}"> Specialty: ${doc.specialization}</option>`).join('');
             }
         }
 
@@ -160,7 +176,7 @@
             if (!error && data) {
                 cachedItems = [...cachedItems, ...data];
                 if (data.length === limit) {
-                    await loadItems(from + limit); // Recurse
+                    await loadItems(from + limit);
                 }
             }
         }
@@ -168,22 +184,33 @@
         // --- UI LOGIC ---
 
         const transTypeSelect = document.getElementById('transaction_type');
-        const doctorFieldContainer = document.getElementById('doctor_field_container');
+        const serviceFieldContainer = document.getElementById('service_field_container');
+        const doctorInput = document.getElementById('doctor_procedure');
 
+        // Handle Specialization when Doctor is picked
+        doctorInput.addEventListener('change', (e) => {
+            const selectedDoc = cachedDoctors.find(d => d.name === e.target.value);
+            if (selectedDoc) {
+                // Formatting name dynamically to group item strings
+                e.target.value = `${selectedDoc.name} (${selectedDoc.specialization})`;
+            }
+        });
+
+        // Toggle service between static input text or recursive dynamic database select
         transTypeSelect.addEventListener('change', (e) => {
             const val = e.target.value;
             if (val === 'Loa' || val === 'Procedure') {
-                doctorFieldContainer.innerHTML = `
-                    <label class="text-[10px] text-slate-500 ml-1 uppercase font-bold">Doctor/Procedure</label>
-                    <select name="doctor_procedure" id="doctor_procedure" class="w-full rounded-lg p-2.5">
-                        <option value="">-- SELECT ITEM --</option>
+                serviceFieldContainer.innerHTML = `
+                    <label class="text-[10px] text-slate-500 ml-1 uppercase font-bold">Service</label>
+                    <select name="service" id="service_field" class="w-full rounded-lg p-2.5">
+                        <option value="">-- SELECT ITEM SERVICE --</option>
                         ${cachedItems.map(item => `<option value="${item.item_name}">${item.item_name}</option>`).join('')}
                     </select>
                 `;
             } else {
-                doctorFieldContainer.innerHTML = `
-                    <label class="text-[10px] text-slate-500 ml-1 uppercase font-bold">Doctor/Procedure</label>
-                    <input type="text" name="doctor_procedure" id="doctor_procedure" placeholder="Specific Procedure" class="w-full rounded-lg p-2.5">
+                serviceFieldContainer.innerHTML = `
+                    <label class="text-[10px] text-slate-500 ml-1 uppercase font-bold">Service</label>
+                    <input type="text" name="service" id="service_field" placeholder="e.g. X-Ray, Lab" class="w-full rounded-lg p-2.5">
                 `;
             }
         });
@@ -236,6 +263,7 @@
                         <td class="p-4">
                             <div class="text-blue-400 font-semibold">${row.transaction_type}</div>
                             <div class="text-[10px] text-slate-500 font-mono italic">${row.doctor_procedure || ''} ${row.service ? '('+row.service+')' : ''}</div>
+                            ${row.amount ? `<div class="text-emerald-400 font-bold mt-0.5">₱${Number(row.amount).toFixed(2)}</div>` : ''}
                         </td>
                         <td class="p-4 font-mono text-slate-300">
                             <div class="text-xs font-bold">${dateStr}</div>
@@ -276,6 +304,7 @@
             entry.time_of_arrival = arrival.toISOString();
             entry.start_time_of_call = document.getElementById('start_time_of_call').value || null;
             entry.end_time_of_call = document.getElementById('end_time_of_call').value || null;
+            entry.amount = entry.amount ? parseFloat(entry.amount) : 0.00;
 
             const { error } = await _supabase.from('hmo_monitoring').insert([entry]);
             if (error) alert(error.message);
@@ -283,22 +312,24 @@
                 e.target.reset();
                 document.getElementById('start_time_display').value = "";
                 document.getElementById('end_time_display').value = "";
-                // Reset doctor field back to input if it was a select
-                doctorFieldContainer.innerHTML = `
-                    <label class="text-[10px] text-slate-500 ml-1 uppercase font-bold">Doctor/Procedure</label>
-                    <input type="text" name="doctor_procedure" id="doctor_procedure" placeholder="Specific Procedure" class="w-full rounded-lg p-2.5">
+                
+                // Fallback reset for element layouts back to basic inputs
+                serviceFieldContainer.innerHTML = `
+                    <label class="text-[10px] text-slate-500 ml-1 uppercase font-bold">Service</label>
+                    <input type="text" name="service" id="service_field" placeholder="e.g. X-Ray, Lab" class="w-full rounded-lg p-2.5">
                 `;
                 toggleForm();
                 fetchRecords();
             }
-            btn.innerText = "SAVE RECORD"; btn.disabled = false;
+            btn.innerText = "SAVE PATIENT RECORD"; btn.disabled = false;
         });
 
         _supabase.channel('hmo_realtime').on('postgres_changes', { event: '*', schema: 'public', table: 'hmo_monitoring' }, fetchRecords).subscribe();
         
-        // Initial Startup
+        // Initial Startup Configs
         loadGuarantors();
-        loadItems(); // Fetches all items recursively
+        loadDoctors();
+        loadItems(); 
         fetchRecords();
     </script>
 </body>
