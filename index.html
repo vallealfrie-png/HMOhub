@@ -95,6 +95,25 @@
 
                 <div id="selected_services_container" class="hidden flex flex-wrap gap-2 p-3 bg-slate-950/40 border border-slate-800 rounded-xl"></div>
 
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                        <label class="text-[10px] text-slate-500 ml-1 uppercase font-bold">Approval Code</label>
+                        <input type="text" name="approval_code" placeholder="e.g. APP12345XYZ" class="w-full rounded-lg p-2.5 font-mono uppercase">
+                    </div>
+                    <div>
+                        <label class="text-[10px] text-slate-500 ml-1 uppercase font-bold">Status</label>
+                        <select name="status" class="w-full rounded-lg p-2.5 font-semibold text-emerald-400">
+                            <option value="Approved" class="text-emerald-400">Approved</option>
+                            <option value="Disapproved" class="text-red-400">Disapproved</option>
+                            <option value="Cancel" class="text-amber-500">Cancel</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="text-[10px] text-slate-500 ml-1 uppercase font-bold">Agent Name</label>
+                        <input type="text" name="agent_name" placeholder="HMO Agent Name" class="w-full rounded-lg p-2.5">
+                    </div>
+                </div>
+
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-end border-t border-slate-800 pt-6">
                     <div class="space-y-2">
                         <label class="text-sm font-medium text-slate-300">Start Call</label>
@@ -114,9 +133,8 @@
                     </div>
                 </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="grid grid-cols-1 gap-4">
                     <input type="text" name="name_of_associate" placeholder="Associate Name" class="w-full rounded-lg p-2.5">
-                    <input type="text" name="remarks" placeholder="Remarks..." class="w-full rounded-lg p-2.5">
                 </div>
 
                 <button type="submit" id="submitBtn" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-4 rounded-xl shadow-lg transition">SAVE PATIENT RECORD</button>
@@ -129,7 +147,8 @@
                     <thead class="text-[10px] uppercase tracking-widest text-slate-500 bg-slate-900">
                         <tr>
                             <th class="p-4">Patient</th>
-                            <th class="p-4">Transaction</th>
+                            <th class="p-4">Transaction / Service Details</th>
+                            <th class="p-4">HMO Verification</th>
                             <th class="p-4">Arrival Date & Time</th>
                             <th class="p-4">Call Logs</th>
                             <th class="p-4">TAT Status</th>
@@ -202,7 +221,6 @@
         const docDropdown = document.getElementById('doctor_dropdown');
         const clearDocBtn = document.getElementById('clear_doctor_btn');
 
-        // Render Doctor matches
         function filterDoctors(searchVal) {
             if (!searchVal) { docDropdown.classList.remove('show'); return; }
             const matches = cachedDoctors.filter(d => d.name.toLowerCase().includes(searchVal.toLowerCase()));
@@ -271,7 +289,7 @@
         }
 
         function addServiceToken(name, price) {
-            if (selectedServices.some(s => s.name === name)) return; // Prevent duplicate appends
+            if (selectedServices.some(s => s.name === name)) return;
             selectedServices.push({ name, price });
             renderBadges();
             calculateTotalAmount();
@@ -329,7 +347,6 @@
             }
         });
 
-        // Close service search layout drops if viewport losing interaction target focus
         document.addEventListener('click', (e) => {
             const searchInput = document.getElementById('service_search_input');
             const drop = document.getElementById('service_smart_dropdown');
@@ -338,7 +355,7 @@
             }
         });
 
-        // --- ORIGINAL HOOKS AND UI CONTROLS ---
+        // --- UI CONTROLS ---
 
         function toggleForm() {
             const form = document.getElementById('formSection');
@@ -375,17 +392,18 @@
                 const dateStr = arrival.toISOString().split('T')[0];
                 const start = row.start_time_of_call ? new Date(row.start_time_of_call).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : '--';
                 const end = row.end_time_of_call ? new Date(row.end_time_of_call).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : '--';
-                const status = row.turnaround_time || 'PENDING';
-                const statusStyle = status === 'MET' ? 'text-emerald-400 bg-emerald-400/10 border-emerald-500/50' : 
-                                   status === 'NOT MET' ? 'text-red-400 bg-red-400/10 border-red-500/50' : 'text-slate-500 bg-slate-800 border-slate-700';
+                
+                const tatStatus = row.turnaround_time || 'PENDING';
+                const tatStyle = tatStatus === 'MET' ? 'text-emerald-400 bg-emerald-400/10 border-emerald-500/50' : 
+                                 tatStatus === 'NOT MET' ? 'text-red-400 bg-red-400/10 border-red-500/50' : 'text-slate-500 bg-slate-800 border-slate-700';
 
-                // Safely convert array or string data types into printable badges inside dashboard data row logs
-                let parsedServices = "";
-                if (Array.isArray(row.service)) {
-                    parsedServices = row.service.join(', ');
-                } else {
-                    parsedServices = row.service || '';
-                }
+                // Contextual status pill rendering for Approved/Disapproved/Cancel
+                const hmoStatus = row.status || 'Approved';
+                const statusStyle = hmoStatus === 'Approved' ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30' :
+                                    hmoStatus === 'Disapproved' ? 'text-red-400 bg-red-500/10 border-red-500/30' : 
+                                    'text-amber-500 bg-amber-500/10 border-amber-500/30';
+
+                let parsedServices = Array.isArray(row.service) ? row.service.join(', ') : (row.service || '');
 
                 return `
                     <tr class="border-b border-slate-800 hover:bg-white/5 transition">
@@ -395,8 +413,13 @@
                         </td>
                         <td class="p-4">
                             <div class="text-blue-400 font-semibold">${row.transaction_type}</div>
-                            <div class="text-[10px] text-slate-500 font-mono italic">${row.doctor_procedure || ''} ${parsedServices ? '('+parsedServices+')' : ''}</div>
+                            <div class="text-[10px] text-slate-500 font-mono italic">${row.doctor_procedure || ''} ${parsedServices ? '📂 ('+parsedServices+')' : ''}</div>
                             ${row.amount ? `<div class="text-emerald-400 font-bold mt-0.5">₱${Number(row.amount).toFixed(2)}</div>` : ''}
+                        </td>
+                        <td class="p-4">
+                            <div class="mb-1"><span class="status-pill border ${statusStyle}">${hmoStatus}</span></div>
+                            <div class="text-xs font-mono font-bold text-slate-300 uppercase tracking-wider">${row.approval_code || 'NO CODE'}</div>
+                            <div class="text-[10px] text-slate-500 italic mt-0.5">${row.agent_name ? 'Agent: ' + row.agent_name : ''}</div>
                         </td>
                         <td class="p-4 font-mono text-slate-300">
                             <div class="text-xs font-bold">${dateStr}</div>
@@ -407,7 +430,7 @@
                             <div class="text-[10px] text-emerald-400">END: ${end}</div>
                         </td>
                         <td class="p-4">
-                            <span class="status-pill border ${statusStyle}">${status}</span>
+                            <span class="status-pill border ${tatStyle}">${tatStatus}</span>
                         </td>
                         <td class="p-4 text-slate-400 uppercase text-[10px]">${row.name_of_associate || '-'}</td>
                     </tr>
@@ -439,9 +462,9 @@
             entry.end_time_of_call = document.getElementById('end_time_of_call').value || null;
             entry.amount = entry.amount ? parseFloat(entry.amount) : 0.00;
 
-            // Decide whether to capture standard input string or structural multi-entry tokens array array values
+            // Handle service assignment based on input layout condition profiles
             if (entry.transaction_type === 'Loa' || entry.transaction_type === 'Procedure') {
-                entry.service = selectedServices.map(s => s.name); // Sends array format matching PostgreSQL text[] rules
+                entry.service = selectedServices.map(s => s.name); 
             }
 
             const { error } = await _supabase.from('hmo_monitoring').insert([entry]);
@@ -451,7 +474,6 @@
                 document.getElementById('start_time_display').value = "";
                 document.getElementById('end_time_display').value = "";
                 
-                // Clear state containers safely
                 selectedServices = [];
                 renderBadges();
                 docInput.disabled = false;
@@ -469,7 +491,6 @@
 
         _supabase.channel('hmo_realtime').on('postgres_changes', { event: '*', schema: 'public', table: 'hmo_monitoring' }, fetchRecords).subscribe();
         
-        // Initial Startup Configs
         loadGuarantors();
         loadDoctors();
         loadItems(); 
