@@ -27,17 +27,17 @@
         <header class="mb-8 flex justify-between items-center">
             <div>
                 <h1 class="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-emerald-400">HMO Hub Dashboard</h1>
-                <p class="text-slate-500 text-sm">Real-time Patient Monitoring</p>
+                <p class="text-slate-500 text-sm">Concurrent Multi-Patient Processing Queue</p>
             </div>
             <button onclick="toggleForm()" class="bg-blue-600 hover:bg-blue-500 px-6 py-2 rounded-lg font-bold transition flex items-center gap-2">
-                <span id="toggleIcon">+</span> Add New Patient
+                <span id="toggleIcon">+</span> New Check-In
             </button>
         </header>
 
         <div id="formSection" class="hidden mb-12">
             <form id="hmoForm" class="glass-card rounded-2xl p-6 md:p-8 space-y-6 shadow-2xl">
                 <div class="flex justify-between items-center border-b border-slate-800 pb-4">
-                    <h2 class="text-xl font-semibold text-blue-400">New Patient Entry</h2>
+                    <h2 class="text-xl font-semibold text-blue-400">Initial Patient Check-In</h2>
                     <div class="text-right">
                         <label class="block text-[10px] uppercase tracking-widest text-slate-500">Arrival Time</label>
                         <input type="text" id="toa_display" readonly class="bg-transparent border-none text-emerald-400 font-mono text-xl p-0 text-right focus:ring-0 w-32">
@@ -95,49 +95,20 @@
 
                 <div id="selected_services_container" class="hidden flex flex-wrap gap-2 p-3 bg-slate-950/40 border border-slate-800 rounded-xl"></div>
 
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                        <label class="text-[10px] text-slate-500 ml-1 uppercase font-bold">Approval Code</label>
-                        <input type="text" name="approval_code" placeholder="e.g. APP12345XYZ" class="w-full rounded-lg p-2.5 font-mono uppercase">
+                        <label class="text-[10px] text-slate-500 ml-1 uppercase font-bold">Associate Name</label>
+                        <input type="text" name="name_of_associate" placeholder="Who checked in this patient?" class="w-full rounded-lg p-2.5">
                     </div>
                     <div>
-                        <label class="text-[10px] text-slate-500 ml-1 uppercase font-bold">Status</label>
-                        <select name="status" class="w-full rounded-lg p-2.5 font-semibold text-emerald-400">
-                            <option value="Approved" class="text-emerald-400">Approved</option>
-                            <option value="Disapproved" class="text-red-400">Disapproved</option>
-                            <option value="Cancel" class="text-amber-500">Cancel</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="text-[10px] text-slate-500 ml-1 uppercase font-bold">Agent Name</label>
-                        <input type="text" name="agent_name" placeholder="HMO Agent Name" class="w-full rounded-lg p-2.5">
+                        <label class="text-[10px] text-slate-500 ml-1 uppercase font-bold">HMO Agent Name (Optional Now)</label>
+                        <input type="text" name="agent_name" placeholder="Can be updated later" class="w-full rounded-lg p-2.5">
                     </div>
                 </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-end border-t border-slate-800 pt-6">
-                    <div class="space-y-2">
-                        <label class="text-sm font-medium text-slate-300">Start Call</label>
-                        <div class="flex gap-2">
-                            <input type="text" id="start_time_display" readonly class="w-full rounded-lg p-2.5 font-mono text-blue-400" placeholder="--:--:--">
-                            <button type="button" id="startBtn" class="bg-blue-600/20 border border-blue-500 text-blue-400 px-4 py-2 rounded-lg font-bold hover:bg-blue-600 hover:text-white transition">START</button>
-                        </div>
-                        <input type="hidden" id="start_time_of_call" name="start_time_of_call">
-                    </div>
-                    <div class="space-y-2">
-                        <label class="text-sm font-medium text-slate-300">End Call</label>
-                        <div class="flex gap-2">
-                            <input type="text" id="end_time_display" readonly class="w-full rounded-lg p-2.5 font-mono text-emerald-400" placeholder="--:--:--">
-                            <button type="button" id="endBtn" class="bg-emerald-600/20 border border-emerald-500 text-emerald-400 px-4 py-2 rounded-lg font-bold hover:bg-emerald-600 hover:text-white transition">END</button>
-                        </div>
-                        <input type="hidden" id="end_time_of_call" name="end_time_of_call">
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-1 gap-4">
-                    <input type="text" name="name_of_associate" placeholder="Associate Name" class="w-full rounded-lg p-2.5">
-                </div>
-
-                <button type="submit" id="submitBtn" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-4 rounded-xl shadow-lg transition">SAVE PATIENT RECORD</button>
+                <button type="submit" id="submitBtn" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-4 rounded-xl shadow-lg transition">
+                    INITIALIZE CALL & QUEUE PATIENT
+                </button>
             </form>
         </div>
 
@@ -148,8 +119,8 @@
                         <tr>
                             <th class="p-4">Patient</th>
                             <th class="p-4">Transaction / Service Details</th>
-                            <th class="p-4">HMO Verification</th>
-                            <th class="p-4">Arrival Date & Time</th>
+                            <th class="p-4">HMO Verification & Actions</th>
+                            <th class="p-4">Arrival</th>
                             <th class="p-4">Call Logs</th>
                             <th class="p-4">TAT Status</th>
                             <th class="p-4">Associate</th>
@@ -171,7 +142,6 @@
         let selectedServices = [];
 
         // --- DATA LOADERS ---
-
         async function loadGuarantors() {
             const select = document.getElementById('card_company_select');
             const { data, error } = await _supabase.from('hmo').select('guarantors').order('guarantors', { ascending: true });
@@ -184,38 +154,23 @@
 
         async function loadDoctors(from = 0) {
             const limit = 1000;
-            const { data, error } = await _supabase
-                .from('doctorlist')
-                .select('name, specialization')
-                .order('name', { ascending: true })
-                .range(from, from + limit - 1);
-
+            const { data, error } = await _supabase.from('doctorlist').select('name, specialization').order('name', { ascending: true }).range(from, from + limit - 1);
             if (!error && data) {
                 cachedDoctors = [...cachedDoctors, ...data];
-                if (data.length === limit) {
-                    await loadDoctors(from + limit);
-                }
+                if (data.length === limit) await loadDoctors(from + limit);
             }
         }
 
         async function loadItems(from = 0) {
             const limit = 1000;
-            const { data, error } = await _supabase
-                .from('items')
-                .select('item_name, price')
-                .order('item_name', { ascending: true })
-                .range(from, from + limit - 1);
-
+            const { data, error } = await _supabase.from('items').select('item_name, price').order('item_name', { ascending: true }).range(from, from + limit - 1);
             if (!error && data) {
                 cachedItems = [...cachedItems, ...data];
-                if (data.length === limit) {
-                    await loadItems(from + limit);
-                }
+                if (data.length === limit) await loadItems(from + limit);
             }
         }
 
-        // --- CUSTOM SMART LOGIC AND AUTO-SUGGEST MENUS ---
-
+        // --- DOCTOR INTERACTION ---
         const docInput = document.getElementById('doctor_input');
         const docHidden = document.getElementById('doctor_hidden_value');
         const docDropdown = document.getElementById('doctor_dropdown');
@@ -224,15 +179,12 @@
         function filterDoctors(searchVal) {
             if (!searchVal) { docDropdown.classList.remove('show'); return; }
             const matches = cachedDoctors.filter(d => d.name.toLowerCase().includes(searchVal.toLowerCase()));
-            
             if (matches.length === 0) {
                 docDropdown.innerHTML = `<div class="p-3 text-slate-500 text-xs">No doctors found</div>`;
             } else {
                 docDropdown.innerHTML = matches.map(d => `
-                    <div class="p-2.5 hover:bg-blue-600/30 cursor-pointer transition text-xs border-b border-slate-800/40" 
-                         onclick="selectDoctor('${d.name}', '${d.specialization}')">
-                        <span class="font-bold text-white">${d.name}</span> 
-                        <span class="text-slate-400 block text-[10px] uppercase tracking-wider mt-0.5">${d.specialization}</span>
+                    <div class="p-2.5 hover:bg-blue-600/30 cursor-pointer transition text-xs border-b border-slate-800/40" onclick="selectDoctor('${d.name}', '${d.specialization}')">
+                        <span class="font-bold text-white">${d.name}</span> <span class="text-slate-400 block text-[10px] uppercase tracking-wider">${d.specialization}</span>
                     </div>
                 `).join('');
             }
@@ -241,28 +193,18 @@
 
         function selectDoctor(name, spec) {
             const formatted = `${name} (${spec})`;
-            docInput.value = formatted;
-            docHidden.value = formatted;
-            docInput.disabled = true;
-            clearDocBtn.classList.remove('hidden');
+            docInput.value = formatted; docHidden.value = formatted;
+            docInput.disabled = true; clearDocBtn.classList.remove('hidden');
             docDropdown.classList.remove('show');
         }
 
         clearDocBtn.addEventListener('click', () => {
-            docInput.value = "";
-            docHidden.value = "";
-            docInput.disabled = false;
-            clearDocBtn.classList.add('hidden');
-            docInput.focus();
+            docInput.value = ""; docHidden.value = "";
+            docInput.disabled = false; clearDocBtn.classList.add('hidden'); docInput.focus();
         });
-
         docInput.addEventListener('input', (e) => filterDoctors(e.target.value));
-        document.addEventListener('click', (e) => {
-            if (!docInput.contains(e.target) && !docDropdown.contains(e.target)) docDropdown.classList.remove('show');
-        });
 
-        // --- SMART SERVICE MULTI-SELECT HANDLERS ---
-
+        // --- MULTI-SELECT SERVICE HANDLERS ---
         const transTypeSelect = document.getElementById('transaction_type');
         const serviceContainer = document.getElementById('service_field_container');
         const badgeContainer = document.getElementById('selected_services_container');
@@ -270,52 +212,35 @@
 
         function filterServices(searchVal) {
             const drop = document.getElementById('service_smart_dropdown');
-            if (!drop) return;
-            if (!searchVal) { drop.classList.remove('show'); return; }
-
+            if (!drop || !searchVal) { drop?.classList.remove('show'); return; }
             const matches = cachedItems.filter(i => i.item_name.toLowerCase().includes(searchVal.toLowerCase()));
-            if(matches.length === 0) {
-                drop.innerHTML = `<div class="p-3 text-slate-500 text-xs">No items found</div>`;
-            } else {
-                drop.innerHTML = matches.map(i => `
-                    <div class="p-2.5 hover:bg-emerald-600/30 cursor-pointer transition text-xs flex justify-between items-center border-b border-slate-800/40"
-                         onclick="addServiceToken('${i.item_name}', ${i.price || 0})">
-                        <span class="text-white font-medium">${i.item_name}</span>
-                        <span class="text-emerald-400 font-mono text-[10px]">₱${Number(i.price || 0).toFixed(2)}</span>
-                    </div>
-                `).join('');
-            }
+            drop.innerHTML = matches.map(i => `
+                <div class="p-2.5 hover:bg-emerald-600/30 cursor-pointer transition text-xs flex justify-between items-center" onclick="addServiceToken('${i.item_name}', ${i.price || 0})">
+                    <span class="text-white">${i.item_name}</span> <span class="text-emerald-400 font-mono">₱${Number(i.price || 0).toFixed(2)}</span>
+                </div>
+            `).join('');
             drop.classList.add('show');
         }
 
         function addServiceToken(name, price) {
             if (selectedServices.some(s => s.name === name)) return;
             selectedServices.push({ name, price });
-            renderBadges();
-            calculateTotalAmount();
-            
-            const searchInput = document.getElementById('service_search_input');
-            if (searchInput) { searchInput.value = ""; searchInput.focus(); }
+            renderBadges(); calculateTotalAmount();
+            document.getElementById('service_search_input').value = "";
             document.getElementById('service_smart_dropdown').classList.remove('show');
         }
 
         function removeServiceToken(name) {
             selectedServices = selectedServices.filter(s => s.name !== name);
-            renderBadges();
-            calculateTotalAmount();
+            renderBadges(); calculateTotalAmount();
         }
 
         function renderBadges() {
-            if (selectedServices.length === 0) {
-                badgeContainer.classList.add('hidden');
-                badgeContainer.innerHTML = "";
-                return;
-            }
+            if (selectedServices.length === 0) { badgeContainer.classList.add('hidden'); return; }
             badgeContainer.classList.remove('hidden');
             badgeContainer.innerHTML = selectedServices.map(s => `
-                <span class="inline-flex items-center gap-1.5 bg-blue-500/10 border border-blue-500/30 text-blue-300 text-xs font-semibold px-3 py-1.5 rounded-lg">
-                    ${s.name}
-                    <button type="button" onclick="removeServiceToken('${s.name}')" class="text-red-400 hover:text-red-300 font-bold ml-1 text-sm transition">&times;</button>
+                <span class="inline-flex items-center bg-blue-500/10 border border-blue-500/30 text-blue-300 text-xs px-2.5 py-1 rounded-lg">
+                    ${s.name} <button type="button" onclick="removeServiceToken('${s.name}')" class="text-red-400 font-bold ml-1">&times;</button>
                 </span>
             `).join('');
         }
@@ -326,37 +251,23 @@
         }
 
         transTypeSelect.addEventListener('change', (e) => {
-            const val = e.target.value;
-            selectedServices = [];
-            renderBadges();
-            amountField.value = "";
-
+            const val = e.target.value; selectedServices = []; renderBadges(); amountField.value = "";
             if (val === 'Loa' || val === 'Procedure') {
                 serviceContainer.innerHTML = `
                     <label class="text-[10px] text-slate-500 ml-1 uppercase font-bold">Service (Smart Array)</label>
-                    <input type="text" id="service_search_input" placeholder="Type test/procedure..." class="w-full rounded-lg p-2.5" autocomplete="off">
+                    <input type="text" id="service_search_input" placeholder="Type test..." class="w-full rounded-lg p-2.5" autocomplete="off">
                     <div id="service_smart_dropdown" class="dropdown-menu absolute left-0 right-0 mt-1 bg-slate-900 border border-slate-700 rounded-lg shadow-xl max-h-60 overflow-y-auto"></div>
                 `;
-                const searchInput = document.getElementById('service_search_input');
-                searchInput.addEventListener('input', (el) => filterServices(el.target.value));
+                document.getElementById('service_search_input').addEventListener('input', (el) => filterServices(el.target.value));
             } else {
                 serviceContainer.innerHTML = `
                     <label class="text-[10px] text-slate-500 ml-1 uppercase font-bold">Service</label>
-                    <input type="text" name="service" id="service_field" placeholder="e.g. X-Ray, Lab" class="w-full rounded-lg p-2.5">
+                    <input type="text" name="service" id="service_field" placeholder="e.g. Consult" class="w-full rounded-lg p-2.5">
                 `;
             }
         });
 
-        document.addEventListener('click', (e) => {
-            const searchInput = document.getElementById('service_search_input');
-            const drop = document.getElementById('service_smart_dropdown');
-            if (searchInput && !searchInput.contains(e.target) && drop && !drop.contains(e.target)) {
-                drop.classList.remove('show');
-            }
-        });
-
-        // --- UI CONTROLS ---
-
+        // --- QUEUE PROCESS CONTROLLER ---
         function toggleForm() {
             const form = document.getElementById('formSection');
             form.classList.toggle('hidden');
@@ -368,21 +279,42 @@
             }
         }
 
-        document.getElementById('startBtn').addEventListener('click', () => {
-            const now = new Date();
-            document.getElementById('start_time_display').value = now.toLocaleTimeString();
-            document.getElementById('start_time_of_call').value = now.toISOString();
-        });
-
-        document.getElementById('endBtn').addEventListener('click', () => {
-            const now = new Date();
-            document.getElementById('end_time_display').value = now.toLocaleTimeString();
-            document.getElementById('end_time_of_call').value = now.toISOString();
-        });
-
         async function fetchRecords() {
             const { data, error } = await _supabase.from('hmo_monitoring').select('*').order('created_at', { ascending: false });
             if (!error) renderTable(data);
+        }
+
+        // PHASE 2 PROCESS CONDITIONAL VALIDATION GUARD
+        async function completeRowCall(id, arrivalTime, transactionType) {
+            const codeInput = document.getElementById(`inline_code_${id}`).value.trim();
+            const statusSelect = document.getElementById(`inline_status_${id}`).value;
+            const agentInput = document.getElementById(`inline_agent_${id}`).value.trim();
+
+            // ADJUSTED EXPLICIT VALIDATION: ONLY 'Approved' CLAIMS ARE BLOCKED FOR NULLS
+            if (statusSelect === 'Approved') {
+                if (!codeInput || !agentInput) {
+                    alert("⚠️ Data Validation Error: Both 'Approval Code' and 'Agent Name' fields are required before finalizing an Approved transaction record.");
+                    return;
+                }
+            }
+
+            const endCallTime = new Date();
+            const arrival = new Date(arrivalTime);
+            
+            const diffMins = Math.floor((endCallTime - arrival) / 60000);
+            const limit = transactionType === 'Consult' ? 5 : 30;
+            const turnaround_time = diffMins <= limit ? "MET" : "NOT MET";
+
+            const { error } = await _supabase.from('hmo_monitoring').update({
+                approval_code: codeInput || null,
+                status: statusSelect,
+                agent_name: agentInput || null,
+                end_time_of_call: endCallTime.toISOString(),
+                turnaround_time: turnaround_time
+            }).eq('id', id);
+
+            if (error) alert(error.message);
+            else fetchRecords();
         }
 
         function renderTable(data) {
@@ -395,32 +327,51 @@
                 
                 const tatStatus = row.turnaround_time || 'PENDING';
                 const tatStyle = tatStatus === 'MET' ? 'text-emerald-400 bg-emerald-400/10 border-emerald-500/50' : 
-                                 tatStatus === 'NOT MET' ? 'text-red-400 bg-red-400/10 border-red-500/50' : 'text-slate-500 bg-slate-800 border-slate-700';
-
-                // Contextual status pill rendering for Approved/Disapproved/Cancel
-                const hmoStatus = row.status || 'Approved';
-                const statusStyle = hmoStatus === 'Approved' ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30' :
-                                    hmoStatus === 'Disapproved' ? 'text-red-400 bg-red-500/10 border-red-500/30' : 
-                                    'text-amber-500 bg-amber-500/10 border-amber-500/30';
+                                 tatStatus === 'NOT MET' ? 'text-red-400 bg-red-400/10 border-red-500/50' : 'text-amber-400 bg-amber-400/10 border-amber-500/30 animate-pulse';
 
                 let parsedServices = Array.isArray(row.service) ? row.service.join(', ') : (row.service || '');
+
+                let verificationColumnHTML = "";
+                if (row.end_time_of_call) {
+                    const hmoStatus = row.status || 'Approved';
+                    const statusStyle = hmoStatus === 'Approved' ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30' :
+                                        hmoStatus === 'Disapproved' ? 'text-red-400 bg-red-500/10 border-red-500/30' : 'text-amber-500 bg-amber-500/10 border-amber-500/30';
+                    verificationColumnHTML = `
+                        <div class="mb-1"><span class="status-pill border ${statusStyle}">${hmoStatus}</span></div>
+                        <div class="text-xs font-mono font-bold text-slate-300 uppercase">${row.approval_code || 'NO CODE'}</div>
+                        <div class="text-[10px] text-slate-500 italic mt-0.5">${row.agent_name ? 'Agent: ' + row.agent_name : ''}</div>
+                    `;
+                } else {
+                    verificationColumnHTML = `
+                        <div class="space-y-1.5 p-1 bg-white/5 border border-white/10 rounded-lg max-w-[220px]">
+                            <input type="text" id="inline_code_${row.id}" placeholder="Approval Code" class="w-full text-[11px] p-1 rounded border border-slate-700 font-mono uppercase">
+                            <input type="text" id="inline_agent_${row.id}" placeholder="Agent Name" class="w-full text-[11px] p-1 rounded border border-slate-700">
+                            <div class="flex gap-1">
+                                <select id="inline_status_${row.id}" class="text-[11px] p-1 rounded border border-slate-700 w-1/2 bg-slate-950">
+                                    <option value="Approved">Approved</option>
+                                    <option value="Disapproved">Disapproved</option>
+                                    <option value="Cancel">Cancel</option>
+                                </select>
+                                <button onclick="completeRowCall(${row.id}, '${row.time_of_arrival}', '${row.transaction_type}')" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-2 py-1 rounded text-[10px] w-1/2 transition">
+                                    SAVE & END
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                }
 
                 return `
                     <tr class="border-b border-slate-800 hover:bg-white/5 transition">
                         <td class="p-4">
                             <div class="font-bold text-sm text-white">${row.patient_name}</div>
-                            <div class="text-[10px] text-slate-400 tracking-wider uppercase">${row.patient_type} | ${row.card_company || 'CASH'}</div>
+                            <div class="text-[10px] text-slate-400 uppercase">${row.patient_type} | ${row.card_company || 'CASH'}</div>
                         </td>
                         <td class="p-4">
                             <div class="text-blue-400 font-semibold">${row.transaction_type}</div>
                             <div class="text-[10px] text-slate-500 font-mono italic">${row.doctor_procedure || ''} ${parsedServices ? '📂 ('+parsedServices+')' : ''}</div>
                             ${row.amount ? `<div class="text-emerald-400 font-bold mt-0.5">₱${Number(row.amount).toFixed(2)}</div>` : ''}
                         </td>
-                        <td class="p-4">
-                            <div class="mb-1"><span class="status-pill border ${statusStyle}">${hmoStatus}</span></div>
-                            <div class="text-xs font-mono font-bold text-slate-300 uppercase tracking-wider">${row.approval_code || 'NO CODE'}</div>
-                            <div class="text-[10px] text-slate-500 italic mt-0.5">${row.agent_name ? 'Agent: ' + row.agent_name : ''}</div>
-                        </td>
+                        <td class="p-4">${verificationColumnHTML}</td>
                         <td class="p-4 font-mono text-slate-300">
                             <div class="text-xs font-bold">${dateStr}</div>
                             <div class="text-[10px] text-slate-500">${arrival.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</div>
@@ -429,9 +380,7 @@
                             <div class="text-[10px] text-blue-400">START: ${start}</div>
                             <div class="text-[10px] text-emerald-400">END: ${end}</div>
                         </td>
-                        <td class="p-4">
-                            <span class="status-pill border ${tatStyle}">${tatStatus}</span>
-                        </td>
+                        <td class="p-4"><span class="status-pill border ${tatStyle}">${tatStatus}</span></td>
                         <td class="p-4 text-slate-400 uppercase text-[10px]">${row.name_of_associate || '-'}</td>
                     </tr>
                 `;
@@ -441,28 +390,19 @@
         document.getElementById('hmoForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const btn = document.getElementById('submitBtn');
-            btn.innerText = "SAVING..."; btn.disabled = true;
+            btn.innerText = "QUEUEING..."; btn.disabled = true;
 
             const formData = new FormData(e.target);
             const entry = Object.fromEntries(formData.entries());
-            
             const arrival = new Date(document.getElementById('time_of_arrival').value);
-            const endCall = document.getElementById('end_time_of_call').value ? new Date(document.getElementById('end_time_of_call').value) : null;
-            
-            if (endCall) {
-                const diffMins = Math.floor((endCall - arrival) / 60000);
-                const limit = entry.transaction_type === 'Consult' ? 5 : 30;
-                entry.turnaround_time = diffMins <= limit ? "MET" : "NOT MET";
-            } else {
-                entry.turnaround_time = "PENDING";
-            }
             
             entry.time_of_arrival = arrival.toISOString();
-            entry.start_time_of_call = document.getElementById('start_time_of_call').value || null;
-            entry.end_time_of_call = document.getElementById('end_time_of_call').value || null;
+            entry.start_time_of_call = arrival.toISOString(); 
+            entry.end_time_of_call = null;
+            entry.turnaround_time = "PENDING";
             entry.amount = entry.amount ? parseFloat(entry.amount) : 0.00;
+            entry.status = "Approved"; 
 
-            // Handle service assignment based on input layout condition profiles
             if (entry.transaction_type === 'Loa' || entry.transaction_type === 'Procedure') {
                 entry.service = selectedServices.map(s => s.name); 
             }
@@ -471,30 +411,18 @@
             if (error) alert(error.message);
             else {
                 e.target.reset();
-                document.getElementById('start_time_display').value = "";
-                document.getElementById('end_time_display').value = "";
-                
-                selectedServices = [];
-                renderBadges();
-                docInput.disabled = false;
-                clearDocBtn.classList.add('hidden');
-
-                serviceContainer.innerHTML = `
-                    <label class="text-[10px] text-slate-500 ml-1 uppercase font-bold">Service</label>
-                    <input type="text" name="service" id="service_field" placeholder="e.g. X-Ray, Lab" class="w-full rounded-lg p-2.5">
-                `;
+                selectedServices = []; renderBadges();
+                docInput.disabled = false; clearDocBtn.classList.add('hidden');
+                serviceContainer.innerHTML = `<label class="text-[10px] text-slate-500 ml-1 uppercase font-bold">Service</label><input type="text" name="service" id="service_field" placeholder="e.g. Consult" class="w-full rounded-lg p-2.5">`;
                 toggleForm();
                 fetchRecords();
             }
-            btn.innerText = "SAVE PATIENT RECORD"; btn.disabled = false;
+            btn.innerText = "INITIALIZE CALL & QUEUE PATIENT"; btn.disabled = false;
         });
 
         _supabase.channel('hmo_realtime').on('postgres_changes', { event: '*', schema: 'public', table: 'hmo_monitoring' }, fetchRecords).subscribe();
         
-        loadGuarantors();
-        loadDoctors();
-        loadItems(); 
-        fetchRecords();
+        loadGuarantors(); loadDoctors(); loadItems(); fetchRecords();
     </script>
 </body>
 </html>
