@@ -15,7 +15,7 @@
             color: white !important; 
         }
         input:disabled, select:disabled {
-            background: rgba(30, 41, 59, 0.5) !important;
+            background: rgba(30, 41, 59, 0.4) !important;
             color: #94a3b8 !important;
             border: 1px solid rgba(255, 255, 255, 0.05) !important;
             cursor: not-allowed;
@@ -109,7 +109,7 @@
                         <input type="text" name="name_of_associate" id="field_name_of_associate" placeholder="Who checked in this patient?" class="w-full rounded-lg p-2.5">
                     </div>
                     <div>
-                        <label class="text-[10px] text-slate-500 ml-1 uppercase font-bold text-blue-400">HMO Status Verification Option</label>
+                        <label class="text-[10px] text-slate-500 ml-1 uppercase font-bold text-blue-400">HMO Verification Status</label>
                         <select name="status" id="field_status" class="w-full rounded-lg p-2.5 font-bold text-amber-400">
                             <option value="On Process" class="text-amber-400">On Process</option>
                             <option value="Approved" class="text-emerald-400">Approved</option>
@@ -122,11 +122,11 @@
                 <div id="updateFieldsContainer" class="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 border border-dashed border-slate-700 rounded-xl bg-slate-950/30">
                     <div>
                         <label class="text-[10px] text-slate-400 ml-1 uppercase font-bold tracking-wider">HMO Verification Code</label>
-                        <input type="text" name="approval_code" id="field_approval_code" placeholder="Alphanumeric Code Required" class="w-full rounded-lg p-2.5 font-mono uppercase">
+                        <input type="text" name="approval_code" id="field_approval_code" placeholder="Required for Approved" class="w-full rounded-lg p-2.5 font-mono uppercase">
                     </div>
                     <div>
-                        <label class="text-[10px] text-slate-400 ml-1 uppercase font-bold tracking-wider">HMO Agent Name Contacted</label>
-                        <input type="text" name="agent_name" id="field_agent_name" placeholder="Full Agent Identity Name Required" class="w-full rounded-lg p-2.5">
+                        <label class="text-[10px] text-slate-400 ml-1 uppercase font-bold tracking-wider">HMO Agent Name</label>
+                        <input type="text" name="agent_name" id="field_agent_name" placeholder="Required for Approved" class="w-full rounded-lg p-2.5">
                     </div>
                 </div>
 
@@ -136,7 +136,7 @@
             </form>
         </div>
 
-        <div class="mb-4 relative max-w-md">
+        <div class="mb-5 relative max-w-md">
             <input type="text" id="patientSearchInput" oninput="filterTableBySearch()" placeholder="🔍 Search patient by name..." class="w-full rounded-xl p-3 pl-10 text-sm bg-slate-900 border border-slate-800 focus:outline-none focus:border-blue-500 text-white">
         </div>
 
@@ -292,7 +292,7 @@
             }
         });
 
-        // --- WORKFLOW ENGINE STATE MUTATIONS ---
+        // --- WORKFLOW SEPARATION ENGINE ---
         function setFormDisabledState(disabled) {
             document.getElementById('field_patient_name').disabled = disabled;
             document.getElementById('card_company_select').disabled = disabled;
@@ -313,7 +313,6 @@
             setFormDisabledState(false);
             document.getElementById('field_status').disabled = false;
             
-            // Revert default interface choices
             document.getElementById('field_status').value = "On Process";
             document.getElementById('formHeaderTitle').innerText = "Initial Patient Check-In";
             document.getElementById('submitBtn').innerText = "INITIALIZE CALL & QUEUE PATIENT";
@@ -326,13 +325,13 @@
             document.getElementById('toggleIcon').innerText = '-';
         }
 
-        // TRIGGER ON CLICKING ROW: OPEN QUEUED PATIENT SECURELY
+        // TRIGGER ON CLICKING ROW
         function openRowForVerificationUpdate(id) {
             const match = currentRecordDataset.find(r => r.id === id);
             if (!match) return;
             
-            // Blocks editing if row is finalized already
-            if (match.end_time_of_call) {
+            // Lock out finished rows
+            if (match.status !== 'On Process') {
                 alert("ℹ️ Record Finalized: This transaction log has been closed and can no longer be edited.");
                 return;
             }
@@ -340,7 +339,6 @@
             document.getElementById('hmoForm').reset();
             document.getElementById('edit_row_id').value = match.id;
             
-            // Populating visual locked properties
             document.getElementById('field_patient_name').value = match.patient_name;
             document.getElementById('card_company_select').value = match.card_company || '';
             document.getElementById('field_patient_type').value = match.patient_type;
@@ -352,7 +350,6 @@
             document.getElementById('toa_display').value = toaDate.toLocaleTimeString();
             document.getElementById('time_of_arrival').value = match.time_of_arrival;
 
-            // Handle service arrays visually
             if (Array.isArray(match.service)) {
                 selectedServices = match.service.map(s => ({ name: s, price: 0 }));
                 renderBadges();
@@ -360,12 +357,11 @@
                 if (document.getElementById('service_field')) document.getElementById('service_field').value = match.service;
             }
 
-            // ENFORCE SECURITY LOCKS
+            // LOCK INSTRUCTIONS
             setFormDisabledState(true);
             
-            // Enable Verification Actions exclusively
             document.getElementById('field_status').disabled = false;
-            document.getElementById('field_status').value = "Approved"; // Guess default step transition choice
+            document.getElementById('field_status').value = "Approved"; 
             document.getElementById('field_approval_code').value = match.approval_code || '';
             document.getElementById('field_agent_name').value = match.agent_name || '';
 
@@ -377,7 +373,7 @@
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
-        // LIVE INPUT ENGINE ROW FILTERING LOGIC
+        // SEARCH BAR FILTERING ENGINE
         function filterTableBySearch() {
             const value = document.getElementById('patientSearchInput').value.toLowerCase().trim();
             if (!value) {
@@ -392,7 +388,7 @@
             const { data, error } = await _supabase.from('hmo_monitoring').select('*').order('created_at', { ascending: false });
             if (!error) {
                 currentRecordDataset = data;
-                filterTableBySearch(); // Ensure searching criteria remains intact during mutation stream cycles
+                filterTableBySearch(); 
             }
         }
 
@@ -414,10 +410,13 @@
                                     hmoStatus === 'Disapproved' ? 'text-red-400 bg-red-500/10 border-red-500/30' : 'text-slate-400 bg-slate-500/10 border-slate-500/30';
 
                 let parsedServices = Array.isArray(row.service) ? row.service.join(', ') : (row.service || '');
-                const isClickableClass = !row.end_time_of_call ? 'cursor-pointer hover:bg-blue-500/5' : 'opacity-80';
+                
+                // DETERMINES INTERACTION STATUS
+                const isClickable = (hmoStatus === 'On Process');
+                const isClickableClass = isClickable ? 'cursor-pointer hover:bg-blue-500/10 bg-blue-500/[0.02]' : 'opacity-75';
 
                 return `
-                    <tr onclick="if(!${!!row.end_time_of_call}) openRowForVerificationUpdate(${row.id})" class="border-b border-slate-800 transition ${isClickableClass}">
+                    <tr onclick="if(${isClickable}) openRowForVerificationUpdate(${row.id})" class="border-b border-slate-800 transition ${isClickableClass}">
                         <td class="p-4">
                             <div class="font-bold text-sm text-white">${row.patient_name}</div>
                             <div class="text-[10px] text-slate-400 uppercase">${row.patient_type} | ${row.card_company || 'CASH'}</div>
@@ -431,7 +430,7 @@
                             <div class="mb-1"><span class="status-pill border ${statusStyle}">${hmoStatus}</span></div>
                             <div class="text-xs font-mono font-bold text-slate-300 uppercase">${row.approval_code || ''}</div>
                             <div class="text-[10px] text-slate-500 italic mt-0.5">${row.agent_name ? 'Agent: ' + row.agent_name : ''}</div>
-                            ${!row.end_time_of_call ? '<span class="text-[9px] text-blue-400 block mt-1 animate-pulse">⚡ Click row to update</span>' : ''}
+                            ${isClickable ? '<span class="text-[10px] text-blue-400 block mt-1 font-semibold animate-pulse">⚡ Click row to update</span>' : ''}
                         </td>
                         <td class="p-4 font-mono text-slate-300">
                             <div class="text-xs font-bold">${dateStr}</div>
@@ -448,7 +447,7 @@
             }).join('');
         }
 
-        // MASTER CONTROL SUBMISSION ROUTING SYSTEM
+        // --- SUBMISSION LOGIC DISPATCHER ---
         document.getElementById('hmoForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const btn = document.getElementById('submitBtn');
@@ -460,13 +459,14 @@
             btn.innerText = "PROCESSING SUBMIT..."; btn.disabled = true;
 
             if (targetRowId) {
-                // --- PHASE 2 FLOW: CLOSING ACTIVE ON-PROCESS TICKETS ---
+                // --- PHASE 2 FLOW: SAVING AND FINALIZING OPEN LOG TICKETS ---
                 if (entry.status === 'On Process') {
                     alert("⚠️ Action Denied: Please update the HMO Status to Approved, Disapproved, or Cancel to close this patient file.");
                     btn.innerText = "FINALIZE & CLOSE PATIENT TRANSACTION"; btn.disabled = false;
                     return;
                 }
 
+                // DATA PROTECTION GUARD RULES
                 if (entry.status === 'Approved') {
                     if (!entry.approval_code.trim() || !entry.agent_name.trim()) {
                         alert("⚠️ Validation Protection Error: Both 'Approval Code' and 'Agent Name' fields are mandatory to clear an Approved transaction.");
@@ -496,7 +496,7 @@
                 }
 
             } else {
-                // --- PHASE 1 FLOW: CREATING NEW TICKET FROM CHECK-IN ---
+                // --- PHASE 1 FLOW: CREATING NEW TRACKING TIMELINES ---
                 const arrival = new Date(document.getElementById('time_of_arrival').value);
                 entry.time_of_arrival = arrival.toISOString();
                 entry.start_time_of_call = arrival.toISOString(); 
@@ -520,6 +520,7 @@
             btn.disabled = false;
         });
 
+        // Realtime Subscription Setup
         _supabase.channel('hmo_realtime').on('postgres_changes', { event: '*', schema: 'public', table: 'hmo_monitoring' }, fetchRecords).subscribe();
         
         loadGuarantors(); loadDoctors(); loadItems(); fetchRecords();
