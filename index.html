@@ -110,7 +110,7 @@
                     </div>
                     <div>
                         <label class="text-[10px] text-slate-500 ml-1 uppercase font-bold text-blue-400">HMO Verification Status</label>
-                        <select name="status" id="field_status" class="w-full rounded-lg p-2.5 font-bold text-amber-400">
+                        <select name="status" id="field_status" class="w-full rounded-lg p-2.5 font-bold">
                             <option value="On Process" class="text-amber-400">On Process</option>
                             <option value="Approved" class="text-emerald-400">Approved</option>
                             <option value="Disapproved" class="text-red-400">Disapproved</option>
@@ -229,7 +229,7 @@
         });
         docInput.addEventListener('input', (e) => filterDoctors(e.target.value));
 
-        // --- SERVICE TOKEN LOGIC ---
+        // --- SERVICE LOGIC ---
         const transTypeSelect = document.getElementById('transaction_type');
         const serviceContainer = document.getElementById('service_field_container');
         const badgeContainer = document.getElementById('selected_services_container');
@@ -292,7 +292,7 @@
             }
         });
 
-        // --- WORKFLOW SEPARATION ENGINE ---
+        // --- INTERFACE LOCK STATE MANAGEMENT ---
         function setFormDisabledState(disabled) {
             document.getElementById('field_patient_name').disabled = disabled;
             document.getElementById('card_company_select').disabled = disabled;
@@ -326,29 +326,24 @@
         }
 
         // TRIGGER ON CLICKING ROW
-        function openRowForVerificationUpdate(id) {
-            const match = currentRecordDataset.find(r => r.id === id);
+        function openRowForVerificationUpdate(rowId) {
+            // Find row explicitly by database record ID
+            const match = currentRecordDataset.find(r => Number(r.id) === Number(rowId));
             if (!match) return;
             
-            // Lock out finished rows
-            if (match.status !== 'On Process') {
-                alert("ℹ️ Record Finalized: This transaction log has been closed and can no longer be edited.");
-                return;
-            }
-
             document.getElementById('hmoForm').reset();
             document.getElementById('edit_row_id').value = match.id;
             
-            document.getElementById('field_patient_name').value = match.patient_name;
+            document.getElementById('field_patient_name').value = match.patient_name || '';
             document.getElementById('card_company_select').value = match.card_company || '';
-            document.getElementById('field_patient_type').value = match.patient_type;
-            document.getElementById('transaction_type').value = match.transaction_type;
+            document.getElementById('field_patient_type').value = match.patient_type || 'Old';
+            document.getElementById('transaction_type').value = match.transaction_type || 'Consult';
             document.getElementById('field_name_of_associate').value = match.name_of_associate || '';
             document.getElementById('amount_field').value = match.amount || '0.00';
             
-            const toaDate = new Date(match.time_of_arrival);
+            const toaDate = match.time_of_arrival ? new Date(match.time_of_arrival) : new Date();
             document.getElementById('toa_display').value = toaDate.toLocaleTimeString();
-            document.getElementById('time_of_arrival').value = match.time_of_arrival;
+            document.getElementById('time_of_arrival').value = match.time_of_arrival || toaDate.toISOString();
 
             if (Array.isArray(match.service)) {
                 selectedServices = match.service.map(s => ({ name: s, price: 0 }));
@@ -357,11 +352,12 @@
                 if (document.getElementById('service_field')) document.getElementById('service_field').value = match.service;
             }
 
-            // LOCK INSTRUCTIONS
+            // LOCK ALL ORIGINAL DATA
             setFormDisabledState(true);
             
+            // OPEN VERIFICATION TRACKS
             document.getElementById('field_status').disabled = false;
-            document.getElementById('field_status').value = "Approved"; 
+            document.getElementById('field_status').value = (match.status === 'On Process' || !match.status) ? "Approved" : match.status; 
             document.getElementById('field_approval_code').value = match.approval_code || '';
             document.getElementById('field_agent_name').value = match.agent_name || '';
 
@@ -373,14 +369,14 @@
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
-        // SEARCH BAR FILTERING ENGINE
+        // LIVE SELECTION SEARCH
         function filterTableBySearch() {
             const value = document.getElementById('patientSearchInput').value.toLowerCase().trim();
             if (!value) {
                 renderTable(currentRecordDataset);
                 return;
             }
-            const items = currentRecordDataset.filter(r => r.patient_name.toLowerCase().includes(value));
+            const items = currentRecordDataset.filter(r => r.patient_name && r.patient_name.toLowerCase().includes(value));
             renderTable(items);
         }
 
@@ -395,7 +391,7 @@
         function renderTable(data) {
             const tbody = document.getElementById('dataTableBody');
             tbody.innerHTML = data.map(row => {
-                const arrival = new Date(row.time_of_arrival);
+                const arrival = row.time_of_arrival ? new Date(row.time_of_arrival) : new Date();
                 const dateStr = arrival.toISOString().split('T')[0];
                 const start = row.start_time_of_call ? new Date(row.start_time_of_call).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : '--';
                 const end = row.end_time_of_call ? new Date(row.end_time_of_call).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : '--';
@@ -411,18 +407,18 @@
 
                 let parsedServices = Array.isArray(row.service) ? row.service.join(', ') : (row.service || '');
                 
-                // DETERMINES INTERACTION STATUS
-                const isClickable = (hmoStatus === 'On Process');
-                const isClickableClass = isClickable ? 'cursor-pointer hover:bg-blue-500/10 bg-blue-500/[0.02]' : 'opacity-75';
+                // ULTIMATE WORKFLOW RESILIENCE: If there's no end timestamp OR status is still On Process, it is clickable.
+                const isClickable = (!row.end_time_of_call || hmoStatus === 'On Process');
+                const isClickableClass = isClickable ? 'cursor-pointer hover:bg-blue-500/10 bg-blue-500/[0.02]' : 'opacity-60';
 
                 return `
                     <tr onclick="if(${isClickable}) openRowForVerificationUpdate(${row.id})" class="border-b border-slate-800 transition ${isClickableClass}">
                         <td class="p-4">
-                            <div class="font-bold text-sm text-white">${row.patient_name}</div>
-                            <div class="text-[10px] text-slate-400 uppercase">${row.patient_type} | ${row.card_company || 'CASH'}</div>
+                            <div class="font-bold text-sm text-white">${row.patient_name || 'No Name'}</div>
+                            <div class="text-[10px] text-slate-400 uppercase">${row.patient_type || 'Old'} | ${row.card_company || 'CASH'}</div>
                         </td>
                         <td class="p-4">
-                            <div class="text-blue-400 font-semibold">${row.transaction_type}</div>
+                            <div class="text-blue-400 font-semibold">${row.transaction_type || 'Consult'}</div>
                             <div class="text-[10px] text-slate-500 font-mono italic">${row.doctor_procedure || ''} ${parsedServices ? '📂 ('+parsedServices+')' : ''}</div>
                             ${row.amount ? `<div class="text-emerald-400 font-bold mt-0.5">₱${Number(row.amount).toFixed(2)}</div>` : ''}
                         </td>
@@ -430,7 +426,7 @@
                             <div class="mb-1"><span class="status-pill border ${statusStyle}">${hmoStatus}</span></div>
                             <div class="text-xs font-mono font-bold text-slate-300 uppercase">${row.approval_code || ''}</div>
                             <div class="text-[10px] text-slate-500 italic mt-0.5">${row.agent_name ? 'Agent: ' + row.agent_name : ''}</div>
-                            ${isClickable ? '<span class="text-[10px] text-blue-400 block mt-1 font-semibold animate-pulse">⚡ Click row to update</span>' : ''}
+                            ${isClickable ? '<span class="text-[10px] text-blue-400 block mt-1 font-semibold animate-pulse">⚡ Click row to update fields</span>' : ''}
                         </td>
                         <td class="p-4 font-mono text-slate-300">
                             <div class="text-xs font-bold">${dateStr}</div>
@@ -447,7 +443,7 @@
             }).join('');
         }
 
-        // --- SUBMISSION LOGIC DISPATCHER ---
+        // --- MASTER SYSTEM ROUTING SUBMIT ---
         document.getElementById('hmoForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const btn = document.getElementById('submitBtn');
@@ -459,17 +455,16 @@
             btn.innerText = "PROCESSING SUBMIT..."; btn.disabled = true;
 
             if (targetRowId) {
-                // --- PHASE 2 FLOW: SAVING AND FINALIZING OPEN LOG TICKETS ---
+                // --- UPDATE INTERFACE ROUTE ---
                 if (entry.status === 'On Process') {
                     alert("⚠️ Action Denied: Please update the HMO Status to Approved, Disapproved, or Cancel to close this patient file.");
                     btn.innerText = "FINALIZE & CLOSE PATIENT TRANSACTION"; btn.disabled = false;
                     return;
                 }
 
-                // DATA PROTECTION GUARD RULES
                 if (entry.status === 'Approved') {
                     if (!entry.approval_code.trim() || !entry.agent_name.trim()) {
-                        alert("⚠️ Validation Protection Error: Both 'Approval Code' and 'Agent Name' fields are mandatory to clear an Approved transaction.");
+                        alert("⚠️ Validation Error: Both 'Approval Code' and 'Agent Name' fields are mandatory to clear an Approved transaction.");
                         btn.innerText = "FINALIZE & CLOSE PATIENT TRANSACTION"; btn.disabled = false;
                         return;
                     }
@@ -496,7 +491,7 @@
                 }
 
             } else {
-                // --- PHASE 1 FLOW: CREATING NEW TRACKING TIMELINES ---
+                // --- INSERT INTERFACE ROUTE (INITIAL QUEUE ENTRY) ---
                 const arrival = new Date(document.getElementById('time_of_arrival').value);
                 entry.time_of_arrival = arrival.toISOString();
                 entry.start_time_of_call = arrival.toISOString(); 
@@ -520,7 +515,6 @@
             btn.disabled = false;
         });
 
-        // Realtime Subscription Setup
         _supabase.channel('hmo_realtime').on('postgres_changes', { event: '*', schema: 'public', table: 'hmo_monitoring' }, fetchRecords).subscribe();
         
         loadGuarantors(); loadDoctors(); loadItems(); fetchRecords();
