@@ -45,12 +45,22 @@
                 <input type="hidden" id="edit_row_id" value="">
                 
                 <div class="flex justify-between items-center border-b border-slate-800 pb-4">
-                    <h2 id="formHeaderTitle" class="text-xl font-semibold text-blue-400">Initial Patient Check-In</h2>
+                    <div>
+                        <h2 id="formHeaderTitle" class="text-xl font-semibold text-blue-400">Initial Patient Check-In</h2>
+                        <span id="workspaceModeBadge" class="inline-block mt-1 text-[9px] font-black uppercase tracking-widest bg-blue-500/10 text-blue-400 px-2 py-0.5 rounded">NEW MODE</span>
+                    </div>
                     <div class="text-right">
                         <label class="block text-[10px] uppercase tracking-widest text-slate-500">Arrival Time</label>
                         <input type="text" id="toa_display" readonly class="bg-transparent border-none text-emerald-400 font-mono text-xl p-0 text-right focus:ring-0 w-32">
                         <input type="hidden" id="time_of_arrival" name="time_of_arrival">
                     </div>
+                </div>
+
+                <div id="portalContextControls" class="hidden flex items-center justify-between p-4 bg-amber-500/10 border border-amber-500/20 rounded-xl">
+                    <p class="text-xs text-amber-300 font-medium">📄 Viewing record summary archive. Unlocking fields requires confirmation step.</p>
+                    <button type="button" onclick="unlockWorkspaceFieldsForEditing()" class="px-4 py-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-[10px] uppercase tracking-wider rounded transition">
+                        ⚡ Unlock For Edit/Update
+                    </button>
                 </div>
 
                 <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -169,6 +179,7 @@
         let cachedDoctors = [];
         let selectedServices = [];
         let currentRecordDataset = []; 
+        let isEditMode = false; // ProjectVibe logic context flag tracker
 
         // --- DATA LOADERS ---
         async function loadGuarantors() {
@@ -292,7 +303,7 @@
             }
         });
 
-        // --- CORE UI STATE DRIVERS ---
+        // --- GLOBAL MUTATION CONTROLLERS ---
         function setFormDisabledState(disabled) {
             document.getElementById('field_patient_name').disabled = disabled;
             document.getElementById('card_company_select').disabled = disabled;
@@ -303,19 +314,29 @@
             if (document.getElementById('service_field')) document.getElementById('service_field').disabled = disabled;
             document.getElementById('amount_field').disabled = disabled;
             document.getElementById('field_name_of_associate').disabled = disabled;
+            
+            // Lock/Unlock the updating targets too based on initialization
+            document.getElementById('field_status').disabled = disabled;
+            document.getElementById('field_approval_code').disabled = disabled;
+            document.getElementById('field_agent_name').disabled = disabled;
         }
 
         function prepareNewCheckIn() {
+            isEditMode = false;
             document.getElementById('hmoForm').reset();
             document.getElementById('edit_row_id').value = "";
             selectedServices = []; renderBadges();
             
             setFormDisabledState(false);
-            document.getElementById('field_status').disabled = false;
             
             document.getElementById('field_status').value = "On Process";
             document.getElementById('formHeaderTitle').innerText = "Initial Patient Check-In";
+            document.getElementById('workspaceModeBadge').innerText = "NEW MODE";
+            document.getElementById('workspaceModeBadge').className = "inline-block mt-1 text-[9px] font-black uppercase tracking-widest bg-blue-500/10 text-blue-400 px-2 py-0.5 rounded";
+            
+            document.getElementById('portalContextControls').classList.add('hidden');
             document.getElementById('submitBtn').innerText = "INITIALIZE CALL & QUEUE PATIENT";
+            document.getElementById('submitBtn').classList.remove('hidden');
             
             const now = new Date();
             document.getElementById('toa_display').value = now.toLocaleTimeString();
@@ -325,11 +346,12 @@
             document.getElementById('toggleIcon').innerText = '-';
         }
 
-        // CALLED VIA THE EXPLICIT UPDATE BUTTON ON EACH ROW
+        // STEP 1: INITIAL PASSIVE PREVIEW ARCHITECTURE
         function openRowForVerificationUpdate(rowId) {
-            const match = currentRecordDataset.find(r => Number(r.id) === Number(rowId));
+            const match = currentRecordDataset.find(r => String(r.id) === String(rowId));
             if (!match) return;
             
+            isEditMode = false; // System defaults to locked viewing layout
             document.getElementById('hmoForm').reset();
             document.getElementById('edit_row_id').value = match.id;
             
@@ -351,24 +373,45 @@
                 if (document.getElementById('service_field')) document.getElementById('service_field').value = match.service;
             }
 
-            // ENFORCE SYSTEM COGNITIVE LOCKS
-            setFormDisabledState(true);
-            
-            // ALLOW ASSIGNMENT OF UPDATE TARGETS
-            document.getElementById('field_status').disabled = false;
             document.getElementById('field_status').value = (match.status === 'On Process' || !match.status) ? "Approved" : match.status; 
             document.getElementById('field_approval_code').value = match.approval_code || '';
             document.getElementById('field_agent_name').value = match.agent_name || '';
 
-            document.getElementById('formHeaderTitle').innerText = `Process HMO Code for: ${match.patient_name}`;
-            document.getElementById('submitBtn').innerText = "FINALIZE & CLOSE PATIENT TRANSACTION";
+            // Strict systemic input freezes
+            setFormDisabledState(true);
+            
+            // Modify Header Badges to mimic layout components
+            document.getElementById('formHeaderTitle').innerText = `Patient Record: ${match.patient_name}`;
+            document.getElementById('workspaceModeBadge').innerText = "VIEW ONLY ARCHIVE";
+            document.getElementById('workspaceModeBadge').className = "inline-block mt-1 text-[9px] font-black uppercase tracking-widest bg-slate-500/20 text-slate-400 px-2 py-0.5 rounded";
+
+            // Unhide the verification option portal bar & hide submit trigger completely
+            document.getElementById('portalContextControls').classList.remove('hidden');
+            document.getElementById('submitBtn').classList.add('hidden');
             
             document.getElementById('formSection').classList.remove('hidden');
             document.getElementById('toggleIcon').innerText = '-';
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
-        // INSTANT LIVE TEXT QUERY ENGINE FILTER
+        // STEP 2: PROJECTVIBE CONFIRM UNLOCK MODIFIER ENGINE TRIGGER
+        function unlockWorkspaceFieldsForEditing() {
+            isEditMode = true; // Flips execution tracker flag state
+            
+            // Target elements are dynamically unfrozen
+            document.getElementById('field_status').disabled = false;
+            document.getElementById('field_approval_code').disabled = false;
+            document.getElementById('field_agent_name').disabled = false;
+            
+            // Shift UI design accents to signify interactive update modes
+            document.getElementById('workspaceModeBadge').innerText = "EDIT / UPDATE TRANSACTION ACTIVE";
+            document.getElementById('workspaceModeBadge').className = "inline-block mt-1 text-[9px] font-black uppercase tracking-widest bg-amber-500/20 text-amber-400 px-2 py-0.5 rounded";
+            
+            document.getElementById('portalContextControls').classList.add('hidden');
+            document.getElementById('submitBtn').innerText = "FINALIZE & CLOSE PATIENT TRANSACTION";
+            document.getElementById('submitBtn').classList.remove('hidden');
+        }
+
         function filterTableBySearch() {
             const value = document.getElementById('patientSearchInput').value.toLowerCase().trim();
             if (!value) {
@@ -402,10 +445,9 @@
                 const hmoStatus = row.status || 'On Process';
                 const statusStyle = hmoStatus === 'Approved' ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30' :
                                     hmoStatus === 'On Process' ? 'text-amber-400 bg-amber-500/10 border-amber-500/30 animate-pulse' :
-                                    hmoStatus === 'Disapproved' ? 'text-red-400 bg-red-400/10 border-red-500/30' : 'text-slate-400 bg-slate-500/10 border-slate-500/30';
+                                    hmoStatus === 'Disapproved' ? 'text-red-400 bg-red-500/10 border-red-500/30' : 'text-slate-400 bg-slate-500/10 border-slate-500/30';
 
                 let parsedServices = Array.isArray(row.service) ? row.service.join(', ') : (row.service || '');
-                
                 const isStillOpen = (!row.end_time_of_call || hmoStatus === 'On Process');
 
                 return `
@@ -424,7 +466,7 @@
                             
                             ${isStillOpen ? `
                                 <button onclick="openRowForVerificationUpdate('${row.id}')" class="bg-blue-600 hover:bg-blue-500 text-white text-[11px] font-bold px-3 py-1 rounded border border-blue-400 shadow transition uppercase tracking-wider block relative z-10">
-                                    ⚙️ Update
+                                    ⚙️ View/Update
                                 </button>
                             ` : `
                                 <div class="text-xs font-mono font-bold text-slate-300 uppercase">${row.approval_code || ''}</div>
@@ -446,27 +488,29 @@
             }).join('');
         }
 
-        // --- SUBMISSION LOGIC ROUTING DISPATCHER ---
+        // --- SUBMISSION DISPATCH ROUTING ---
         document.getElementById('hmoForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const btn = document.getElementById('submitBtn');
             const targetRowId = document.getElementById('edit_row_id').value;
             
-            const formData = new FormData(e.target);
-            const entry = Object.fromEntries(formData.entries());
+            // Read form fields securely without relying on disabled DOM states directly
+            const statusField = document.getElementById('field_status').value;
+            const approvalCodeField = document.getElementById('field_approval_code').value;
+            const agentNameField = document.getElementById('field_agent_name').value;
 
             btn.innerText = "PROCESSING SUBMIT..."; btn.disabled = true;
 
             if (targetRowId) {
-                // UPDATE ACTIONS
-                if (entry.status === 'On Process') {
+                // If they are in edit mode but didn't pass verification criteria
+                if (statusField === 'On Process') {
                     alert("⚠️ Action Denied: Please update the HMO Status to Approved, Disapproved, or Cancel to close this patient file.");
                     btn.innerText = "FINALIZE & CLOSE PATIENT TRANSACTION"; btn.disabled = false;
                     return;
                 }
 
-                if (entry.status === 'Approved') {
-                    if (!entry.approval_code.trim() || !entry.agent_name.trim()) {
+                if (statusField === 'Approved') {
+                    if (!approvalCodeField.trim() || !agentNameField.trim()) {
                         alert("⚠️ Validation Error: Both 'Approval Code' and 'Agent Name' fields are mandatory to clear an Approved transaction.");
                         btn.innerText = "FINALIZE & CLOSE PATIENT TRANSACTION"; btn.disabled = false;
                         return;
@@ -476,13 +520,13 @@
                 const endCallTime = new Date();
                 const arrival = new Date(document.getElementById('time_of_arrival').value);
                 const diffMins = Math.floor((endCallTime - arrival) / 60000);
-                const limit = entry.transaction_type === 'Consult' ? 5 : 30;
+                const limit = document.getElementById('transaction_type').value === 'Consult' ? 5 : 30;
                 const turnaround_time = diffMins <= limit ? "MET" : "NOT MET";
 
                 const { error } = await _supabase.from('hmo_monitoring').update({
-                    approval_code: entry.approval_code.trim().toUpperCase() || null,
-                    status: entry.status,
-                    agent_name: entry.agent_name.trim() || null,
+                    approval_code: approvalCodeField.trim().toUpperCase() || null,
+                    status: statusField,
+                    agent_name: agentNameField.trim() || null,
                     end_time_of_call: endCallTime.toISOString(),
                     turnaround_time: turnaround_time
                 }).eq('id', targetRowId);
@@ -494,7 +538,10 @@
                 }
 
             } else {
-                // INITIAL PATIENT ENTRY ACTIONS
+                // INITIAL FRESH PATIENT QUEUE PATHWAYS
+                const formData = new FormData(e.target);
+                const entry = Object.fromEntries(formData.entries());
+                
                 const arrival = new Date(document.getElementById('time_of_arrival').value);
                 entry.time_of_arrival = arrival.toISOString();
                 entry.start_time_of_call = arrival.toISOString(); 
