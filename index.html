@@ -426,13 +426,22 @@
             document.getElementById('submitBtn').classList.remove('hidden');
         }
 
-        // --- NATIVE DIRECT ROW CANCEL FUNCTION ---
-        async function handleDirectCancel(rowId, arrivalTime, transType) {
-            const reason = prompt("Enter the reason for cancellation (Optional, can be left blank):");
-            if (reason === null) return; // Abort if user clicked cancel on the dialog
+        // --- ADVANCED POST-APPROVAL CANCEL FUNCTION ---
+        async function handleDirectCancel(rowId, arrivalTime, transType, existingEndCallTime) {
+            const match = currentRecordDataset.find(r => String(r.id) === String(rowId));
+            const oldRemarks = match && match.remarks ? match.remarks : '';
+            
+            const reason = prompt("Enter the reason for cancellation:");
+            if (reason === null) return; 
 
-            const optimizedRemarks = reason.trim() === '' ? 'Cancelled by patient' : reason.trim();
-            const endCallTime = new Date();
+            let optimizedRemarks = oldRemarks;
+            if (reason.trim() !== '') {
+                optimizedRemarks = oldRemarks ? `${oldRemarks} | CANCEL REASON: ${reason.trim()}` : `CANCEL REASON: ${reason.trim()}`;
+            } else if (!oldRemarks) {
+                optimizedRemarks = 'Transaction Voided/Cancelled';
+            }
+
+            const endCallTime = existingEndCallTime && existingEndCallTime !== 'null' ? new Date(existingEndCallTime) : new Date();
             const arrival = new Date(arrivalTime);
             const diffMins = Math.floor((endCallTime - arrival) / 60000);
             const limit = transType === 'Consult' ? 5 : 30;
@@ -506,13 +515,18 @@
                         <td class="p-4">
                             <div class="mb-2"><span class="status-pill border ${statusStyle}">${hmoStatus}</span></div>
                             
-                            ${isStillOpen && hmoStatus !== 'Cancel' ? `
+                            ${isStillOpen ? `
                                 <button onclick="openRowForVerificationUpdate('${row.id}')" class="bg-blue-600 hover:bg-blue-500 text-white text-[11px] font-bold px-3 py-1 rounded border border-blue-400 shadow transition uppercase tracking-wider block relative z-10">
                                     ⚙️ View/Update
                                 </button>
                             ` : `
-                                <div class="text-xs font-mono font-bold text-slate-300 uppercase">${row.approval_code || ''}</div>
-                                <div class="text-[10px] text-slate-500 italic mt-0.5">${row.agent_name ? 'Agent: ' + row.agent_name : ''}</div>
+                                <div class="flex flex-col gap-1">
+                                    <div class="text-xs font-mono font-bold text-slate-300 uppercase">${row.approval_code || ''}</div>
+                                    <div class="text-[10px] text-slate-500 italic">${row.agent_name ? 'Agent: ' + row.agent_name : ''}</div>
+                                    <button onclick="openRowForVerificationUpdate('${row.id}')" class="text-left text-blue-400 hover:text-blue-300 text-[10px] underline tracking-wide uppercase mt-1">
+                                        👁️ View Details
+                                    </button>
+                                </div>
                             `}
                         </td>
                         <td class="p-4 font-mono text-slate-300">
@@ -526,12 +540,12 @@
                         <td class="p-4"><span class="status-pill border ${tatStyle}">${tatStatus}</span></td>
                         <td class="p-4 text-slate-400 uppercase text-[10px]">${row.name_of_associate || '-'}</td>
                         <td class="p-4 text-center">
-                            ${hmoStatus === 'On Process' ? `
-                                <button onclick="handleDirectCancel('${row.id}', '${row.time_of_arrival}', '${row.transaction_type}')" class="bg-red-500/10 hover:bg-red-500 hover:text-white border border-red-500/20 text-red-400 text-[11px] font-bold px-2.5 py-1 rounded transition uppercase tracking-wider">
+                            ${hmoStatus !== 'Cancel' ? `
+                                <button onclick="handleDirectCancel('${row.id}', '${row.time_of_arrival}', '${row.transaction_type}', '${row.end_time_of_call}')" class="bg-red-500/10 hover:bg-red-500 hover:text-white border border-red-500/20 text-red-400 text-[11px] font-bold px-2.5 py-1 rounded transition uppercase tracking-wider">
                                     ❌ Cancel
                                 </button>
                             ` : `
-                                <span class="text-slate-600 text-[10px] italic">Locked</span>
+                                <span class="text-slate-600 text-[10px] italic">Voided</span>
                             `}
                         </td>
                     </tr>
