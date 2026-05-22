@@ -14,7 +14,7 @@
             border: 1px solid rgba(255, 255, 255, 0.2) !important; 
             color: white !important; 
         }
-        input:disabled, select:disabled {
+        input:disabled, select:disabled, textarea:disabled {
             background: rgba(30, 41, 59, 0.4) !important;
             color: #94a3b8 !important;
             border: 1px solid rgba(255, 255, 255, 0.05) !important;
@@ -140,6 +140,11 @@
                     </div>
                 </div>
 
+                <div>
+                    <label class="text-[10px] text-slate-500 ml-1 uppercase font-bold tracking-wider">Remarks / Notes (Optional)</label>
+                    <textarea name="remarks" id="field_remarks" rows="2" placeholder="Enter processing notes or cancellation reason here..." class="w-full rounded-lg p-2.5 text-sm resize-none outline-none"></textarea>
+                </div>
+
                 <button type="submit" id="submitBtn" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-4 rounded-xl shadow-lg transition tracking-wide uppercase">
                     INITIALIZE CALL & QUEUE PATIENT
                 </button>
@@ -162,6 +167,7 @@
                             <th class="p-4">Call Logs</th>
                             <th class="p-4">TAT Status</th>
                             <th class="p-4">Associate</th>
+                            <th class="p-4 text-center">Actions</th>
                         </tr>
                     </thead>
                     <tbody id="dataTableBody" class="text-xs"></tbody>
@@ -318,13 +324,13 @@
             document.getElementById('field_status').disabled = disabled;
             document.getElementById('field_approval_code').disabled = disabled;
             document.getElementById('field_agent_name').disabled = disabled;
+            document.getElementById('field_remarks').disabled = disabled;
         }
 
         function prepareNewCheckIn() {
             const formSection = document.getElementById('formSection');
             const targetRowId = document.getElementById('edit_row_id').value;
 
-            // TOGGLE RULE ENGINE BLOCK
             if (!formSection.classList.contains('hidden') && !targetRowId) {
                 formSection.classList.add('hidden');
                 document.getElementById('hmoForm').reset();
@@ -373,6 +379,7 @@
             document.getElementById('transaction_type').value = match.transaction_type || 'Consult';
             document.getElementById('field_name_of_associate').value = match.name_of_associate || '';
             document.getElementById('amount_field').value = match.amount || '0.00';
+            document.getElementById('field_remarks').value = match.remarks || '';
             
             const toaDate = match.time_of_arrival ? new Date(match.time_of_arrival) : new Date();
             document.getElementById('toa_display').value = toaDate.toLocaleTimeString();
@@ -409,6 +416,7 @@
             document.getElementById('field_status').disabled = false;
             document.getElementById('field_approval_code').disabled = false;
             document.getElementById('field_agent_name').disabled = false;
+            document.getElementById('field_remarks').disabled = false;
             
             document.getElementById('workspaceModeBadge').innerText = "EDIT / UPDATE TRANSACTION ACTIVE";
             document.getElementById('workspaceModeBadge').className = "inline-block mt-1 text-[9px] font-black uppercase tracking-widest bg-amber-500/20 text-amber-400 px-2 py-0.5 rounded";
@@ -416,6 +424,32 @@
             document.getElementById('portalContextControls').classList.add('hidden');
             document.getElementById('submitBtn').innerText = "FINALIZE & CLOSE PATIENT TRANSACTION";
             document.getElementById('submitBtn').classList.remove('hidden');
+        }
+
+        // --- NATIVE DIRECT ROW CANCEL FUNCTION ---
+        async function handleDirectCancel(rowId, arrivalTime, transType) {
+            const reason = prompt("Enter the reason for cancellation (Optional, can be left blank):");
+            if (reason === null) return; // Abort if user clicked cancel on the dialog
+
+            const optimizedRemarks = reason.trim() === '' ? 'Cancelled by patient' : reason.trim();
+            const endCallTime = new Date();
+            const arrival = new Date(arrivalTime);
+            const diffMins = Math.floor((endCallTime - arrival) / 60000);
+            const limit = transType === 'Consult' ? 5 : 30;
+            const turnaround_time = diffMins <= limit ? "MET" : "NOT MET";
+
+            const { error } = await _supabase.from('hmo_monitoring').update({
+                status: 'Cancel',
+                remarks: optimizedRemarks,
+                end_time_of_call: endCallTime.toISOString(),
+                turnaround_time: turnaround_time
+            }).eq('id', rowId);
+
+            if (error) {
+                alert("Error cancelling transaction: " + error.message);
+            } else {
+                fetchRecords();
+            }
         }
 
         function filterTableBySearch() {
@@ -451,7 +485,8 @@
                 const hmoStatus = row.status || 'On Process';
                 const statusStyle = hmoStatus === 'Approved' ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30' :
                                     hmoStatus === 'On Process' ? 'text-amber-400 bg-amber-500/10 border-amber-500/30 animate-pulse' :
-                                    hmoStatus === 'Disapproved' ? 'text-red-400 bg-red-400/10 border-red-500/30' : 'text-slate-400 bg-slate-500/10 border-slate-500/30';
+                                    hmoStatus === 'Disapproved' ? 'text-red-400 bg-red-400/10 border-red-500/30' : 
+                                    hmoStatus === 'Cancel' ? 'text-slate-400 bg-slate-500/10 border-slate-500/30' : 'text-slate-400 bg-slate-500/10 border-slate-500/30';
 
                 let parsedServices = Array.isArray(row.service) ? row.service.join(', ') : (row.service || '');
                 const isStillOpen = (!row.end_time_of_call || hmoStatus === 'On Process');
@@ -466,11 +501,12 @@
                             <div class="text-blue-400 font-semibold">${row.transaction_type || 'Consult'}</div>
                             <div class="text-[10px] text-slate-500 font-mono italic">${row.doctor_procedure || ''} ${parsedServices ? '📂 ('+parsedServices+')' : ''}</div>
                             ${row.amount ? `<div class="text-emerald-400 font-bold mt-0.5">₱${Number(row.amount).toFixed(2)}</div>` : ''}
+                            ${row.remarks ? `<div class="text-slate-400 bg-slate-950/40 border border-slate-800/60 px-2 py-1 rounded mt-1 max-w-xs truncate text-[11px]">💬 ${row.remarks}</div>` : ''}
                         </td>
                         <td class="p-4">
                             <div class="mb-2"><span class="status-pill border ${statusStyle}">${hmoStatus}</span></div>
                             
-                            ${isStillOpen ? `
+                            ${isStillOpen && hmoStatus !== 'Cancel' ? `
                                 <button onclick="openRowForVerificationUpdate('${row.id}')" class="bg-blue-600 hover:bg-blue-500 text-white text-[11px] font-bold px-3 py-1 rounded border border-blue-400 shadow transition uppercase tracking-wider block relative z-10">
                                     ⚙️ View/Update
                                 </button>
@@ -489,6 +525,15 @@
                         </td>
                         <td class="p-4"><span class="status-pill border ${tatStyle}">${tatStatus}</span></td>
                         <td class="p-4 text-slate-400 uppercase text-[10px]">${row.name_of_associate || '-'}</td>
+                        <td class="p-4 text-center">
+                            ${hmoStatus === 'On Process' ? `
+                                <button onclick="handleDirectCancel('${row.id}', '${row.time_of_arrival}', '${row.transaction_type}')" class="bg-red-500/10 hover:bg-red-500 hover:text-white border border-red-500/20 text-red-400 text-[11px] font-bold px-2.5 py-1 rounded transition uppercase tracking-wider">
+                                    ❌ Cancel
+                                </button>
+                            ` : `
+                                <span class="text-slate-600 text-[10px] italic">Locked</span>
+                            `}
+                        </td>
                     </tr>
                 `;
             }).join('');
@@ -503,6 +548,7 @@
             const statusField = document.getElementById('field_status').value;
             const approvalCodeField = document.getElementById('field_approval_code').value;
             const agentNameField = document.getElementById('field_agent_name').value;
+            const remarksField = document.getElementById('field_remarks').value;
 
             btn.innerText = "PROCESSING SUBMIT..."; btn.disabled = true;
 
@@ -515,7 +561,7 @@
 
                 if (statusField === 'Approved') {
                     if (!approvalCodeField.trim() || !agentNameField.trim()) {
-                        alert("⚠️ Validation Error: Both 'Approval Code' and 'Agent Name' fields are mandatory to clear an Approved transaction.");
+                        alert("⚠️ Validation Error: Both 'Approval Code' and 'Agent Name' are required to close an Approved record.");
                         btn.innerText = "FINALIZE & CLOSE PATIENT TRANSACTION"; btn.disabled = false;
                         return;
                     }
@@ -531,6 +577,7 @@
                     approval_code: approvalCodeField.trim().toUpperCase() || null,
                     status: statusField,
                     agent_name: agentNameField.trim() || null,
+                    remarks: remarksField.trim() || null,
                     end_time_of_call: endCallTime.toISOString(),
                     turnaround_time: turnaround_time
                 }).eq('id', targetRowId);
@@ -553,6 +600,7 @@
                 entry.turnaround_time = "PENDING";
                 entry.amount = entry.amount ? parseFloat(entry.amount) : 0.00;
                 entry.status = "On Process"; 
+                entry.remarks = entry.remarks.trim() || null;
 
                 if (entry.transaction_type === 'Loa' || entry.transaction_type === 'Procedure') {
                     entry.service = selectedServices.map(s => s.name); 
