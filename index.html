@@ -292,7 +292,7 @@
             }
         });
 
-        // --- INTERFACE LOCK STATE MANAGEMENT ---
+        // --- CORE UI STATE DRIVERS ---
         function setFormDisabledState(disabled) {
             document.getElementById('field_patient_name').disabled = disabled;
             document.getElementById('card_company_select').disabled = disabled;
@@ -325,9 +325,8 @@
             document.getElementById('toggleIcon').innerText = '-';
         }
 
-        // TRIGGER ON CLICKING ROW
+        // CALLED VIA THE EXPLICIT UPDATE BUTTON ON EACH ROW
         function openRowForVerificationUpdate(rowId) {
-            // Find row explicitly by database record ID
             const match = currentRecordDataset.find(r => Number(r.id) === Number(rowId));
             if (!match) return;
             
@@ -352,10 +351,10 @@
                 if (document.getElementById('service_field')) document.getElementById('service_field').value = match.service;
             }
 
-            // LOCK ALL ORIGINAL DATA
+            // ENFORCE SYSTEM COGNITIVE LOCKS
             setFormDisabledState(true);
             
-            // OPEN VERIFICATION TRACKS
+            // ALLOW ASSIGNMENT OF UPDATE TARGETS
             document.getElementById('field_status').disabled = false;
             document.getElementById('field_status').value = (match.status === 'On Process' || !match.status) ? "Approved" : match.status; 
             document.getElementById('field_approval_code').value = match.approval_code || '';
@@ -369,7 +368,7 @@
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
-        // LIVE SELECTION SEARCH
+        // INSTANT LIVE TEXT QUERY ENGINE FILTER
         function filterTableBySearch() {
             const value = document.getElementById('patientSearchInput').value.toLowerCase().trim();
             if (!value) {
@@ -407,12 +406,11 @@
 
                 let parsedServices = Array.isArray(row.service) ? row.service.join(', ') : (row.service || '');
                 
-                // ULTIMATE WORKFLOW RESILIENCE: If there's no end timestamp OR status is still On Process, it is clickable.
-                const isClickable = (!row.end_time_of_call || hmoStatus === 'On Process');
-                const isClickableClass = isClickable ? 'cursor-pointer hover:bg-blue-500/10 bg-blue-500/[0.02]' : 'opacity-60';
+                // EXPLICIT CHECK FOR OPEN STATUS TICKET LOG LINES
+                const isStillOpen = (!row.end_time_of_call || hmoStatus === 'On Process');
 
                 return `
-                    <tr onclick="if(${isClickable}) openRowForVerificationUpdate(${row.id})" class="border-b border-slate-800 transition ${isClickableClass}">
+                    <tr class="border-b border-slate-800 transition">
                         <td class="p-4">
                             <div class="font-bold text-sm text-white">${row.patient_name || 'No Name'}</div>
                             <div class="text-[10px] text-slate-400 uppercase">${row.patient_type || 'Old'} | ${row.card_company || 'CASH'}</div>
@@ -423,10 +421,16 @@
                             ${row.amount ? `<div class="text-emerald-400 font-bold mt-0.5">₱${Number(row.amount).toFixed(2)}</div>` : ''}
                         </td>
                         <td class="p-4">
-                            <div class="mb-1"><span class="status-pill border ${statusStyle}">${hmoStatus}</span></div>
-                            <div class="text-xs font-mono font-bold text-slate-300 uppercase">${row.approval_code || ''}</div>
-                            <div class="text-[10px] text-slate-500 italic mt-0.5">${row.agent_name ? 'Agent: ' + row.agent_name : ''}</div>
-                            ${isClickable ? '<span class="text-[10px] text-blue-400 block mt-1 font-semibold animate-pulse">⚡ Click row to update fields</span>' : ''}
+                            <div class="mb-2"><span class="status-pill border ${statusStyle}">${hmoStatus}</span></div>
+                            
+                            ${isStillOpen ? `
+                                <button onclick="openRowForVerificationUpdate(${row.id})" class="bg-blue-600 hover:bg-blue-500 text-white text-[11px] font-bold px-3 py-1 rounded border border-blue-400 shadow transition uppercase tracking-wider block">
+                                    ⚙️ Update
+                                </button>
+                            ` : `
+                                <div class="text-xs font-mono font-bold text-slate-300 uppercase">${row.approval_code || ''}</div>
+                                <div class="text-[10px] text-slate-500 italic mt-0.5">${row.agent_name ? 'Agent: ' + row.agent_name : ''}</div>
+                            `}
                         </td>
                         <td class="p-4 font-mono text-slate-300">
                             <div class="text-xs font-bold">${dateStr}</div>
@@ -443,7 +447,7 @@
             }).join('');
         }
 
-        // --- MASTER SYSTEM ROUTING SUBMIT ---
+        // --- SUBMISSION LOGIC ROUTING DISPATCHER ---
         document.getElementById('hmoForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const btn = document.getElementById('submitBtn');
@@ -455,7 +459,7 @@
             btn.innerText = "PROCESSING SUBMIT..."; btn.disabled = true;
 
             if (targetRowId) {
-                // --- UPDATE INTERFACE ROUTE ---
+                // UPDATE ACTIONS
                 if (entry.status === 'On Process') {
                     alert("⚠️ Action Denied: Please update the HMO Status to Approved, Disapproved, or Cancel to close this patient file.");
                     btn.innerText = "FINALIZE & CLOSE PATIENT TRANSACTION"; btn.disabled = false;
@@ -491,7 +495,7 @@
                 }
 
             } else {
-                // --- INSERT INTERFACE ROUTE (INITIAL QUEUE ENTRY) ---
+                // INITIAL PATIENT ENTRY ACTIONS
                 const arrival = new Date(document.getElementById('time_of_arrival').value);
                 entry.time_of_arrival = arrival.toISOString();
                 entry.start_time_of_call = arrival.toISOString(); 
