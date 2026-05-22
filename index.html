@@ -616,8 +616,12 @@
                 entry.status = "On Process"; 
                 entry.remarks = entry.remarks.trim() || null;
 
+                // FIX: Map text fallbacks into formatting arrays to protect column constraints
                 if (entry.transaction_type === 'Loa' || entry.transaction_type === 'Procedure') {
                     entry.service = selectedServices.map(s => s.name); 
+                } else {
+                    const fallbackVal = document.getElementById('service_field')?.value || 'Consultation';
+                    entry.service = [fallbackVal]; 
                 }
 
                 const { error } = await _supabase.from('hmo_monitoring').insert([entry]);
