@@ -51,7 +51,7 @@
             </div>
         </header>
 
-        <div class="grid grid-cols-3 gap-3">
+        <div class="grid grid-cols-5 gap-3">
             <div class="glass p-4 border-l-2 border-indigo-600">
                 <p class="text-[8px] font-black text-neutral-500 uppercase tracking-widest">Consults</p>
                 <h3 id="countConsult" class="text-3xl font-black tabular-nums">0</h3>
@@ -63,6 +63,14 @@
             <div class="glass p-4 border-l-2 border-rose-600">
                 <p class="text-[8px] font-black text-neutral-500 uppercase tracking-widest">Procedures</p>
                 <h3 id="countProcedure" class="text-3xl font-black tabular-nums">0</h3>
+            </div>
+            <div class="glass p-4 border-l-2 border-amber-500">
+                <p class="text-[8px] font-black text-neutral-500 uppercase tracking-widest">Total Census</p>
+                <h3 id="countTotalCensus" class="text-3xl font-black tabular-nums">0</h3>
+            </div>
+            <div class="glass p-4 border-l-2 border-cyan-500">
+                <p class="text-[8px] font-black text-neutral-500 uppercase tracking-widest">Gross Revenue</p>
+                <h3 id="countRevenue" class="text-3xl font-black tabular-nums text-cyan-400">₱0.00</h3>
             </div>
         </div>
 
@@ -87,7 +95,7 @@
         async function sync() {
             const { data, error } = await _supabase
                 .from('hmo_monitoring')
-                .select('transaction_type, name_of_associate, patient_type, turnaround_time');
+                .select('transaction_type, name_of_associate, patient_type, turnaround_time, amount');
             
             if (data) {
                 masterData = data;
@@ -131,6 +139,12 @@
             document.getElementById('countConsult').innerText = data.filter(r => String(r.transaction_type).toLowerCase() === 'consult').length;
             document.getElementById('countLoa').innerText = data.filter(r => String(r.transaction_type).toLowerCase() === 'loa').length;
             document.getElementById('countProcedure').innerText = data.filter(r => String(r.transaction_type).toLowerCase() === 'procedure').length;
+
+            // Operational Compute for new cards
+            document.getElementById('countTotalCensus').innerText = data.length;
+            
+            const grossSum = data.reduce((acc, currentVal) => acc + parseFloat(currentVal.amount || 0), 0);
+            document.getElementById('countRevenue').innerText = '₱' + grossSum.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
             // Chart 1: Patient Flow (Donut)
             drawHigh('patientDonut', 'Patient Flow', [
