@@ -11,16 +11,27 @@
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
         body { background: #010101; color: #e5e5e5; font-family: 'Inter', sans-serif; overflow: hidden; }
         
-        /* Auto-Resizing Container Architecture Setup */
+        /* Ambient Google-Style Border Animation Loop */
+        @keyframes borderGlowLoop {
+            0% { border-color: rgba(99, 102, 241, 0.2); box-shadow: 0 0 4px rgba(99, 102, 241, 0.05); }
+            50% { border-color: rgba(16, 185, 129, 0.4); box-shadow: 0 0 12px rgba(16, 185, 129, 0.1); }
+            100% { border-color: rgba(99, 102, 241, 0.2); box-shadow: 0 0 4px rgba(99, 102, 241, 0.05); }
+        }
+
         .glass { 
             background: rgba(255, 255, 255, 0.02); 
             backdrop-filter: blur(8px); 
             border: 1px solid rgba(255, 255, 255, 0.05); 
             border-radius: 0.75rem;
             container-type: inline-size;
+            position: relative;
+        }
+
+        /* Active Animated Elements */
+        .animated-glow {
+            animation: borderGlowLoop 6s linear infinite;
         }
         
-        /* Auto-scaling typography powered by Container Query Width units */
         .fluid-number {
             font-size: clamp(1.25rem, 13cqw, 1.85rem);
             line-height: 1.1;
@@ -101,41 +112,41 @@
         </header>
 
         <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 w-full flex-shrink-0">
-            <div class="glass p-4 border-l-2 border-cyan-500 bg-cyan-950/5 min-w-0">
-                <p class="text-[8px] font-black text-neutral-500 uppercase tracking-widest truncate">Gross Revenue</p>
+            <div class="glass p-4 border-l-4 border-cyan-500 bg-cyan-950/5 animated-glow min-w-0">
+                <p class="text-[8px] font-black text-neutral-400 uppercase tracking-widest truncate">Gross Revenue</p>
                 <h3 id="countRevenue" class="fluid-number font-black tabular-nums text-cyan-400 tracking-tight whitespace-nowrap overflow-hidden select-all mt-1">₱0.00</h3>
             </div>
-            <div class="glass p-4 border-l-2 border-amber-500 min-w-0">
-                <p class="text-[8px] font-black text-neutral-500 uppercase tracking-widest truncate">Total Census</p>
-                <h3 id="countTotalCensus" class="fluid-number font-black tabular-nums whitespace-nowrap overflow-hidden mt-1">0</h3>
+            <div class="glass p-4 border-l-4 border-amber-500 bg-amber-950/5 animated-glow min-w-0">
+                <p class="text-[8px] font-black text-neutral-400 uppercase tracking-widest truncate">Total Census</p>
+                <h3 id="countTotalCensus" class="fluid-number font-black tabular-nums whitespace-nowrap overflow-hidden text-amber-400 mt-1">0</h3>
             </div>
-            <div class="glass p-4 border-l-2 border-indigo-600 min-w-0">
-                <p class="text-[8px] font-black text-neutral-500 uppercase tracking-widest truncate">Consults</p>
-                <h3 id="countConsult" class="fluid-number font-black tabular-nums whitespace-nowrap overflow-hidden mt-1">0</h3>
+            <div class="glass p-4 border-l-4 border-indigo-600 bg-indigo-950/5 animated-glow min-w-0">
+                <p class="text-[8px] font-black text-neutral-400 uppercase tracking-widest truncate">Consults</p>
+                <h3 id="countConsult" class="fluid-number font-black tabular-nums whitespace-nowrap overflow-hidden text-indigo-400 mt-1">0</h3>
             </div>
-            <div class="glass p-4 border-l-2 border-emerald-600 min-w-0">
-                <p class="text-[8px] font-black text-neutral-500 uppercase tracking-widest truncate">LOAs</p>
-                <h3 id="countLoa" class="fluid-number font-black tabular-nums whitespace-nowrap overflow-hidden mt-1">0</h3>
+            <div class="glass p-4 border-l-4 border-emerald-600 bg-emerald-950/5 animated-glow min-w-0">
+                <p class="text-[8px] font-black text-neutral-400 uppercase tracking-widest truncate">LOAs</p>
+                <h3 id="countLoa" class="fluid-number font-black tabular-nums whitespace-nowrap overflow-hidden text-emerald-400 mt-1">0</h3>
             </div>
-            <div class="glass p-4 border-l-2 border-rose-600 min-w-0">
-                <p class="text-[8px] font-black text-neutral-500 uppercase tracking-widest truncate">Procedures</p>
-                <h3 id="countProcedure" class="fluid-number font-black tabular-nums whitespace-nowrap overflow-hidden mt-1">0</h3>
+            <div class="glass p-4 border-l-4 border-rose-600 bg-rose-950/5 animated-glow min-w-0">
+                <p class="text-[8px] font-black text-neutral-400 uppercase tracking-widest truncate">Procedures</p>
+                <h3 id="countProcedure" class="fluid-number font-black tabular-nums whitespace-nowrap overflow-hidden text-rose-400 mt-1">0</h3>
             </div>
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 flex-shrink-0">
-            <div class="glass p-4"><div id="patientDonut" class="chart-container"></div></div>
-            <div class="glass p-4"><div id="slaPie" class="chart-container"></div></div>
+            <div class="glass p-4 border border-violet-500/20"><div id="patientDonut" class="chart-container"></div></div>
+            <div class="glass p-4 border border-fuchsia-500/20"><div id="slaPie" class="chart-container"></div></div>
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-1">
             
-            <div class="glass p-5 border border-white/5 flex flex-col min-w-0">
+            <div class="glass p-5 border border-indigo-500/30 bg-indigo-950/5 animated-glow flex flex-col min-w-0">
                 <div class="flex items-center justify-between mb-3 pb-2 border-b border-white/5">
                     <h2 class="text-[10px] font-black tracking-wider uppercase text-indigo-400">Top Consultation Volumes</h2>
-                    <span class="text-[8px] font-medium text-neutral-500 uppercase">Patient Count</span>
+                    <span class="text-[8px] font-medium text-neutral-500 uppercase">Patient Count Matrix</span>
                 </div>
-                <div class="overflow-x-auto">
+                <div class="overflow-x-auto flex-grow">
                     <table class="w-full text-left border-collapse">
                         <thead>
                             <tr class="text-[8px] font-black uppercase text-neutral-500 border-b border-white/5">
@@ -147,24 +158,34 @@
                         </tbody>
                     </table>
                 </div>
+                <div class="mt-3 pt-2 border-t border-white/5 flex justify-center">
+                    <button id="btnToggleConsultants" onclick="toggleConsultantViewRange()" class="text-[9px] font-black tracking-widest uppercase text-indigo-400 hover:text-indigo-300 bg-indigo-500/10 hover:bg-indigo-500/20 px-3 py-1.5 rounded transition-all">
+                        Show More
+                    </button>
+                </div>
             </div>
 
-            <div class="glass p-5 border border-white/5 flex flex-col min-w-0">
+            <div class="glass p-5 border border-emerald-500/30 bg-emerald-950/5 animated-glow flex flex-col min-w-0">
                 <div class="flex items-center justify-between mb-3 pb-2 border-b border-white/5">
                     <h2 class="text-[10px] font-black tracking-wider uppercase text-emerald-400">Top Medical Procedures / LOAs</h2>
-                    <span class="text-[8px] font-medium text-neutral-500 uppercase">Aggregated Revenue</span>
+                    <span class="text-[8px] font-medium text-neutral-500 uppercase">Accumulated Financial Pool</span>
                 </div>
-                <div class="overflow-x-auto">
+                <div class="overflow-x-auto flex-grow">
                     <table class="w-full text-left border-collapse">
                         <thead>
                             <tr class="text-[8px] font-black uppercase text-neutral-500 border-b border-white/5">
                                 <th class="pb-2">Doctor Name</th>
-                                <th class="pb-2 text-right">Accumulated Revenue</th>
+                                <th class="pb-2 text-right">Aggregated Revenue</th>
                             </tr>
                         </thead>
                         <tbody id="topDoctorTableBody" class="text-[10px] font-medium divide-y divide-white/5">
                         </tbody>
                     </table>
+                </div>
+                <div class="mt-3 pt-2 border-t border-white/5 flex justify-center">
+                    <button id="btnToggleDoctors" onclick="toggleDoctorViewRange()" class="text-[9px] font-black tracking-widest uppercase text-emerald-400 hover:text-emerald-300 bg-emerald-500/10 hover:bg-emerald-500/20 px-3 py-1.5 rounded transition-all">
+                        Show More
+                    </button>
                 </div>
             </div>
 
@@ -173,12 +194,18 @@
 
     <script>
         const SUPABASE_URL = "https://zqnqkxpseeuyovtqezbc.supabase.co";
-        const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpxbnFreHBzZWV1eW92dHFlemJjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3OTYyOTEsImV4cCI6MjA5MjM3MjI5MX0.uR9TcF4_J58cx7XsKx4BbAQcIeYBElgJpKglbMEyHQs";
+        const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpxbnFreHBzZWV1eW92dHFlemJjIiwicm9sZSI6ImFub24iLAJpYXQiOjE3NzY3OTYyOTEsImV4cCI6MjA5MjM3MjI5MX0.uR9TcF4_J58cx7XsKx4BbAQcIeYBElgJpKglbMEyHQs";
         
         const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         let masterData = [];
         let selectedAssociate = null;
         let isSidebarCollapsed = false;
+
+        // View Limit Control States
+        let globalRankedConsultants = [];
+        let globalRankedProcedures = [];
+        let maxConsultantsLimit = 10;
+        let maxDoctorsLimit = 10;
 
         function initializeDatePickerDefaults() {
             const today = new Date().toISOString().split('T')[0];
@@ -210,7 +237,6 @@
 
         async function sync() {
             const { data, error } = await _supabase.from('hmo_monitoring').select('*');
-            
             if (data) {
                 masterData = data;
                 setupSidebar();
@@ -268,7 +294,7 @@
                 });
             }
             
-            // Scorecard Computations
+            // Core Scorecard Pipeline Updates
             const grossSum = data.reduce((acc, currentVal) => acc + parseFloat(currentVal.amount || 0), 0);
             document.getElementById('countRevenue').innerText = '₱' + grossSum.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
             document.getElementById('countTotalCensus').innerText = data.length;
@@ -276,10 +302,10 @@
             document.getElementById('countLoa').innerText = data.filter(r => String(r.transaction_type || '').toLowerCase() === 'loa').length;
             document.getElementById('countProcedure').innerText = data.filter(r => String(r.transaction_type || '').toLowerCase() === 'procedure').length;
 
-            // Process Rankings tables cleanly using correct column parameters
+            // Compile & Cache Data Arrays Globally
             processTopUtilizationMetrics(data);
 
-            // Render Highcharts
+            // Draw Charts
             drawHigh('patientDonut', 'Patient Flow', [
                 { name: 'NEW', y: data.filter(r => String(r.patient_type || '').toLowerCase() === 'new').length, color: '#6366f1' },
                 { name: 'OLD', y: data.filter(r => String(r.patient_type || '').toLowerCase() === 'old').length, color: '#10b981' }
@@ -296,7 +322,7 @@
             ], '0%');
         }
 
-        // --- FIXED SCHEMA MATCHING METRICS PROCESSING ENGINE ---
+        // --- CALCULATION PIPELINE & SUBSET GENERATOR ENGINE ---
         function processTopUtilizationMetrics(dataset) {
             const consultTrackingMap = {};
             const procedureTrackingMap = {};
@@ -308,7 +334,6 @@
 
                 if (!doctorName || doctorName === "" || doctorName === "null") return;
 
-                // Rule A: If transaction is a consult, count the unique instances (patients)
                 if (type === 'consult') {
                     if (!consultTrackingMap[doctorName]) {
                         consultTrackingMap[doctorName] = { name: doctorName, patientCount: 0 };
@@ -316,7 +341,6 @@
                     consultTrackingMap[doctorName].patientCount++;
                 }
 
-                // Rule B: If transaction is procedure or loa, aggregate the financial amount
                 if (type === 'procedure' || type === 'loa') {
                     if (!procedureTrackingMap[doctorName]) {
                         procedureTrackingMap[doctorName] = { name: doctorName, totalRevenue: 0 };
@@ -325,36 +349,85 @@
                 }
             });
 
-            // Sort maps descending and pull the peak top 5 instances
-            const rankedConsultants = Object.values(consultTrackingMap).sort((a, b) => b.patientCount - a.patientCount).slice(0, 5);
-            const rankedProcedures = Object.values(procedureTrackingMap).sort((a, b) => b.totalRevenue - a.totalRevenue).slice(0, 5);
+            // Cache Sorted Dataset Result Matrix Rows Globally
+            globalRankedConsultants = Object.values(consultTrackingMap).sort((a, b) => b.patientCount - a.patientCount);
+            globalRankedProcedures = Object.values(procedureTrackingMap).sort((a, b) => b.totalRevenue - a.totalRevenue);
 
-            // Populate Table 1: Consults List
-            const consultBody = document.getElementById('topConsultantTableBody');
-            if (rankedConsultants.length === 0) {
-                consultBody.innerHTML = `<tr><td colspan="2" class="py-4 text-center text-neutral-600 uppercase text-[8px]">No Consult Records Available</td></tr>`;
-            } else {
-                consultBody.innerHTML = rankedConsultants.map(c => `
-                    <tr class="hover:bg-white/[0.02] transition-colors border-b border-white/5">
-                        <td class="py-2.5 font-bold text-neutral-200 truncate max-w-[180px]">${c.name}</td>
-                        <td class="py-2.5 text-center text-indigo-400 font-black">${c.patientCount} Patients</td>
-                    </tr>
-                `).join('');
-            }
-
-            // Populate Table 2: Procedure/LOA Financial Pool
-            const doctorBody = document.getElementById('topDoctorTableBody');
-            if (rankedProcedures.length === 0) {
-                doctorBody.innerHTML = `<tr><td colspan="2" class="py-4 text-center text-neutral-600 uppercase text-[8px]">No Procedure/LOA Revenue Calculated</td></tr>`;
-            } else {
-                doctorBody.innerHTML = rankedProcedures.map(p => `
-                    <tr class="hover:bg-white/[0.02] transition-colors border-b border-white/5">
-                        <td class="py-2.5 font-bold text-neutral-200 truncate max-w-[180px]">${p.name}</td>
-                        <td class="py-2.5 text-right text-emerald-400 font-black tabular-nums">₱${p.totalRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                    </tr>
-                `).join('');
-            }
+            // Execute Dom Injection
+            renderConsultantTableDOM();
+            renderDoctorTableDOM();
         }
+
+        // --- SUBSET UI RENDER DIRECTIVES ---
+        function renderConsultantTableDOM() {
+            const consultBody = document.getElementById('topConsultantTableBody');
+            const btn = document.getElementById('btnToggleConsultants');
+            
+            // Slice target index segment slice rules
+            const visibleSubset = globalRankedConsultants.slice(0, maxConsultantsLimit);
+            
+            if (visibleSubset.length === 0) {
+                consultBody.innerHTML = `<tr><td colspan="2" class="py-4 text-center text-neutral-600 uppercase text-[8px]">No Consult Records Available</td></tr>`;
+                btn.style.display = 'none';
+                return;
+            }
+
+            btn.style.display = globalRankedConsultants.length > 10 ? 'inline-block' : 'none';
+            btn.innerText = maxConsultantsLimit >= globalRankedConsultants.length ? 'Show Less' : 'Show More';
+
+            consultBody.innerHTML = visibleSubset.map(c => `
+                <tr class="hover:bg-white/[0.02] transition-colors border-b border-white/5">
+                    <td class="py-2.5 font-bold text-neutral-200 truncate max-w-[180px]">${c.name}</td>
+                    <td class="py-2.5 text-center text-indigo-400 font-black">${c.patientCount} Patients</td>
+                </tr>
+            `).join('');
+        }
+
+        function renderDoctorTableDOM() {
+            const doctorBody = document.getElementById('topDoctorTableBody');
+            const btn = document.getElementById('btnToggleDoctors');
+            
+            const visibleSubset = globalRankedProcedures.slice(0, maxDoctorsLimit);
+            
+            if (visibleSubset.length === 0) {
+                doctorBody.innerHTML = `<tr><td colspan="2" class="py-4 text-center text-neutral-600 uppercase text-[8px]">No Procedure/LOA Revenue Calculated</td></tr>`;
+                btn.style.display = 'none';
+                return;
+            }
+
+            btn.style.display = globalRankedProcedures.length > 10 ? 'inline-block' : 'none';
+            btn.innerText = maxDoctorsLimit >= globalRankedProcedures.length ? 'Show Less' : 'Show More';
+
+            doctorBody.innerHTML = visibleSubset.map(p => `
+                <tr class="hover:bg-white/[0.02] transition-colors border-b border-white/5">
+                    <td class="py-2.5 font-bold text-neutral-200 truncate max-w-[180px]">${p.name}</td>
+                    <td class="py-2.5 text-right text-emerald-400 font-black tabular-nums">₱${p.totalRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                </tr>
+            `).join('');
+        }
+
+        // --- TOGGLE PAGINATION LOGIC NODES ---
+        function toggleConsultantViewRange() {
+            if (maxConsultantsLimit >= globalRankedConsultants.length) {
+                maxConsultantsLimit = 10; // Reset index back to default row ceiling limits
+            } else {
+                maxConsultantsLimit = globalRankedConsultants.length; // Expand dataset to view everything
+            }
+            renderConsultantTableDOM();
+        }
+
+        document.getElementById('btnToggleConsultants').addEventListener('click', (e) => e.stopPropagation());
+
+        function toggleDoctorViewRange() {
+            if (maxDoctorsLimit >= globalRankedProcedures.length) {
+                maxDoctorsLimit = 10;
+            } else {
+                maxDoctorsLimit = globalRankedProcedures.length;
+            }
+            renderDoctorTableDOM();
+        }
+
+        document.getElementById('btnToggleDoctors').addEventListener('click', (e) => e.stopPropagation());
 
         function drawHigh(id, title, data, innerSize) {
             Highcharts.chart(id, {
