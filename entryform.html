@@ -8,7 +8,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         /* Base Themes Architecture */
-        html[data-theme="dark"] body { background: #0f172a; color: #cbd5e1; } /* Grayish-white text default */
+        html[data-theme="dark"] body { background: #0f172a; color: #cbd5e1; }
         html[data-theme="light"] body { background: #f8fafc; color: #0f172a; }
 
         /* Glass Cards Translation mapping matrix */
@@ -138,7 +138,7 @@
                         <input type="hidden" name="doctor_procedure" id="doctor_hidden_value">
                         <div id="doctor_dropdown" class="dropdown-menu absolute left-0 right-0 mt-1 border rounded-lg shadow-xl max-h-60 overflow-y-auto"></div>
                     </div>
-                    <div id="service_field_container" class="md:col-span-1">
+                    <div id="service_field_container" class="md:col-span-1 relative">
                         <label class="text-[10px] text-slate-400 dark:text-slate-400 ml-1 uppercase font-bold">Service</label>
                         <input type="text" name="service" id="service_field" placeholder="e.g. X-Ray, Lab" class="w-full rounded-lg p-2.5 outline-none">
                     </div>
@@ -259,7 +259,6 @@
 
         async function loadItems(from = 0) {
             const limit = 1000;
-            // FIX: Explicitly queried 'item_code' to capture database context mapping
             const { data, error } = await _supabase.from('items').select('item_code, item_name, price').order('item_name', { ascending: true }).range(from, from + limit - 1);
             if (!error && data) {
                 cachedItems = [...cachedItems, ...data];
@@ -277,7 +276,8 @@
             const matches = cachedDoctors.filter(d => d.name.toLowerCase().includes(searchVal.toLowerCase()));
             docDropdown.innerHTML = matches.map(d => `
                 <div class="p-2.5 hover:bg-blue-600/30 cursor-pointer text-xs" onclick="selectDoctor('${d.name}', '${d.specialization}')">
-                    <span class="font-bold text-slate-900 dark:text-slate-100">${d.name}</span> <span class="text-slate-500 dark:text-slate-400 block text-[10px] uppercase">${d.specialization}</span>
+                    <span class="font-bold text-slate-900 dark:text-slate-100">${d.name}</span> 
+                    <span class="text-slate-500 dark:text-slate-400 block text-[10px] uppercase font-semibold">${d.specialization}</span>
                 </div>
             `).join('');
             docDropdown.classList.add('show');
@@ -308,7 +308,6 @@
                 (i.item_name && i.item_name.toLowerCase().includes(searchVal.toLowerCase())) ||
                 (i.item_code && i.item_code.toLowerCase().includes(searchVal.toLowerCase()))
             );
-            // FIX: Render item_code token in dropdown view with proper contrast layouts
             drop.innerHTML = matches.map(i => `
                 <div class="p-2.5 hover:bg-emerald-600/30 cursor-pointer text-xs flex justify-between items-center border-b border-slate-100 dark:border-slate-800/50" onclick="addServiceToken('${i.item_name}', ${i.price || 0})">
                     <div class="flex flex-col">
