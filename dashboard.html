@@ -20,7 +20,6 @@
         .associate-btn:hover { color: #888; border-color: #333; }
         .associate-btn.active { color: #fff; border-color: #6366f1; background: #0c0c1e; border-left: 3px solid #6366f1; }
         
-        /* Custom styled date inputs to match dark theme matrix aesthetic */
         .date-picker {
             background: #0a0a0a;
             border: 1px solid #1a1a1a;
@@ -63,7 +62,7 @@
                 <h1 class="text-xl font-black uppercase tracking-tighter text-white">
                     HMO Central <span class="text-indigo-500">Intelligence</span>
                 </h1>
-                <p id="status" class="text-[8px] font-bold text-neutral-600 uppercase tracking-widest text-emerald-500">System Ready</p>
+                <p id="status" class="text-[8px] font-bold uppercase tracking-widest text-emerald-500">System Ready</p>
             </div>
             
             <div class="flex items-center gap-2 bg-[#050505] border border-white/5 p-2 rounded-lg mr-20">
@@ -132,7 +131,7 @@
                             </tr>
                         </thead>
                         <tbody id="topConsultantTableBody" class="text-[10px] font-medium divide-y divide-white/5">
-                            </tbody>
+                        </tbody>
                     </table>
                 </div>
             </div>
@@ -153,7 +152,7 @@
                             </tr>
                         </thead>
                         <tbody id="topDoctorTableBody" class="text-[10px] font-medium divide-y divide-white/5">
-                            </tbody>
+                        </tbody>
                     </table>
                 </div>
             </div>
@@ -176,10 +175,10 @@
         }
 
         async function sync() {
-            // Augmented query layer parameters to catch specific fields needed for deep tracking lists
+            // Safe fallback pattern: Query ALL columns cleanly to completely bypass model mismatches
             const { data, error } = await _supabase
                 .from('hmo_monitoring')
-                .select('transaction_type, name_of_associate, patient_type, turnaround_time, amount, time_of_arrival, name_of_consult, name_of_doctor');
+                .select('*');
             
             if (data) {
                 masterData = data;
@@ -187,6 +186,7 @@
                 render(selectedAssociate || 'all');
             } else if (error) {
                 document.getElementById('status').innerText = "LINK ERROR";
+                document.getElementById('status').className = "text-[8px] font-bold uppercase tracking-widest text-red-500";
                 console.error(error);
             }
         }
@@ -243,28 +243,28 @@
                 });
             }
             
-            // Scorecard Compilation Handlers
+            // Scorecard computations
             const grossSum = data.reduce((acc, currentVal) => acc + parseFloat(currentVal.amount || 0), 0);
             document.getElementById('countRevenue').innerText = '₱' + grossSum.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
             document.getElementById('countTotalCensus').innerText = data.length;
 
-            document.getElementById('countConsult').innerText = data.filter(r => String(r.transaction_type).toLowerCase() === 'consult').length;
-            document.getElementById('countLoa').innerText = data.filter(r => String(r.transaction_type).toLowerCase() === 'loa').length;
-            document.getElementById('countProcedure').innerText = data.filter(r => String(r.transaction_type).toLowerCase() === 'procedure').length;
+            document.getElementById('countConsult').innerText = data.filter(r => String(r.transaction_type || '').toLowerCase() === 'consult').length;
+            document.getElementById('countLoa').innerText = data.filter(r => String(r.transaction_type || '').toLowerCase() === 'loa').length;
+            document.getElementById('countProcedure').innerText = data.filter(r => String(r.transaction_type || '').toLowerCase() === 'procedure').length;
 
-            // Generate Top Structural Medical Matrix Summaries
+            // Execute list processing safely
             processTopUtilizationMetrics(data);
 
-            // Re-draw highcharts instances
+            // Redraw charts
             drawHigh('patientDonut', 'Patient Flow', [
-                { name: 'NEW', y: data.filter(r => String(r.patient_type).toLowerCase() === 'new').length, color: '#6366f1' },
-                { name: 'OLD', y: data.filter(r => String(r.patient_type).toLowerCase() === 'old').length, color: '#10b981' }
+                { name: 'NEW', y: data.filter(r => String(r.patient_type || '').toLowerCase() === 'new').length, color: '#6366f1' },
+                { name: 'OLD', y: data.filter(r => String(r.patient_type || '').toLowerCase() === 'old').length, color: '#10b981' }
             ], '70%');
 
-            const met = data.filter(r => String(r.turnaround_time).toLowerCase() === 'met').length;
-            const notMet = data.filter(r => String(r.turnaround_time).toLowerCase() === 'not met').length;
-            const pending = data.filter(r => String(r.turnaround_time).toLowerCase() === 'pending').length;
+            const met = data.filter(r => String(r.turnaround_time || '').toLowerCase() === 'met').length;
+            const notMet = data.filter(r => String(r.turnaround_time || '').toLowerCase() === 'not met').length;
+            const pending = data.filter(r => String(r.turnaround_time || '').toLowerCase() === 'pending').length;
 
             drawHigh('slaPie', 'SLA Status', [
                 { name: 'MET', y: met, color: '#10b981' },
@@ -273,17 +273,17 @@
             ], '0%');
         }
 
-        // --- CALCULATION LOGIC FOR TOP PRACTITIONERS & CONSULT LISTS ---
         function processTopUtilizationMetrics(dataset) {
             const consultants = {};
             const doctors = {};
 
             dataset.forEach(row => {
                 const type = String(row.transaction_type || '').toLowerCase();
-                const consultName = row.name_of_consult ? String(row.name_of_consult).trim() : null;
-                const doctorName = row.name_of_doctor ? String(row.name_of_doctor).trim() : null;
+                
+                // Defensive check to read your setup's alternate or existing doctor/consultant keys safely
+                const consultName = (row.name_of_consult || row.consultant || row.doctor || row.name_of_doctor || '').toString().trim();
+                const doctorName = (row.name_of_doctor || row.doctor || row.consultant || row.name_of_consult || '').toString().trim();
 
-                // Map Consultant Parameters
                 if (consultName) {
                     if (!consultants[consultName]) consultants[consultName] = { name: consultName, consults: 0, loas: 0, procedures: 0 };
                     if (type === 'consult') consultants[consultName].consults++;
@@ -291,7 +291,6 @@
                     if (type === 'procedure') consultants[consultName].procedures++;
                 }
 
-                // Map Doctor Parameters
                 if (doctorName) {
                     if (!doctors[doctorName]) doctors[doctorName] = { name: doctorName, consults: 0, loas: 0, procedures: 0 };
                     if (type === 'consult') doctors[doctorName].consults++;
@@ -300,19 +299,16 @@
                 }
             });
 
-            // Rank Consultants primarily by overall Consultation volume
-            const rankedConsultants = Object.values(consultants).sort((a, b) => b.consults - a.consults || b.loas - a.loas).slice(0, 5);
-            // Rank Doctors primarily by active operational Procedure volume
-            const rankedDoctors = Object.values(doctors).sort((a, b) => b.procedures - a.procedures || b.loas - a.loas).slice(0, 5);
+            const rankedConsultants = Object.values(consultants).sort((a, b) => b.consults - a.consults).slice(0, 5);
+            const rankedDoctors = Object.values(doctors).sort((a, b) => b.procedures - a.procedures).slice(0, 5);
 
-            // Render tables
             const consultBody = document.getElementById('topConsultantTableBody');
             if (rankedConsultants.length === 0) {
                 consultBody.innerHTML = `<tr><td colspan="4" class="py-4 text-center text-neutral-600 uppercase text-[8px]">No Consultant Records Evaluated</td></tr>`;
             } else {
                 consultBody.innerHTML = rankedConsultants.map(c => `
                     <tr class="hover:bg-white/[0.02] transition-colors">
-                        <td class="py-2.5 font-bold text-neutral-200">${c.name}</td>
+                        <td class="py-2.5 font-bold text-neutral-200 truncate max-w-[120px]">${c.name}</td>
                         <td class="py-2.5 text-center text-indigo-400 font-bold">${c.consults}</td>
                         <td class="py-2.5 text-center text-neutral-400">${c.loas}</td>
                         <td class="py-2.5 text-center text-neutral-400">${c.procedures}</td>
@@ -326,7 +322,7 @@
             } else {
                 doctorBody.innerHTML = rankedDoctors.map(d => `
                     <tr class="hover:bg-white/[0.02] transition-colors">
-                        <td class="py-2.5 font-bold text-neutral-200">${d.name}</td>
+                        <td class="py-2.5 font-bold text-neutral-200 truncate max-w-[120px]">${d.name}</td>
                         <td class="py-2.5 text-center text-emerald-400 font-bold">${d.procedures}</td>
                         <td class="py-2.5 text-center text-neutral-400">${d.loas}</td>
                         <td class="py-2.5 text-center text-neutral-400">${d.consults}</td>
@@ -337,48 +333,26 @@
 
         function drawHigh(id, title, data, innerSize) {
             Highcharts.chart(id, {
-                chart: { 
-                    type: 'pie', 
-                    backgroundColor: 'transparent',
-                    height: 300
-                },
-                title: { 
-                    text: title.toUpperCase(), 
-                    style: { color: '#FFFFFF', fontSize: '10px', fontWeight: '900', letterSpacing: '2px' } 
-                },
+                chart: { type: 'pie', backgroundColor: 'transparent', height: 300 },
+                title: { text: title.toUpperCase(), style: { color: '#FFFFFF', fontSize: '10px', fontWeight: '900', letterSpacing: '2px' } },
                 credits: { enabled: false },
-                tooltip: { 
-                    backgroundColor: '#000', 
-                    style: { color: '#fff' },
-                    pointFormat: '{series.name}: <b>{point.y}</b>'
-                },
+                tooltip: { backgroundColor: '#000', style: { color: '#fff' }, pointFormat: '{series.name}: <b>{point.y}</b>' },
                 plotOptions: {
                     pie: {
                         innerSize: innerSize,
                         borderWidth: 0,
-                        dataLabels: {
-                            enabled: true,
-                            format: '{point.name}',
-                            style: { color: '#888', fontSize: '9px', textOutline: 'none' }
-                        }
+                        dataLabels: { enabled: true, format: '{point.name}', style: { color: '#888', fontSize: '9px', textOutline: 'none' } }
                     }
                 },
                 series: [{ name: 'Cases', colorByPoint: true, data: data }]
             });
         }
 
-        // --- SECURE DISCONNECT SEQUENCE ---
         async function terminateWorkspaceSession() {
-            try {
-                await _supabase.auth.signOut();
-            } catch (err) {
-                console.error("Auth logout context execution error:", err);
-            }
-            // Absolute client route rollback step
+            try { await _supabase.auth.signOut(); } catch (err) { console.error(err); }
             window.location.href = "index.html";
         }
 
-        // Execution Pipeline Triggering
         initializeDatePickerDefaults();
         sync();
     </script>
