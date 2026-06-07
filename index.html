@@ -84,6 +84,10 @@
 </head>
 <body class="medical-grid min-h-screen flex items-center justify-center p-4 relative overflow-hidden transition-colors duration-300">
 
+    <button onclick="toggleTheme()" class="fixed top-4 right-4 p-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900/85 hover:bg-slate-100 dark:hover:bg-slate-800/80 transition text-xs font-bold text-slate-700 dark:text-slate-300 z-50 shadow-sm backdrop-blur" id="themeToggleBtn">
+        🌙 Dark Mode
+    </button>
+
     <div class="absolute w-[500px] h-[500px] rounded-full bg-blue-500/10 blur-[130px] top-[-10%] left-[-10%] pointer-events-none z-0"></div>
     <div class="absolute w-[450px] h-[450px] rounded-full bg-emerald-500/10 blur-[110px] bottom-[-5%] right-[-5%] pointer-events-none z-0"></div>
 
@@ -96,13 +100,9 @@
 
     <div class="w-full max-w-md relative z-10 animated-card-node">
         
-        <div class="login-card rounded-3xl p-8 shadow-2xl relative">
+        <div class="login-card rounded-3xl p-8 shadow-2xl">
             
-            <button onclick="toggleTheme()" class="absolute top-6 right-6 p-2 rounded-xl border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800/60 transition text-xs font-bold text-slate-700 dark:text-slate-300 z-20" id="themeToggleBtn">
-                🌙 Dark Mode
-            </button>
-
-            <div class="text-center mb-6 mt-4 flex flex-col items-center">
+            <div class="text-center mb-6 mt-2 flex flex-col items-center">
                 
                 <div class="w-full overflow-hidden rounded-2xl border border-slate-200/40 dark:border-slate-800/60 mb-4 bg-white">
                     <img src="https://i.imgur.com/W4iMgls.jpeg" alt="Company Logo" class="w-full h-auto object-cover block">
