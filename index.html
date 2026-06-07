@@ -8,18 +8,18 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         /* Base Themes Architecture */
-        html[data-theme="dark"] body { background: #0f172a; color: #f1f5f9; }
+        html[data-theme="dark"] body { background: #0f172a; color: #cbd5e1; } /* Grayish-white text default */
         html[data-theme="light"] body { background: #f8fafc; color: #0f172a; }
 
         /* Glass Cards Translation mapping matrix */
-        html[data-theme="dark"] .glass-card { background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); }
+        html[data-theme="dark"] .glass-card { background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.15); }
         html[data-theme="light"] .glass-card { background: #ffffff; border: 1px solid #e2e8f0; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05); }
 
         /* Form Interactive Elements Controls */
         html[data-theme="dark"] input, html[data-theme="dark"] select, html[data-theme="dark"] textarea { 
             background: rgba(15, 23, 42, 0.8) !important; 
-            border: 1px solid rgba(255, 255, 255, 0.2) !important; 
-            color: white !important; 
+            border: 1px solid rgba(255, 255, 255, 0.25) !important; 
+            color: #f1f5f9 !important; /* Grayish-white for user inputs */
         }
         html[data-theme="light"] input, html[data-theme="light"] select, html[data-theme="light"] textarea { 
             background: #ffffff !important; 
@@ -29,7 +29,7 @@
 
         /* Form Disabled states optimization */
         html[data-theme="dark"] input:disabled, html[data-theme="dark"] select:disabled, html[data-theme="dark"] textarea:disabled {
-            background: rgba(30, 41, 59, 0.4) !important; color: #94a3b8 !important; border: 1px solid rgba(255, 255, 255, 0.05) !important; cursor: not-allowed;
+            background: rgba(30, 41, 59, 0.6) !important; color: #94a3b8 !important; border: 1px solid rgba(255, 255, 255, 0.1) !important; cursor: not-allowed;
         }
         html[data-theme="light"] input:disabled, html[data-theme="light"] select:disabled, html[data-theme="light"] textarea:disabled {
             background: #f1f5f9 !important; color: #64748b !important; border: 1px solid #e2e8f0 !important; cursor: not-allowed;
@@ -45,7 +45,7 @@
         html[data-theme="dark"] tr.border-b { border-color: #1e293b; }
         html[data-theme="light"] tr.border-b { border-color: #e2e8f0; }
 
-        html[data-theme="dark"] thead { background: #0f172a; color: #64748b; }
+        html[data-theme="dark"] thead { background: #0f172a; color: #94a3b8; } /* Boosted dark mode table headers */
         html[data-theme="light"] thead { background: #f1f5f9; color: #475569; }
 
         /* Shared Static Elements Utility Layout */
@@ -54,11 +54,11 @@
         .dropdown-menu.show { display: block; }
         
         /* Dropdown Theme Colors Pipeline */
-        html[data-theme="dark"] .dropdown-menu { background: #0f172a; border-color: #334155; }
+        html[data-theme="dark"] .dropdown-menu { background: #1e293b; border-color: #475569; }
         html[data-theme="light"] .dropdown-menu { background: #ffffff; border-color: #cbd5e1; }
 
         /* Subtle Context Badges */
-        html[data-theme="dark"] .badge-meta { color: #94a3b8; }
+        html[data-theme="dark"] .badge-meta { color: #cbd5e1; }
         html[data-theme="light"] .badge-meta { color: #475569; }
     </style>
 </head>
@@ -68,11 +68,11 @@
         <header class="mb-8 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
                 <h1 class="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-500 to-emerald-500 dark:from-blue-400 dark:to-emerald-400">HMO Hub Dashboard</h1>
-                <p class="text-slate-500 text-sm">Concurrent Multi-Patient Processing Queue</p>
+                <p class="text-slate-500 dark:text-slate-400 text-sm">Concurrent Multi-Patient Processing Queue</p>
             </div>
             
             <div class="flex items-center gap-4 self-end sm:self-auto">
-                <button onclick="toggleTheme()" class="p-2 rounded-xl border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 transition flex items-center gap-2 text-xs font-bold" id="themeToggleBtn">
+                <button onclick="toggleTheme()" class="p-2 rounded-xl border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 transition flex items-center gap-2 text-xs font-bold text-slate-800 dark:text-slate-200" id="themeToggleBtn">
                     🌙 Dark Mode
                 </button>
 
@@ -107,17 +107,17 @@
 
                 <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
                     <div class="md:col-span-2">
-                        <label class="text-[10px] text-slate-400 dark:text-slate-500 ml-1 uppercase font-bold">Patient Name</label>
+                        <label class="text-[10px] text-slate-400 dark:text-slate-300 ml-1 uppercase font-bold">Patient Name</label>
                         <input type="text" name="patient_name" id="field_patient_name" placeholder="Full Name" required class="w-full rounded-lg p-2.5 outline-none">
                     </div>
                     <div>
-                        <label class="text-[10px] text-slate-400 dark:text-slate-500 ml-1 uppercase font-bold">Card/Company</label>
+                        <label class="text-[10px] text-slate-400 dark:text-slate-300 ml-1 uppercase font-bold">Card/Company</label>
                         <select name="card_company" id="card_company_select" class="w-full rounded-lg p-2.5 outline-none">
                             <option value="">Loading...</option>
                         </select>
                     </div>
                     <div>
-                        <label class="text-[10px] text-slate-400 dark:text-slate-500 ml-1 uppercase font-bold">Patient Type</label>
+                        <label class="text-[10px] text-slate-400 dark:text-slate-300 ml-1 uppercase font-bold">Patient Type</label>
                         <select name="patient_type" id="field_patient_type" class="w-full rounded-lg p-2.5 outline-none">
                             <option value="Old">Old Patient</option>
                             <option value="New">New Patient</option>
@@ -127,7 +127,7 @@
 
                 <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
                     <div>
-                        <label class="text-[10px] text-slate-400 dark:text-slate-500 ml-1 uppercase font-bold">Transaction</label>
+                        <label class="text-[10px] text-slate-400 dark:text-slate-300 ml-1 uppercase font-bold">Transaction</label>
                         <select name="transaction_type" id="transaction_type" class="w-full rounded-lg p-2.5 outline-none">
                             <option value="Consult">Consult (5m)</option>
                             <option value="Loa">LOA (30m)</option>
@@ -135,7 +135,7 @@
                         </select>
                     </div>
                     <div class="relative">
-                        <label class="text-[10px] text-slate-400 dark:text-slate-500 ml-1 uppercase font-bold">Doctor List</label>
+                        <label class="text-[10px] text-slate-400 dark:text-slate-300 ml-1 uppercase font-bold">Doctor List</label>
                         <div class="relative flex items-center">
                             <input type="text" id="doctor_input" placeholder="Search doctor..." class="w-full rounded-lg p-2.5 pr-8 outline-none" autocomplete="off">
                             <button type="button" id="clear_doctor_btn" class="hidden absolute right-2.5 text-slate-400 hover:text-red-500 text-lg">&times;</button>
@@ -144,11 +144,11 @@
                         <div id="doctor_dropdown" class="dropdown-menu absolute left-0 right-0 mt-1 border rounded-lg shadow-xl max-h-60 overflow-y-auto"></div>
                     </div>
                     <div id="service_field_container" class="md:col-span-1">
-                        <label class="text-[10px] text-slate-400 dark:text-slate-500 ml-1 uppercase font-bold">Service</label>
+                        <label class="text-[10px] text-slate-400 dark:text-slate-300 ml-1 uppercase font-bold">Service</label>
                         <input type="text" name="service" id="service_field" placeholder="e.g. X-Ray, Lab" class="w-full rounded-lg p-2.5 outline-none">
                     </div>
                     <div>
-                        <label class="text-[10px] text-slate-400 dark:text-slate-500 ml-1 uppercase font-bold">Amount</label>
+                        <label class="text-[10px] text-slate-400 dark:text-slate-300 ml-1 uppercase font-bold">Amount</label>
                         <input type="number" step="0.01" name="amount" id="amount_field" placeholder="0.00" class="w-full rounded-lg p-2.5 outline-none">
                     </div>
                 </div>
@@ -157,11 +157,11 @@
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                        <label class="text-[10px] text-slate-400 dark:text-slate-500 ml-1 uppercase font-bold">Associate Name</label>
+                        <label class="text-[10px] text-slate-400 dark:text-slate-300 ml-1 uppercase font-bold">Associate Name</label>
                         <input type="text" name="name_of_associate" id="field_name_of_associate" placeholder="Who checked in this patient?" class="w-full rounded-lg p-2.5 outline-none">
                     </div>
                     <div>
-                        <label class="text-[10px] text-slate-400 dark:text-slate-500 ml-1 uppercase font-bold text-blue-600 dark:text-blue-400">HMO Verification Status</label>
+                        <label class="text-[10px] text-slate-400 dark:text-slate-300 ml-1 uppercase font-bold text-blue-600 dark:text-blue-400">HMO Verification Status</label>
                         <select name="status" id="field_status" class="w-full rounded-lg p-2.5 font-bold outline-none">
                             <option value="On Process" class="text-amber-500">On Process</option>
                             <option value="Approved" class="text-emerald-500">Approved</option>
@@ -173,17 +173,17 @@
 
                 <div id="updateFieldsContainer" class="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 border border-dashed border-slate-300 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-950/30">
                     <div>
-                        <label class="text-[10px] text-slate-500 ml-1 uppercase font-bold tracking-wider">HMO Verification Code</label>
+                        <label class="text-[10px] text-slate-500 dark:text-slate-400 ml-1 uppercase font-bold tracking-wider">HMO Verification Code</label>
                         <input type="text" name="approval_code" id="field_approval_code" placeholder="Required for Approved" class="w-full rounded-lg p-2.5 font-mono uppercase outline-none">
                     </div>
                     <div>
-                        <label class="text-[10px] text-slate-500 ml-1 uppercase font-bold tracking-wider">HMO Agent Name</label>
+                        <label class="text-[10px] text-slate-500 dark:text-slate-400 ml-1 uppercase font-bold tracking-wider">HMO Agent Name</label>
                         <input type="text" name="agent_name" id="field_agent_name" placeholder="Required for Approved" class="w-full rounded-lg p-2.5 outline-none">
                     </div>
                 </div>
 
                 <div>
-                    <label class="text-[10px] text-slate-400 dark:text-slate-500 ml-1 uppercase font-bold tracking-wider">Remarks / Notes (Optional)</label>
+                    <label class="text-[10px] text-slate-400 dark:text-slate-300 ml-1 uppercase font-bold tracking-wider">Remarks / Notes (Optional)</label>
                     <textarea name="remarks" id="field_remarks" rows="2" placeholder="Enter processing notes or cancellation reason here..." class="w-full rounded-lg p-2.5 text-sm resize-none outline-none"></textarea>
                 </div>
 
@@ -194,13 +194,13 @@
         </div>
 
         <div class="mb-5 relative max-w-md">
-            <input type="text" id="patientSearchInput" oninput="filterTableBySearch()" placeholder="🔍 Search patient by name..." class="w-full rounded-xl p-3 pl-10 text-sm bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 focus:outline-none focus:border-blue-500 text-slate-900 dark:text-white shadow-sm">
+            <input type="text" id="patientSearchInput" oninput="filterTableBySearch()" placeholder="🔍 Search patient by name..." class="w-full rounded-xl p-3 pl-10 text-sm bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 focus:outline-none focus:border-blue-500 text-slate-900 dark:text-slate-100 shadow-sm">
         </div>
 
         <div class="table-container backdrop-blur-sm">
             <div class="overflow-x-auto">
                 <table class="w-full text-left border-collapse">
-                    <thead class="text-[10px] uppercase tracking-widest text-slate-500 dark:text-slate-400">
+                    <thead class="text-[10px] uppercase tracking-widest text-slate-500 dark:text-slate-300">
                         <tr>
                             <th class="p-4">Patient</th>
                             <th class="p-4">Transaction / Service Details</th>
@@ -284,7 +284,7 @@
             const matches = cachedDoctors.filter(d => d.name.toLowerCase().includes(searchVal.toLowerCase()));
             docDropdown.innerHTML = matches.map(d => `
                 <div class="p-2.5 hover:bg-blue-600/30 cursor-pointer text-xs" onclick="selectDoctor('${d.name}', '${d.specialization}')">
-                    <span class="font-bold text-slate-900 dark:text-white">${d.name}</span> <span class="text-slate-500 dark:text-slate-400 block text-[10px] uppercase">${d.specialization}</span>
+                    <span class="font-bold text-slate-900 dark:text-slate-100">${d.name}</span> <span class="text-slate-500 dark:text-slate-400 block text-[10px] uppercase">${d.specialization}</span>
                 </div>
             `).join('');
             docDropdown.classList.add('show');
@@ -353,14 +353,14 @@
             const val = e.target.value; selectedServices = []; renderBadges(); amountField.value = "";
             if (val === 'Loa' || val === 'Procedure') {
                 serviceContainer.innerHTML = `
-                    <label class="text-[10px] text-slate-400 dark:text-slate-500 ml-1 uppercase font-bold">Service (Smart Array)</label>
+                    <label class="text-[10px] text-slate-400 dark:text-slate-300 ml-1 uppercase font-bold">Service (Smart Array)</label>
                     <input type="text" id="service_search_input" placeholder="Type test..." class="w-full rounded-lg p-2.5 outline-none" autocomplete="off">
                     <div id="service_smart_dropdown" class="dropdown-menu absolute left-0 right-0 mt-1 border rounded-lg shadow-xl max-h-60 overflow-y-auto"></div>
                 `;
                 document.getElementById('service_search_input').addEventListener('input', (el) => filterServices(el.target.value));
             } else {
                 serviceContainer.innerHTML = `
-                    <label class="text-[10px] text-slate-400 dark:text-slate-500 ml-1 uppercase font-bold">Service</label>
+                    <label class="text-[10px] text-slate-400 dark:text-slate-300 ml-1 uppercase font-bold">Service</label>
                     <input type="text" name="service" id="service_field" placeholder="e.g. Consult" class="w-full rounded-lg p-2.5 outline-none">
                 `;
             }
@@ -561,13 +561,13 @@
                     <tr class="border-b transition duration-150">
                         <td class="p-4">
                             <div class="font-bold text-sm text-slate-800 dark:text-slate-100">${row.patient_name || 'No Name'}</div>
-                            <div class="text-[10px] text-slate-500 dark:text-slate-400 uppercase font-medium tracking-wide">${row.patient_type || 'Old'} | ${row.card_company || 'CASH'}</div>
+                            <div class="text-[10px] text-slate-500 dark:text-slate-300 uppercase font-medium tracking-wide">${row.patient_type || 'Old'} | ${row.card_company || 'CASH'}</div>
                         </td>
                         <td class="p-4">
                             <div class="text-blue-600 dark:text-blue-400 font-bold">${row.transaction_type || 'Consult'}</div>
-                            <div class="text-[10px] text-slate-600 dark:text-slate-400 font-mono italic">${row.doctor_procedure || ''} ${parsedServices ? '📂 ('+parsedServices+')' : ''}</div>
+                            <div class="text-[10px] text-slate-600 dark:text-slate-300 font-mono italic">${row.doctor_procedure || ''} ${parsedServices ? '📂 ('+parsedServices+')' : ''}</div>
                             ${row.amount ? `<div class="text-emerald-600 dark:text-emerald-400 font-extrabold mt-0.5">₱${Number(row.amount).toFixed(2)}</div>` : ''}
-                            ${row.remarks ? `<div class="text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800/80 px-2 py-1 rounded mt-1 max-w-xs truncate text-[11px]">💬 ${row.remarks}</div>` : ''}
+                            ${row.remarks ? `<div class="text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800/80 px-2 py-1 rounded mt-1 max-w-xs truncate text-[11px]">💬 ${row.remarks}</div>` : ''}
                         </td>
                         <td class="p-4">
                             <div class="mb-2"><span class="status-pill border ${statusStyle}">${hmoStatus}</span></div>
@@ -578,31 +578,31 @@
                                 </button>
                             ` : `
                                 <div class="flex flex-col gap-1">
-                                    <div class="text-xs font-mono font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider">${row.approval_code || ''}</div>
-                                    <div class="text-[10px] text-slate-500 dark:text-slate-400 italic">${row.agent_name ? 'Agent: ' + row.agent_name : ''}</div>
+                                    <div class="text-xs font-mono font-bold text-slate-800 dark:text-slate-100 uppercase tracking-wider">${row.approval_code || ''}</div>
+                                    <div class="text-[10px] text-slate-500 dark:text-slate-300 italic">${row.agent_name ? 'Agent: ' + row.agent_name : ''}</div>
                                     <button onclick="openRowForVerificationUpdate('${row.id}')" class="text-left text-blue-600 dark:text-blue-400 hover:underline font-semibold text-[10px] tracking-wide uppercase mt-1">
                                         👁️ View Details
                                     </button>
                                 </div>
                             `}
                         </td>
-                        <td class="p-4 font-mono text-slate-700 dark:text-slate-300">
+                        <td class="p-4 font-mono text-slate-700 dark:text-slate-200">
                             <div class="text-xs font-bold">${dateStr}</div>
-                            <div class="text-[10px] text-slate-400 dark:text-slate-500">${arrival.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</div>
+                            <div class="text-[10px] text-slate-400 dark:text-slate-400">${arrival.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</div>
                         </td>
                         <td class="p-4 font-medium">
                             <div class="text-[10px] text-blue-600 dark:text-blue-400">START: ${start}</div>
                             <div class="text-[10px] text-emerald-600 dark:text-emerald-400">END: ${end}</div>
                         </td>
                         <td class="p-4"><span class="status-pill border ${tatStyle}">${tatStatus}</span></td>
-                        <td class="p-4 text-slate-600 dark:text-slate-400 font-mono uppercase text-[10px] font-semibold">${row.name_of_associate || '-'}</td>
+                        <td class="p-4 text-slate-600 dark:text-slate-200 font-mono uppercase text-[10px] font-semibold">${row.name_of_associate || '-'}</td>
                         <td class="p-4 text-center">
                             ${hmoStatus !== 'Cancel' ? `
                                 <button onclick="handleDirectCancel('${row.id}', '${row.time_of_arrival}', '${row.transaction_type}', '${row.end_time_of_call}')" class="bg-red-500/10 hover:bg-red-500 hover:text-white border border-red-500/20 text-red-600 dark:text-red-400 text-[11px] font-bold px-2.5 py-1 rounded transition uppercase tracking-wider">
                                     ❌ Cancel
                                 </button>
                             ` : `
-                                <span class="text-slate-400 dark:text-slate-600 text-[10px] font-bold italic uppercase tracking-wider">Voided</span>
+                                <span class="text-slate-400 dark:text-slate-500 text-[10px] font-bold italic uppercase tracking-wider">Voided</span>
                             `}
                         </td>
                     </tr>
