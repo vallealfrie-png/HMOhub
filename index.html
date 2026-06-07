@@ -193,37 +193,69 @@
             }
         }
 
-        // --- NATIVE SUPABASE AUTH CHECKPOINT ---
+        // --- ROLE-BASED CHECKPOINT HANDSHAKE ---
         async function executeGatewayLogin(event) {
             event.preventDefault();
             const btn = document.getElementById('loginBtn');
             const email = document.getElementById('gateway_user').value.trim();
             const password = document.getElementById('gateway_pass').value;
             
-            btn.innerText = "AUTHENTICATING MATRIX...";
+            btn.innerText = "VERIFYING SECURITY TOKENS...";
             btn.disabled = true;
 
             try {
-                const { data, error } = await _supabase.auth.signInWithPassword({
+                // Step 1: Query Supabase Auth
+                const { data: authData, error: authError } = await _supabase.auth.signInWithPassword({
                     email: email,
                     password: password
                 });
 
-                if (error) {
-                    alert(`🚨 Station Authentication Failure: ${error.message}`);
-                    btn.innerText = "AUTHENTICATE STATION ACCESS";
-                    btn.disabled = false;
-                } else if (data.user) {
-                    btn.innerText = "ACCESS GRANTED. INITIALIZING DESKTOP...";
+                if (authError) {
+                    alert(`🚨 Auth Checkpoint Failure: ${authError.message}`);
+                    resetLoginButton(btn);
+                    return;
+                }
+
+                if (authData.user) {
+                    btn.innerText = "FETCHING USER ENVIRONMENT ROLE...";
+                    
+                    // Step 2: Query public.users using the optimized cached subquery concept
+                    const { data: profile, error: profileError } = await _supabase
+                        .from('users')
+                        .select('role')
+                        .eq('id', authData.user.id)
+                        .single();
+
+                    if (profileError || !profile) {
+                        alert(`⚠️ Security Error: Profile node configuration not found inside public.users. Please coordinate with an administrator.`);
+                        resetLoginButton(btn);
+                        return;
+                    }
+
+                    // Step 3: Conditional Routing Decisions Based on Role Value
+                    const userRole = profile.role.toLowerCase().trim();
+                    btn.innerText = `ACCESS GRANTED: ${userRole.toUpperCase()} ROLE...`;
+
                     setTimeout(() => {
-                        window.location.href = "entryform.html";
+                        if (userRole === 'staff') {
+                            window.location.href = "entryform.html";
+                        } else if (['manager', 'director', 'admin'].includes(userRole)) {
+                            window.location.href = "dashboard.html";
+                        } else {
+                            alert("🚨 Routing Rule Error: Unrecognized access permission level assigned.");
+                            resetLoginButton(btn);
+                        }
                     }, 800);
                 }
             } catch (err) {
-                alert(`System Error: ${err.message}`);
-                btn.innerText = "AUTHENTICATE STATION ACCESS";
-                btn.disabled = false;
+                alert(`Critical Terminal Exception: ${err.message}`);
+                resetLoginButton(btn);
             }
+        }
+
+        function resetLoginButton(btn) {
+            btn.innerText = "AUTHENTICATE STATION ACCESS";
+            btn.disabled = false;
         }
     </script>
 </body>
