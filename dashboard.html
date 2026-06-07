@@ -27,7 +27,6 @@
             position: relative;
         }
 
-        /* Apply animated border glow */
         .animated-glow {
             animation: borderGlowLoop 5s linear infinite;
         }
@@ -146,7 +145,7 @@
                     <h2 class="text-[10px] font-black tracking-wider uppercase text-indigo-400">Top Consultation Volumes</h2>
                     <span class="text-[8px] font-medium text-neutral-500 uppercase">Patient Count Matrix</span>
                 </div>
-                <div class="overflow-x-auto flex-grow">
+                <div class="overflow-x-auto flex-grow max-h-[380px]">
                     <table class="w-full text-left border-collapse">
                         <thead>
                             <tr class="text-[8px] font-black uppercase text-neutral-500 border-b border-white/5">
@@ -170,7 +169,7 @@
                     <h2 class="text-[10px] font-black tracking-wider uppercase text-emerald-400">Top Medical Procedures / LOAs</h2>
                     <span class="text-[8px] font-medium text-neutral-500 uppercase">Accumulated Financial Pool</span>
                 </div>
-                <div class="overflow-x-auto flex-grow">
+                <div class="overflow-x-auto flex-grow max-h-[380px]">
                     <table class="w-full text-left border-collapse">
                         <thead>
                             <tr class="text-[8px] font-black uppercase text-neutral-500 border-b border-white/5">
@@ -194,7 +193,8 @@
 
     <script>
         const SUPABASE_URL = "https://zqnqkxpseeuyovtqezbc.supabase.co";
-        const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpxbnFreHBzZWV1eW92dHFlemJjIiwicm9sZSI6ImFub24iLAJpYXQiOjE3NzY3OTYyOTEsImV4cCI6MjA5MjM3MjI5MX0.uR9TcF4_J58cx7XsKx4BbAQcIeYBElgJpKglbMEyHQs";
+        // ⚠️ PASTE YOUR NEW API KEY DIRECTLY BETWEEN THE QUOTES BELOW:
+        const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpxbnFreHBzZWV1eW92dHFlemJjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3OTYyOTEsImV4cCI6MjA5MjM3MjI5MX0.uR9TcF4_J58cx7XsKx4BbAQcIeYBElgJpKglbMEyHQs";
         
         const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         let masterData = [];
@@ -243,7 +243,7 @@
                 render(selectedAssociate || 'all');
             } else if (error) {
                 const statusNode = document.getElementById('status');
-                statusNode.innerText = "LINK ERROR EXCEPTION";
+                statusNode.innerText = "AUTHENTICATION ERROR";
                 statusNode.className = "text-[8px] font-bold uppercase tracking-widest text-red-500";
                 console.error(error);
             }
@@ -429,6 +429,7 @@
                 chart: { type: 'pie', backgroundColor: 'transparent', height: 300 },
                 title: { text: title.toUpperCase(), style: { color: '#FFFFFF', fontSize: '10px', fontWeight: '900', letterSpacing: '2px' } },
                 credits: { enabled: false },
+                accessibility: { enabled: false }, // Mutes the Highcharts accessibility warning line console log
                 tooltip: { backgroundColor: '#000', style: { color: '#fff' }, pointFormat: '{series.name}: <b>{point.y}</b>' },
                 plotOptions: {
                     pie: {
