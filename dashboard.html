@@ -45,7 +45,11 @@
         ::-webkit-scrollbar-thumb { background: #222; }
     </style>
 </head>
-<body class="flex h-screen">
+<body class="flex h-screen relative">
+
+    <button onclick="terminateWorkspaceSession()" class="absolute top-4 right-4 bg-red-600/10 hover:bg-red-600/20 border border-red-500/20 text-red-400 text-[10px] font-black uppercase tracking-widest px-4 py-2.5 rounded-xl transition-all duration-150 z-50">
+        🚪 LOGOUT TERMINAL
+    </button>
 
     <aside class="w-48 border-r border-white/5 p-4 flex flex-col bg-[#050505] flex-shrink-0">
         <h3 class="text-[9px] font-black uppercase tracking-widest text-neutral-500 mb-4">Associates</h3>
@@ -53,7 +57,7 @@
         <button onclick="filterByAssociate(null)" class="mt-4 text-[8px] bg-white/5 p-2 rounded text-neutral-400 uppercase font-bold hover:bg-white/10 transition-all">Reset Grid</button>
     </aside>
 
-    <main class="flex-1 p-6 flex flex-col gap-4 overflow-y-auto">
+    <main class="flex-1 p-6 flex flex-col gap-4 overflow-y-auto pr-24">
         <header class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-2">
             <div>
                 <h1 class="text-xl font-black uppercase tracking-tighter text-white">
@@ -62,7 +66,7 @@
                 <p id="status" class="text-[8px] font-bold text-neutral-600 uppercase tracking-widest text-emerald-500">System Ready</p>
             </div>
             
-            <div class="flex items-center gap-2 bg-[#050505] border border-white/5 p-2 rounded-lg">
+            <div class="flex items-center gap-2 bg-[#050505] border border-white/5 p-2 rounded-lg mr-20">
                 <div class="flex flex-col">
                     <span class="text-[7px] text-neutral-500 uppercase font-black tracking-widest pl-1 mb-0.5">From</span>
                     <input type="date" id="dateFrom" class="date-picker" onchange="handleDateRangeChange()">
@@ -78,26 +82,26 @@
             </div>
         </header>
 
-        <div class="grid grid-cols-5 gap-3">
-            <div class="glass p-4 border-l-2 border-cyan-500 bg-cyan-950/5">
-                <p class="text-[8px] font-black text-neutral-500 uppercase tracking-widest">Gross Revenue</p>
-                <h3 id="countRevenue" class="text-3xl font-black tabular-nums text-cyan-400">₱0.00</h3>
+        <div class="grid grid-cols-5 gap-3 w-full">
+            <div class="glass p-4 border-l-2 border-cyan-500 bg-cyan-950/5 min-w-0 overflow-hidden">
+                <p class="text-[8px] font-black text-neutral-500 uppercase tracking-widest truncate">Gross Revenue</p>
+                <h3 id="countRevenue" class="text-xl sm:text-2xl xl:text-3xl font-black tabular-nums text-cyan-400 tracking-tight truncate select-all">₱0.00</h3>
             </div>
-            <div class="glass p-4 border-l-2 border-amber-500">
-                <p class="text-[8px] font-black text-neutral-500 uppercase tracking-widest">Total Census</p>
-                <h3 id="countTotalCensus" class="text-3xl font-black tabular-nums">0</h3>
+            <div class="glass p-4 border-l-2 border-amber-500 min-w-0 overflow-hidden">
+                <p class="text-[8px] font-black text-neutral-500 uppercase tracking-widest truncate">Total Census</p>
+                <h3 id="countTotalCensus" class="text-xl sm:text-2xl xl:text-3xl font-black tabular-nums truncate">0</h3>
             </div>
-            <div class="glass p-4 border-l-2 border-indigo-600">
-                <p class="text-[8px] font-black text-neutral-500 uppercase tracking-widest">Consults</p>
-                <h3 id="countConsult" class="text-3xl font-black tabular-nums">0</h3>
+            <div class="glass p-4 border-l-2 border-indigo-600 min-w-0 overflow-hidden">
+                <p class="text-[8px] font-black text-neutral-500 uppercase tracking-widest truncate">Consults</p>
+                <h3 id="countConsult" class="text-xl sm:text-2xl xl:text-3xl font-black tabular-nums truncate">0</h3>
             </div>
-            <div class="glass p-4 border-l-2 border-emerald-600">
-                <p class="text-[8px] font-black text-neutral-500 uppercase tracking-widest">LOAs</p>
-                <h3 id="countLoa" class="text-3xl font-black tabular-nums">0</h3>
+            <div class="glass p-4 border-l-2 border-emerald-600 min-w-0 overflow-hidden">
+                <p class="text-[8px] font-black text-neutral-500 uppercase tracking-widest truncate">LOAs</p>
+                <h3 id="countLoa" class="text-xl sm:text-2xl xl:text-3xl font-black tabular-nums truncate">0</h3>
             </div>
-            <div class="glass p-4 border-l-2 border-rose-600">
-                <p class="text-[8px] font-black text-neutral-500 uppercase tracking-widest">Procedures</p>
-                <h3 id="countProcedure" class="text-3xl font-black tabular-nums">0</h3>
+            <div class="glass p-4 border-l-2 border-rose-600 min-w-0 overflow-hidden">
+                <p class="text-[8px] font-black text-neutral-500 uppercase tracking-widest truncate">Procedures</p>
+                <h3 id="countProcedure" class="text-xl sm:text-2xl xl:text-3xl font-black tabular-nums truncate">0</h3>
             </div>
         </div>
 
@@ -109,6 +113,52 @@
                 <div id="slaPie" class="chart-container"></div>
             </div>
         </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-2">
+            
+            <div class="glass p-5 border border-white/5 flex flex-col">
+                <div class="flex items-center justify-between mb-3 pb-2 border-b border-white/5">
+                    <h2 class="text-[10px] font-black tracking-wider uppercase text-indigo-400">Top Consultants Performance Stream</h2>
+                    <span class="text-[8px] font-medium text-neutral-500 uppercase">Ranked by volume</span>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="text-[8px] font-black uppercase text-neutral-500 border-b border-white/5">
+                                <th class="pb-2">Consultant/Physician</th>
+                                <th class="pb-2 text-center">Consults</th>
+                                <th class="pb-2 text-center">LOA Vol</th>
+                                <th class="pb-2 text-center">Procedures</th>
+                            </tr>
+                        </thead>
+                        <tbody id="topConsultantTableBody" class="text-[10px] font-medium divide-y divide-white/5">
+                            </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="glass p-5 border border-white/5 flex flex-col">
+                <div class="flex items-center justify-between mb-3 pb-2 border-b border-white/5">
+                    <h2 class="text-[10px] font-black tracking-wider uppercase text-emerald-400">Top Attending Procedure Activity</h2>
+                    <span class="text-[8px] font-medium text-neutral-500 uppercase">Utilization Summary</span>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="text-[8px] font-black uppercase text-neutral-500 border-b border-white/5">
+                                <th class="pb-2">Attending Clinician</th>
+                                <th class="pb-2 text-center">Procedures</th>
+                                <th class="pb-2 text-center">LOA Vol</th>
+                                <th class="pb-2 text-center">Consults</th>
+                            </tr>
+                        </thead>
+                        <tbody id="topDoctorTableBody" class="text-[10px] font-medium divide-y divide-white/5">
+                            </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
     </main>
 
     <script>
@@ -119,7 +169,6 @@
         let masterData = [];
         let selectedAssociate = null;
 
-        // Initialize input elements to target today's metrics automatically for the daily report view
         function initializeDatePickerDefaults() {
             const today = new Date().toISOString().split('T')[0];
             document.getElementById('dateFrom').value = today;
@@ -127,9 +176,10 @@
         }
 
         async function sync() {
+            // Augmented query layer parameters to catch specific fields needed for deep tracking lists
             const { data, error } = await _supabase
                 .from('hmo_monitoring')
-                .select('transaction_type, name_of_associate, patient_type, turnaround_time, amount, time_of_arrival');
+                .select('transaction_type, name_of_associate, patient_type, turnaround_time, amount, time_of_arrival, name_of_consult, name_of_doctor');
             
             if (data) {
                 masterData = data;
@@ -174,15 +224,12 @@
         }
 
         function render(filter) {
-            // Step 1: Filter operational array dataset via Associate layer selection
             let data = filter === 'all' ? masterData : masterData.filter(r => r.name_of_associate === filter);
             
-            // Step 2: Apply the contextual Date Picker bounds to generate accurate daily reports
             const fromValue = document.getElementById('dateFrom').value;
             const toValue = document.getElementById('dateTo').value;
 
             if (fromValue && toValue) {
-                // Set boundary constraints to ensure full inclusive window coverage 
                 const startDate = new Date(fromValue);
                 startDate.setHours(0, 0, 0, 0);
 
@@ -196,7 +243,7 @@
                 });
             }
             
-            // Step 3: Compute and update scorecards
+            // Scorecard Compilation Handlers
             const grossSum = data.reduce((acc, currentVal) => acc + parseFloat(currentVal.amount || 0), 0);
             document.getElementById('countRevenue').innerText = '₱' + grossSum.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
@@ -206,7 +253,10 @@
             document.getElementById('countLoa').innerText = data.filter(r => String(r.transaction_type).toLowerCase() === 'loa').length;
             document.getElementById('countProcedure').innerText = data.filter(r => String(r.transaction_type).toLowerCase() === 'procedure').length;
 
-            // Step 4: Re-draw high-fidelity analytical charts
+            // Generate Top Structural Medical Matrix Summaries
+            processTopUtilizationMetrics(data);
+
+            // Re-draw highcharts instances
             drawHigh('patientDonut', 'Patient Flow', [
                 { name: 'NEW', y: data.filter(r => String(r.patient_type).toLowerCase() === 'new').length, color: '#6366f1' },
                 { name: 'OLD', y: data.filter(r => String(r.patient_type).toLowerCase() === 'old').length, color: '#10b981' }
@@ -221,6 +271,68 @@
                 { name: 'NOT MET', y: notMet, color: '#f43f5e' },
                 { name: 'PENDING', y: pending, color: '#f59e0b' }
             ], '0%');
+        }
+
+        // --- CALCULATION LOGIC FOR TOP PRACTITIONERS & CONSULT LISTS ---
+        function processTopUtilizationMetrics(dataset) {
+            const consultants = {};
+            const doctors = {};
+
+            dataset.forEach(row => {
+                const type = String(row.transaction_type || '').toLowerCase();
+                const consultName = row.name_of_consult ? String(row.name_of_consult).trim() : null;
+                const doctorName = row.name_of_doctor ? String(row.name_of_doctor).trim() : null;
+
+                // Map Consultant Parameters
+                if (consultName) {
+                    if (!consultants[consultName]) consultants[consultName] = { name: consultName, consults: 0, loas: 0, procedures: 0 };
+                    if (type === 'consult') consultants[consultName].consults++;
+                    if (type === 'loa') consultants[consultName].loas++;
+                    if (type === 'procedure') consultants[consultName].procedures++;
+                }
+
+                // Map Doctor Parameters
+                if (doctorName) {
+                    if (!doctors[doctorName]) doctors[doctorName] = { name: doctorName, consults: 0, loas: 0, procedures: 0 };
+                    if (type === 'consult') doctors[doctorName].consults++;
+                    if (type === 'loa') doctors[doctorName].loas++;
+                    if (type === 'procedure') doctors[doctorName].procedures++;
+                }
+            });
+
+            // Rank Consultants primarily by overall Consultation volume
+            const rankedConsultants = Object.values(consultants).sort((a, b) => b.consults - a.consults || b.loas - a.loas).slice(0, 5);
+            // Rank Doctors primarily by active operational Procedure volume
+            const rankedDoctors = Object.values(doctors).sort((a, b) => b.procedures - a.procedures || b.loas - a.loas).slice(0, 5);
+
+            // Render tables
+            const consultBody = document.getElementById('topConsultantTableBody');
+            if (rankedConsultants.length === 0) {
+                consultBody.innerHTML = `<tr><td colspan="4" class="py-4 text-center text-neutral-600 uppercase text-[8px]">No Consultant Records Evaluated</td></tr>`;
+            } else {
+                consultBody.innerHTML = rankedConsultants.map(c => `
+                    <tr class="hover:bg-white/[0.02] transition-colors">
+                        <td class="py-2.5 font-bold text-neutral-200">${c.name}</td>
+                        <td class="py-2.5 text-center text-indigo-400 font-bold">${c.consults}</td>
+                        <td class="py-2.5 text-center text-neutral-400">${c.loas}</td>
+                        <td class="py-2.5 text-center text-neutral-400">${c.procedures}</td>
+                    </tr>
+                `).join('');
+            }
+
+            const doctorBody = document.getElementById('topDoctorTableBody');
+            if (rankedDoctors.length === 0) {
+                doctorBody.innerHTML = `<tr><td colspan="4" class="py-4 text-center text-neutral-600 uppercase text-[8px]">No Doctor Records Evaluated</td></tr>`;
+            } else {
+                doctorBody.innerHTML = rankedDoctors.map(d => `
+                    <tr class="hover:bg-white/[0.02] transition-colors">
+                        <td class="py-2.5 font-bold text-neutral-200">${d.name}</td>
+                        <td class="py-2.5 text-center text-emerald-400 font-bold">${d.procedures}</td>
+                        <td class="py-2.5 text-center text-neutral-400">${d.loas}</td>
+                        <td class="py-2.5 text-center text-neutral-400">${d.consults}</td>
+                    </tr>
+                `).join('');
+            }
         }
 
         function drawHigh(id, title, data, innerSize) {
@@ -253,6 +365,17 @@
                 },
                 series: [{ name: 'Cases', colorByPoint: true, data: data }]
             });
+        }
+
+        // --- SECURE DISCONNECT SEQUENCE ---
+        async function terminateWorkspaceSession() {
+            try {
+                await _supabase.auth.signOut();
+            } catch (err) {
+                console.error("Auth logout context execution error:", err);
+            }
+            // Absolute client route rollback step
+            window.location.href = "index.html";
         }
 
         // Execution Pipeline Triggering
