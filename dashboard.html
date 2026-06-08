@@ -221,7 +221,8 @@
                     <table class="w-full text-left border-collapse">
                         <thead>
                             <tr class="text-[8px] font-black uppercase text-neutral-500 border-b border-white/5">
-                                <th class="pb-2">Service Specification</th>
+                                <th class="pb-2">Item Code</th>
+                                <th class="pb-2">Service Description</th>
                                 <th class="pb-2 text-center">Frequencies</th>
                             </tr>
                         </thead>
@@ -412,7 +413,6 @@
                 const type = String(row.transaction_type || '').toLowerCase().trim();
                 const doctorName = row.doctor_procedure ? row.doctor_procedure.toString().trim() : null;
                 const hmoCompany = row.card_company ? row.card_company.toString().trim() : null;
-                const serviceName = row.service ? row.service.toString().trim() : null;
                 const costAmt = parseFloat(row.amount || 0);
 
                 // 1. Consultant Counts
@@ -439,12 +439,51 @@
                     hmoTrackingMap[hmoCompany].totalRevenue += costAmt;
                 }
 
-                // 4. Rendered Services Volume Frequency
-                if (serviceName && serviceName !== "" && serviceName !== "null") {
-                    if (!servicesTrackingMap[serviceName]) {
-                        servicesTrackingMap[serviceName] = { name: serviceName, usageCount: 0 };
+                // 4. Itemized Array Parsing Engine for Services
+                if (row.service) {
+                    let rawString = row.service.toString().trim();
+                    
+                    // Clean array-like structural characters if preserved in text format
+                    if (rawString.startsWith('[') && rawString.endsWith(']')) {
+                        rawString = rawString.slice(1, -1);
                     }
-                    servicesTrackingMap[serviceName].usageCount++;
+                    
+                    // Split item tokens by common delimiters (commas or semicolons)
+                    const items = rawString.split(/[,;]+/);
+
+                    items.forEach(itemToken => {
+                        let token = itemToken.replace(/['"]+/g, '').trim();
+                        if (!token) return;
+
+                        // Target evaluation strings for filtering
+                        const checkLower = token.toLowerCase();
+                        if (checkLower === 'consult' || checkLower === 'consultation') return;
+
+                        // Separate Item Codes from Descriptions if formatted as "CODE - DESCRIPTION" or "CODE : DESCRIPTION"
+                        let code = "N/A";
+                        let description = token;
+                        const matchDelim = token.match(/^([A-Za-z0-9_-]+)\s*[:|-]\s*(.+)$/);
+
+                        if (matchDelim) {
+                            code = matchDelim[1].trim();
+                            description = matchDelim[2].trim();
+                        } else {
+                            // Check alternative pattern: "DESCRIPTION (CODE)"
+                            const matchParens = token.match(/^(.+?)\s*\(([A-Za-z0-9_-]+)\)$/);
+                            if (matchParens) {
+                                description = matchParens[1].trim();
+                                code = matchParens[2].trim();
+                            }
+                        }
+
+                        // Generate uniqueness key map target
+                        const mapKey = `${code}:::${description.toLowerCase()}`;
+
+                        if (!servicesTrackingMap[mapKey]) {
+                            servicesTrackingMap[mapKey] = { code: code, description: description, usageCount: 0 };
+                        }
+                        servicesTrackingMap[mapKey].usageCount++;
+                    });
                 }
             });
 
@@ -531,7 +570,7 @@
             const visibleSubset = globalRankedServices.slice(0, maxServicesLimit);
 
             if (visibleSubset.length === 0) {
-                servicesBody.innerHTML = `<tr><td colspan="2" class="py-4 text-center text-neutral-600 uppercase text-[8px]">No Recorded Work-Services Counted</td></tr>`;
+                servicesBody.innerHTML = `<tr><td colspan="3" class="py-4 text-center text-neutral-600 uppercase text-[8px]">No Recorded Work-Services Counted</td></tr>`;
                 btn.style.display = 'none';
                 return;
             }
@@ -540,8 +579,9 @@
 
             servicesBody.innerHTML = visibleSubset.map(s => `
                 <tr class="hover:bg-white/[0.02] transition-colors border-b border-white/5">
-                    <td class="py-2.5 font-bold text-neutral-200 truncate max-w-[180px]">${s.name}</td>
-                    <td class="py-2.5 text-center text-amber-400 font-black">${s.usageCount} Times</td>
+                    <td class="py-2.5 font-mono text-neutral-500 font-bold text-[9px] tracking-wider truncate max-w-[70px]">${s.code}</td>
+                    <td class="py-2.5 font-bold text-neutral-200 truncate max-w-[160px]">${s.description}</td>
+                    <td class="py-2.5 text-center text-amber-400 font-black tabular-nums">${s.usageCount}</td>
                 </tr>
             `).join('');
         }
