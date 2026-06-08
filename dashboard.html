@@ -8,7 +8,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght=400;700;900&display=swap');
         body { background: #010101; color: #e5e5e5; font-family: 'Inter', sans-serif; overflow: hidden; }
         
         /* Smooth Google-Style Breathing Border Animation */
@@ -193,7 +193,6 @@
 
     <script>
         const SUPABASE_URL = "https://zqnqkxpseeuyovtqezbc.supabase.co";
-        // ⚠️ PASTE YOUR NEW API KEY DIRECTLY BETWEEN THE QUOTES BELOW:
         const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpxbnFreHBzZWV1eW92dHFlemJjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3OTYyOTEsImV4cCI6MjA5MjM3MjI5MX0.uR9TcF4_J58cx7XsKx4BbAQcIeYBElgJpKglbMEyHQs";
         
         const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -235,14 +234,41 @@
             setTimeout(() => { render(selectedAssociate || 'all'); }, 310);
         }
 
+        // --- DEEP PAGINATION ENGINE ---
+        async function recursiveDataHarvestPipeline(offsetRangeStart = 0) {
+            const recordsPerBatchLimit = 1000;
+            
+            const { data, error } = await _supabase
+                .from('hmo_monitoring')
+                .select('*')
+                .range(offsetRangeStart, offsetRangeStart + recordsPerBatchLimit - 1);
+                
+            if (error) throw error;
+            if (!data) return [];
+            
+            if (data.length === recordsPerBatchLimit) {
+                const subsequentPayloadDepth = await recursiveDataHarvestPipeline(offsetRangeStart + recordsPerBatchLimit);
+                return [...data, ...subsequentPayloadDepth];
+            }
+            
+            return data;
+        }
+
         async function sync() {
-            const { data, error } = await _supabase.from('hmo_monitoring').select('*');
-            if (data) {
-                masterData = data;
+            const statusNode = document.getElementById('status');
+            statusNode.innerText = "SYNCHRONIZING SECURE RECURSIVE ARCHIVE...";
+            statusNode.className = "text-[8px] font-bold uppercase tracking-widest text-indigo-400 animate-pulse";
+
+            try {
+                const harvestedData = await recursiveDataHarvestPipeline();
+                masterData = harvestedData;
+                
+                statusNode.innerText = `SYSTEM LIVE | ${masterData.length.toLocaleString()} RECORDS SYNC'D`;
+                statusNode.className = "text-[8px] font-bold uppercase tracking-widest text-emerald-500";
+                
                 setupSidebar();
                 render(selectedAssociate || 'all');
-            } else if (error) {
-                const statusNode = document.getElementById('status');
+            } catch (error) {
                 statusNode.innerText = "AUTHENTICATION ERROR";
                 statusNode.className = "text-[8px] font-bold uppercase tracking-widest text-red-500";
                 console.error(error);
@@ -429,7 +455,7 @@
                 chart: { type: 'pie', backgroundColor: 'transparent', height: 300 },
                 title: { text: title.toUpperCase(), style: { color: '#FFFFFF', fontSize: '10px', fontWeight: '900', letterSpacing: '2px' } },
                 credits: { enabled: false },
-                accessibility: { enabled: false }, // Mutes the Highcharts accessibility warning line console log
+                accessibility: { enabled: false }, 
                 tooltip: { backgroundColor: '#000', style: { color: '#fff' }, pointFormat: '{series.name}: <b>{point.y}</b>' },
                 plotOptions: {
                     pie: {
