@@ -246,32 +246,90 @@
         const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpxbnFreHBzZWV1eW92dHFlemJjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3OTYyOTEsImV4cCI6MjA5MjM3MjI5MX0.uR9TcF4_J58cx7XsKx4BbAQcIeYBElgJpKglbMEyHQs";
         
         const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-        
+
         // =========================================================================
-        // CRITICAL SESSION GUARD (Executes instantly before background processes run)
+        // DESTRUCTIVE ROLE-BASED ACCESS CONTROL (RBAC) GUARD
         // =========================================================================
         async function enforceSecurityBarrier() {
             const { data: { session }, error } = await _supabase.auth.getSession();
             
-            // 1. If no one is signed in, boot them out immediately
-            if (error || !session) {
-                window.location.replace("entryform.html");
-                return;
-            }
+            const userRole = session?.user?.app_metadata?.role;
+            const permittedRoles = ['manager', 'director', 'admin'];
 
-            // 2. Optional: Explicit Admin/Manager Role Check
-            // If staff should be locked out, filter by specific manager emails or metadata fields.
-            // Example configuration:
-            // const authorizedUsers = ['manager1@domain.com', 'admin@domain.com'];
-            // if (!authorizedUsers.includes(session.user.email)) {
-            //     window.location.replace("entryform.html");
-            //     return;
-            // }
+            // Trap: Not authenticated OR lacks approved management system clearance
+            if (error || !session || !userRole || !permittedRoles.includes(userRole.toLowerCase())) {
+                
+                // Incinerate page body to protect data components from inspect window pipelines
+                document.body.innerHTML = `
+                    <div style="
+                        position: fixed; 
+                        top: 0; left: 0; 
+                        width: 100vw; height: 100vh; 
+                        background-color: #030303; 
+                        display: flex; flex-direction: column;
+                        align-items: center; justify-content: center; 
+                        z-index: 999999; 
+                        font-family: 'Inter', sans-serif;
+                        user-select: none;
+                    ">
+                        <h1 style="
+                            font-size: clamp(3rem, 12vw, 8rem); 
+                            font-weight: 900; 
+                            color: #ef4444; 
+                            text-transform: uppercase; 
+                            letter-spacing: -0.05em;
+                            line-height: 0.9;
+                            text-align: center;
+                            margin: 0;
+                            text-shadow: 0 0 40px rgba(239, 68, 68, 0.2);
+                        ">
+                            ACCESS DENIED
+                        </h1>
+                        
+                        <p style="
+                            font-size: clamp(10px, 2.5vw, 14px); 
+                            font-weight: 700; 
+                            color: #525252; 
+                            text-transform: uppercase; 
+                            letter-spacing: 0.4em; 
+                            margin-top: 24px;
+                            text-align: center;
+                            padding: 0 20px;
+                        ">
+                            Management Clearance Required • Station Locked
+                        </p>
+
+                        <a href="entryform.html" style="
+                            margin-top: 40px;
+                            background: rgba(255, 255, 255, 0.02);
+                            border: 1px solid rgba(255, 255, 255, 0.08);
+                            padding: 12px 24px;
+                            border-radius: 8px;
+                            color: #a3a3a3;
+                            font-size: 10px;
+                            font-weight: 800;
+                            text-transform: uppercase;
+                            letter-spacing: 0.2em;
+                            text-decoration: none;
+                            transition: all 0.2s ease;
+                        " onmouseover="this.style.borderColor='rgba(239,68,68,0.3)'; this.style.color='#fff';" 
+                           onmouseout="this.style.borderColor='rgba(255,255,255,0.08)'; this.style.color='#a3a3a3';">
+                            Return to Entry Form
+                        </a>
+                    </div>
+                `;
+                
+                // Terminate thread to stop execution of upcoming synchronization workflows
+                throw new Error("Security Intercept: Unauthorized Access Threat Avoided.");
+            }
+            
+            console.log(`Access Verified: ${session.user.email} (${userRole})`);
         }
-        // Run immediately on file evaluation
+
+        // Run security interception wall immediately
         enforceSecurityBarrier();
         // =========================================================================
-
+        
         let masterData = [];
         let itemReferenceMap = {}; 
         let selectedAssociate = null;
