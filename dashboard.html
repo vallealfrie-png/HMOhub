@@ -247,7 +247,7 @@
         
         const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         let masterData = [];
-        let itemReferenceMap = {}; // Lookup dictionary container for table tracking
+        let itemReferenceMap = {}; 
         let selectedAssociate = null;
         let isSidebarCollapsed = false;
 
@@ -290,7 +290,7 @@
             setTimeout(() => { render(selectedAssociate || 'all'); }, 310);
         }
 
-        // --- DEEP PAGINATION ENGINE ---
+        // --- DEEP TRANSACTIONS RECURSIVE ENGINE ---
         async function recursiveDataHarvestPipeline(offsetRangeStart = 0) {
             const recordsPerBatchLimit = 1000;
             
@@ -310,25 +310,39 @@
             return data;
         }
 
-        // --- RELATIONAL DICTIONARY SYNC ENGINE ---
-        async function fetchItemReferenceCatalog() {
+        // --- DEEP ITEMS CATALOG RECURSIVE ENGINE ---
+        async function recursiveItemsHarvestPipeline(offsetRangeStart = 0) {
+            const recordsPerBatchLimit = 1000;
+
             const { data, error } = await _supabase
                 .from('items')
-                .select('item_code, item_name');
-                
-            if (error) {
-                console.error("Relational reference sync warning:", error);
-                return;
+                .select('item_code, item_name')
+                .range(offsetRangeStart, offsetRangeStart + recordsPerBatchLimit - 1);
+
+            if (error) throw error;
+            if (!data) return [];
+
+            if (data.length === recordsPerBatchLimit) {
+                const subsequentPayloadDepth = await recursiveItemsHarvestPipeline(offsetRangeStart + recordsPerBatchLimit);
+                return [...data, ...subsequentPayloadDepth];
             }
-            
-            // Build key map indexed by lower-cased descriptive identity
-            itemReferenceMap = {};
-            if (data) {
-                data.forEach(row => {
+
+            return data;
+        }
+
+        async function fetchItemReferenceCatalog() {
+            try {
+                // Harvesting all rows recursively (bypasses 1,000 max limit row rule)
+                const fullCatalog = await recursiveItemsHarvestPipeline();
+                
+                itemReferenceMap = {};
+                fullCatalog.forEach(row => {
                     if (row.item_name && row.item_code) {
                         itemReferenceMap[row.item_name.toString().trim().toLowerCase()] = row.item_code.toString().trim();
                     }
                 });
+            } catch (error) {
+                console.error("Relational lookup catalog load failure:", error);
             }
         }
 
@@ -338,7 +352,7 @@
             statusNode.className = "text-[8px] font-bold uppercase tracking-widest text-indigo-400 animate-pulse";
 
             try {
-                // Parallel fetching of master transactions and look-up dictionary metadata
+                // Safely execute parallel recursive workflows for metrics and dictionaries
                 const [harvestedData] = await Promise.all([
                     recursiveDataHarvestPipeline(),
                     fetchItemReferenceCatalog()
@@ -487,7 +501,6 @@
                         let code = "N/A";
                         let description = token;
                         
-                        // Parse patterns if code is already stored inside the raw string token
                         const matchDelim = token.match(/^([A-Za-z0-9_-]+)\s*[:|-]\s*(.+)$/);
                         if (matchDelim) {
                             code = matchDelim[1].trim();
@@ -500,7 +513,7 @@
                             }
                         }
 
-                        // Relational cross-reference logic: Fall back on global catalog mapping if "N/A"
+                        // Relational lookups check across all 1,309 mapped database records
                         if (code === "N/A") {
                             const descKey = description.toLowerCase();
                             if (itemReferenceMap[descKey]) {
