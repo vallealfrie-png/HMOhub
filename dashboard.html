@@ -277,7 +277,7 @@
                 const userRole = userProfile.role ? userProfile.role.toLowerCase().trim() : '';
                 
                 // 4. White-listed analytics dashboard clearance roles
-                const permittedRoles = ['manager', 'director', 'admin'];
+                const permittedRoles = ['manager', 'director', 'admin', 'supervisor'];
 
                 // 5. Check validation: if role is 'staff' or anything else, drop them instantly
                 if (!permittedRoles.includes(userRole)) {
