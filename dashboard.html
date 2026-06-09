@@ -247,6 +247,7 @@
         
         const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         let masterData = [];
+        let itemReferenceMap = {}; // Lookup dictionary container for table tracking
         let selectedAssociate = null;
         let isSidebarCollapsed = false;
 
@@ -309,13 +310,40 @@
             return data;
         }
 
+        // --- RELATIONAL DICTIONARY SYNC ENGINE ---
+        async function fetchItemReferenceCatalog() {
+            const { data, error } = await _supabase
+                .from('items')
+                .select('item_code, item_name');
+                
+            if (error) {
+                console.error("Relational reference sync warning:", error);
+                return;
+            }
+            
+            // Build key map indexed by lower-cased descriptive identity
+            itemReferenceMap = {};
+            if (data) {
+                data.forEach(row => {
+                    if (row.item_name && row.item_code) {
+                        itemReferenceMap[row.item_name.toString().trim().toLowerCase()] = row.item_code.toString().trim();
+                    }
+                });
+            }
+        }
+
         async function sync() {
             const statusNode = document.getElementById('status');
             statusNode.innerText = "SYNCHRONIZING SECURE RECURSIVE ARCHIVE...";
             statusNode.className = "text-[8px] font-bold uppercase tracking-widest text-indigo-400 animate-pulse";
 
             try {
-                const harvestedData = await recursiveDataHarvestPipeline();
+                // Parallel fetching of master transactions and look-up dictionary metadata
+                const [harvestedData] = await Promise.all([
+                    recursiveDataHarvestPipeline(),
+                    fetchItemReferenceCatalog()
+                ]);
+                
                 masterData = harvestedData;
                 
                 statusNode.innerText = `SYSTEM LIVE | ${masterData.length.toLocaleString()} RECORDS SYNC'D`;
@@ -441,7 +469,7 @@
                     hmoTrackingMap[hmoCompany].casesCount++;
                 }
 
-                // 4. Itemized Array Parsing Engine for Services
+                // 4. Relational Array Parsing Engine for Services
                 if (row.service) {
                     let rawString = row.service.toString().trim();
                     if (rawString.startsWith('[') && rawString.endsWith(']')) {
@@ -458,8 +486,9 @@
 
                         let code = "N/A";
                         let description = token;
+                        
+                        // Parse patterns if code is already stored inside the raw string token
                         const matchDelim = token.match(/^([A-Za-z0-9_-]+)\s*[:|-]\s*(.+)$/);
-
                         if (matchDelim) {
                             code = matchDelim[1].trim();
                             description = matchDelim[2].trim();
@@ -468,6 +497,14 @@
                             if (matchParens) {
                                 description = matchParens[1].trim();
                                 code = matchParens[2].trim();
+                            }
+                        }
+
+                        // Relational cross-reference logic: Fall back on global catalog mapping if "N/A"
+                        if (code === "N/A") {
+                            const descKey = description.toLowerCase();
+                            if (itemReferenceMap[descKey]) {
+                                code = itemReferenceMap[descKey];
                             }
                         }
 
@@ -481,7 +518,7 @@
                 }
             });
 
-            // Cache Sorted Row Matrices Globally (HMO remains ordered primarily by descending financial gross)
+            // Cache Sorted Row Matrices Globally
             globalRankedConsultants = Object.values(consultTrackingMap).sort((a, b) => b.patientCount - a.patientCount);
             globalRankedProcedures = Object.values(procedureTrackingMap).sort((a, b) => b.totalRevenue - a.totalRevenue);
             globalRankedHmo = Object.values(hmoTrackingMap).sort((a, b) => b.totalRevenue - a.totalRevenue);
@@ -574,7 +611,7 @@
 
             servicesBody.innerHTML = visibleSubset.map(s => `
                 <tr class="hover:bg-white/[0.02] transition-colors border-b border-white/5">
-                    <td class="py-2.5 font-mono text-neutral-500 font-bold text-[9px] tracking-wider truncate max-w-[70px]">${s.code}</td>
+                    <td class="py-2.5 font-mono text-neutral-500 font-bold text-[9px] tracking-wider truncate max-w-[80px]">${s.code}</td>
                     <td class="py-2.5 font-bold text-neutral-200 truncate max-w-[160px]">${s.description}</td>
                     <td class="py-2.5 text-center text-amber-400 font-black tabular-nums">${s.usageCount}</td>
                 </tr>
