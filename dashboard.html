@@ -767,7 +767,7 @@
 
         async function terminateWorkspaceSession() {
             try { await _supabase.auth.signOut(); } catch (err) { console.error(err); }
-            window.location.href = "entryform.html";
+            window.location.href = "index.html";
         }
 
         initializeDatePickerDefaults();
