@@ -232,7 +232,7 @@
                     </table>
                 </div>
                 <div class="mt-3 pt-2 border-t border-white/5 flex justify-center">
-                    <button id="btnToggleServices" onclick="toggleServicesViewRange()" class="text-[9px] font-black tracking-widest uppercase text-amber-400 hover:text-amber-300 bg-amber-500/10 hover:bg-amber-500/20 px-4 py-1.5 rounded transition-all">
+                    <button id="btnToggleServices" onclick="toggleServicesViewRange()" class="text-[9px] font-black tracking-widest uppercase text-amber-400 hover:text-amber-300 bg-amber-500/10 hover:bg-emerald-500/20 px-4 py-1.5 rounded transition-all">
                         Show More
                     </button>
                 </div>
@@ -246,12 +246,37 @@
         const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpxbnFreHBzZWV1eW92dHFlemJjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3OTYyOTEsImV4cCI6MjA5MjM3MjI5MX0.uR9TcF4_J58cx7XsKx4BbAQcIeYBElgJpKglbMEyHQs";
         
         const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        
+        // =========================================================================
+        // CRITICAL SESSION GUARD (Executes instantly before background processes run)
+        // =========================================================================
+        async function enforceSecurityBarrier() {
+            const { data: { session }, error } = await _supabase.auth.getSession();
+            
+            // 1. If no one is signed in, boot them out immediately
+            if (error || !session) {
+                window.location.replace("entryform.html");
+                return;
+            }
+
+            // 2. Optional: Explicit Admin/Manager Role Check
+            // If staff should be locked out, filter by specific manager emails or metadata fields.
+            // Example configuration:
+            // const authorizedUsers = ['manager1@domain.com', 'admin@domain.com'];
+            // if (!authorizedUsers.includes(session.user.email)) {
+            //     window.location.replace("entryform.html");
+            //     return;
+            // }
+        }
+        // Run immediately on file evaluation
+        enforceSecurityBarrier();
+        // =========================================================================
+
         let masterData = [];
         let itemReferenceMap = {}; 
         let selectedAssociate = null;
         let isSidebarCollapsed = false;
 
-        // View Limit Global Array Caches
         let globalRankedConsultants = [];
         let globalRankedProcedures = [];
         let globalRankedHmo = [];
@@ -290,7 +315,6 @@
             setTimeout(() => { render(selectedAssociate || 'all'); }, 310);
         }
 
-        // --- DEEP TRANSACTIONS RECURSIVE ENGINE ---
         async function recursiveDataHarvestPipeline(offsetRangeStart = 0) {
             const recordsPerBatchLimit = 1000;
             
@@ -310,7 +334,6 @@
             return data;
         }
 
-        // --- DEEP ITEMS CATALOG RECURSIVE ENGINE ---
         async function recursiveItemsHarvestPipeline(offsetRangeStart = 0) {
             const recordsPerBatchLimit = 1000;
 
@@ -332,9 +355,7 @@
 
         async function fetchItemReferenceCatalog() {
             try {
-                // Harvesting all rows recursively (bypasses 1,000 max limit row rule)
                 const fullCatalog = await recursiveItemsHarvestPipeline();
-                
                 itemReferenceMap = {};
                 fullCatalog.forEach(row => {
                     if (row.item_name && row.item_code) {
@@ -352,7 +373,6 @@
             statusNode.className = "text-[8px] font-bold uppercase tracking-widest text-indigo-400 animate-pulse";
 
             try {
-                // Safely execute parallel recursive workflows for metrics and dictionaries
                 const [harvestedData] = await Promise.all([
                     recursiveDataHarvestPipeline(),
                     fetchItemReferenceCatalog()
@@ -417,7 +437,6 @@
                 });
             }
             
-            // Scorecard Updates
             const grossSum = data.reduce((acc, currentVal) => acc + parseFloat(currentVal.amount || 0), 0);
             document.getElementById('countRevenue').innerText = '₱' + grossSum.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
             document.getElementById('countTotalCensus').innerText = data.length;
@@ -425,10 +444,8 @@
             document.getElementById('countLoa').innerText = data.filter(r => String(r.transaction_type || '').toLowerCase() === 'loa').length;
             document.getElementById('countProcedure').innerText = data.filter(r => String(r.transaction_type || '').toLowerCase() === 'procedure').length;
 
-            // Run metric aggregation processing pipeline
             processTopUtilizationMetrics(data);
 
-            // Render Visual Charts
             drawHigh('patientDonut', 'Patient Flow', [
                 { name: 'NEW', y: data.filter(r => String(r.patient_type || '').toLowerCase() === 'new').length, color: '#6366f1' },
                 { name: 'OLD', y: data.filter(r => String(r.patient_type || '').toLowerCase() === 'old').length, color: '#10b981' }
@@ -445,7 +462,6 @@
             ], '0%');
         }
 
-        // --- CALCULATION LOGIC METRICS PROCESSOR ENGINE ---
         function processTopUtilizationMetrics(dataset) {
             const consultTrackingMap = {};
             const procedureTrackingMap = {};
@@ -458,7 +474,6 @@
                 const hmoCompany = row.card_company ? row.card_company.toString().trim() : null;
                 const costAmt = parseFloat(row.amount || 0);
 
-                // 1. Consultant Counts
                 if (doctorName && doctorName !== "" && doctorName !== "null" && type === 'consult') {
                     if (!consultTrackingMap[doctorName]) {
                         consultTrackingMap[doctorName] = { name: doctorName, patientCount: 0 };
@@ -466,7 +481,6 @@
                     consultTrackingMap[doctorName].patientCount++;
                 }
 
-                // 2. Doctor Procedures Revenue
                 if (doctorName && doctorName !== "" && doctorName !== "null" && (type === 'procedure' || type === 'loa')) {
                     if (!procedureTrackingMap[doctorName]) {
                         procedureTrackingMap[doctorName] = { name: doctorName, totalRevenue: 0 };
@@ -474,7 +488,6 @@
                     procedureTrackingMap[doctorName].totalRevenue += costAmt;
                 }
 
-                // 3. HMO Networks Revenue & Frequency Aggregations
                 if (hmoCompany && hmoCompany !== "" && hmoCompany !== "null") {
                     if (!hmoTrackingMap[hmoCompany]) {
                         hmoTrackingMap[hmoCompany] = { name: hmoCompany, totalRevenue: 0, casesCount: 0 };
@@ -483,7 +496,6 @@
                     hmoTrackingMap[hmoCompany].casesCount++;
                 }
 
-                // 4. Relational Array Parsing Engine for Services
                 if (row.service) {
                     let rawString = row.service.toString().trim();
                     if (rawString.startsWith('[') && rawString.endsWith(']')) {
@@ -513,7 +525,6 @@
                             }
                         }
 
-                        // Relational lookups check across all 1,309 mapped database records
                         if (code === "N/A") {
                             const descKey = description.toLowerCase();
                             if (itemReferenceMap[descKey]) {
@@ -531,20 +542,17 @@
                 }
             });
 
-            // Cache Sorted Row Matrices Globally
             globalRankedConsultants = Object.values(consultTrackingMap).sort((a, b) => b.patientCount - a.patientCount);
             globalRankedProcedures = Object.values(procedureTrackingMap).sort((a, b) => b.totalRevenue - a.totalRevenue);
             globalRankedHmo = Object.values(hmoTrackingMap).sort((a, b) => b.totalRevenue - a.totalRevenue);
             globalRankedServices = Object.values(servicesTrackingMap).sort((a, b) => b.usageCount - a.usageCount);
 
-            // Trigger targeted layout renders
             renderConsultantTableDOM();
             renderDoctorTableDOM();
             renderHmoTableDOM();
             renderServicesTableDOM();
         }
 
-        // --- SUBSET UI VIEWS INJECTION REGIME ---
         function renderConsultantTableDOM() {
             const consultBody = document.getElementById('topConsultantTableBody');
             const btn = document.getElementById('btnToggleConsultants');
@@ -631,7 +639,6 @@
             `).join('');
         }
 
-        // --- BUTTON INTERACTIVE PAGINATION CONTROLS ---
         function toggleConsultantViewRange() {
             maxConsultantsLimit = maxConsultantsLimit >= globalRankedConsultants.length ? 10 : globalRankedConsultants.length;
             renderConsultantTableDOM();
@@ -672,7 +679,7 @@
 
         async function terminateWorkspaceSession() {
             try { await _supabase.auth.signOut(); } catch (err) { console.error(err); }
-            window.location.href = "index.html";
+            window.location.href = "entryform.html";
         }
 
         initializeDatePickerDefaults();
