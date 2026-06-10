@@ -251,7 +251,6 @@
         // USERS-TABLE DRIVEN ROLE-BASED ACCESS CONTROL (RBAC) GUARD
         // =========================================================================
         async function enforceSecurityBarrier() {
-            // 1. Fetch current user session authentication state
             const { data: { session }, error: sessionError } = await _supabase.auth.getSession();
             
             if (sessionError || !session) {
@@ -260,7 +259,6 @@
             }
 
             try {
-                // 2. Query your specific 'users' custom database registry table by email
                 const { data: userProfile, error: dbError } = await _supabase
                     .from('users') 
                     .select('role')
@@ -273,15 +271,11 @@
                     return;
                 }
 
-                // 3. Process the explicit string returned by your table column
                 const userRole = userProfile.role ? userProfile.role.toLowerCase().trim() : '';
-                
-                // 4. White-listed analytics dashboard clearance roles
                 const permittedRoles = ['manager', 'director', 'admin', 'supervisor'];
 
-                // 5. Check validation: if role is 'staff' or anything else, drop them instantly
                 if (!permittedRoles.includes(userRole)) {
-                    console.warn(`Unauthorized access blocked for ${session.user.email}. Role column configuration: ${userRole}`);
+                    console.warn(`Unauthorized access blocked for ${session.user.email}. Role: ${userRole}`);
                     triggerLockdown("Management Clearance Required • Station Locked");
                 } else {
                     console.log(`Access Verified: ${session.user.email} verified as [${userRole}]`);
@@ -293,60 +287,35 @@
             }
         }
 
-        // Complete UI destructive injector element
         function triggerLockdown(subtitleText) {
             document.body.innerHTML = `
                 <div style="
-                    position: fixed; 
-                    top: 0; left: 0; 
-                    width: 100vw; height: 100vh; 
-                    background-color: #030303; 
-                    display: flex; flex-direction: column;
-                    align-items: center; justify-content: center; 
-                    z-index: 999999; 
-                    font-family: 'Inter', sans-serif;
-                    user-select: none;
+                    position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; 
+                    background-color: #030303; display: flex; flex-direction: column;
+                    align-items: center; justify-content: center; z-index: 999999; 
+                    font-family: 'Inter', sans-serif; user-select: none;
                 ">
                     <h1 style="
-                        font-size: clamp(3rem, 12vw, 8rem); 
-                        font-weight: 900; 
-                        color: #ef4444; 
-                        text-transform: uppercase; 
-                        letter-spacing: -0.05em;
-                        line-height: 0.9;
-                        text-align: center;
-                        margin: 0;
+                        font-size: clamp(3rem, 12vw, 8rem); font-weight: 900; 
+                        color: #ef4444; text-transform: uppercase; letter-spacing: -0.05em;
+                        line-height: 0.9; text-align: center; margin: 0;
                         text-shadow: 0 0 40px rgba(239, 68, 68, 0.2);
                     ">
                         ACCESS DENIED
                     </h1>
-                    
                     <p style="
-                        font-size: clamp(10px, 2.5vw, 14px); 
-                        font-weight: 700; 
-                        color: #525252; 
-                        text-transform: uppercase; 
-                        letter-spacing: 0.4em; 
-                        margin-top: 24px;
-                        text-align: center;
-                        padding: 0 20px;
+                        font-size: clamp(10px, 2.5vw, 14px); font-weight: 700; 
+                        color: #525252; text-transform: uppercase; letter-spacing: 0.4em; 
+                        margin-top: 24px; text-align: center; padding: 0 20px;
                     ">
                         ${subtitleText}
                     </p>
-
                     <a href="entryform.html" style="
-                        margin-top: 40px;
-                        background: rgba(255, 255, 255, 0.02);
-                        border: 1px solid rgba(255, 255, 255, 0.08);
-                        padding: 12px 24px;
-                        border-radius: 8px;
-                        color: #a3a3a3;
-                        font-size: 10px;
-                        font-weight: 800;
-                        text-transform: uppercase;
-                        letter-spacing: 0.2em;
-                        text-decoration: none;
-                        transition: all 0.2s ease;
+                        margin-top: 40px; background: rgba(255, 255, 255, 0.02);
+                        border: 1px solid rgba(255, 255, 255, 0.08); padding: 12px 24px;
+                        border-radius: 8px; color: #a3a3a3; font-size: 10px;
+                        font-weight: 800; text-transform: uppercase; letter-spacing: 0.2em;
+                        text-decoration: none; transition: all 0.2s ease;
                     " onmouseover="this.style.borderColor='rgba(239,68,68,0.3)'; this.style.color='#fff';" 
                        onmouseout="this.style.borderColor='rgba(255,255,255,0.08)'; this.style.color='#a3a3a3';">
                         Return to Entry Form
@@ -510,12 +479,12 @@
             let data = filter === 'all' ? masterData : masterData.filter(r => r.name_of_associate === filter);
             
             const fromValue = document.getElementById('dateFrom').value;
-            const toValue = document.getElementById('dateTo').value;
+            const toothValue = document.getElementById('dateTo').value;
 
-            if (fromValue && toValue) {
+            if (fromValue && toothValue) {
                 const startDate = new Date(fromValue);
                 startDate.setHours(0, 0, 0, 0);
-                const endDate = new Date(toValue);
+                const endDate = new Date(toothValue);
                 endDate.setHours(23, 59, 59, 999);
 
                 data = data.filter(r => {
