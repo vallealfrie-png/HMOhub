@@ -133,9 +133,10 @@
             </div>
         </div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 flex-shrink-0">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 flex-shrink-0">
             <div class="glass p-4 border border-violet-500/20"><div id="patientDonut" class="chart-container"></div></div>
             <div class="glass p-4 border border-fuchsia-500/20"><div id="slaPie" class="chart-container"></div></div>
+            <div class="glass p-4 border border-cyan-500/20"><div id="tatChart" class="chart-container"></div></div>
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-1">
@@ -325,7 +326,6 @@
             throw new Error("Security Intercept: Unauthorized Access Terminated.");
         }
 
-        // Run security structural wall immediately
         enforceSecurityBarrier();
         // =========================================================================
         
@@ -517,6 +517,60 @@
                 { name: 'NOT MET', y: notMet, color: '#f43f5e' },
                 { name: 'PENDING', y: pending, color: '#f59e0b' }
             ], '0%');
+
+            // =========================================================================
+            // DYNAMIC MEAN CALCULATOR: AVERAGE TAT BY TRANSACTION TYPE
+            // =========================================================================
+            let consultTatSum = 0, consultTatCount = 0;
+            let procedureTatSum = 0, procedureTatCount = 0;
+
+            data.forEach(r => {
+                const type = String(r.transaction_type || '').toLowerCase().trim();
+                // Extract minutes using safe fallback pattern to capture alternate column variants
+                const mins = parseFloat(r.tota_mins_of_call !== undefined ? r.tota_mins_of_call : (r.total_mins_of_call || 0));
+                
+                if (!isNaN(mins)) {
+                    if (type === 'consult') {
+                        consultTatSum += mins;
+                        consultTatCount++;
+                    } else if (type === 'procedure') {
+                        procedureTatSum += mins;
+                        procedureTatCount++;
+                    }
+                }
+            });
+
+            const avgConsultTat = consultTatCount > 0 ? parseFloat((consultTatSum / consultTatCount).toFixed(2)) : 0;
+            const avgProcedureTat = procedureTatCount > 0 ? parseFloat((procedureTatSum / procedureTatCount).toFixed(2)) : 0;
+
+            // Render newly generated Column Chart detailing Average Turnaround Times
+            Highcharts.chart('tatChart', {
+                chart: { type: 'column', backgroundColor: 'transparent', height: 300 },
+                title: { text: 'AVERAGE TAT (MINUTES)', style: { color: '#FFFFFF', fontSize: '10px', fontWeight: '900', letterSpacing: '2px' } },
+                credits: { enabled: false },
+                accessibility: { enabled: false },
+                xAxis: {
+                    categories: ['CONSULT', 'PROCEDURE'],
+                    labels: { style: { color: '#a3a3a3', fontSize: '9px', fontWeight: '700' } },
+                    lineColor: 'rgba(255,255,255,0.1)'
+                },
+                yAxis: {
+                    title: { text: 'Minutes', style: { color: '#737373', fontSize: '9px', fontWeight: '700' } },
+                    labels: { style: { color: '#737373', fontSize: '9px' } },
+                    gridLineColor: 'rgba(255,255,255,0.05)'
+                },
+                legend: { enabled: false },
+                tooltip: { backgroundColor: '#000', style: { color: '#fff' }, pointFormat: 'Average: <b>{point.y} mins</b>' },
+                series: [{
+                    name: 'Avg Time',
+                    colorByPoint: true,
+                    data: [
+                        { y: avgConsultTat, color: '#6366f1' },
+                        { y: avgProcedureTat, color: '#10b981' }
+                    ]
+                }]
+            });
+            // =========================================================================
         }
 
         function processTopUtilizationMetrics(dataset) {
