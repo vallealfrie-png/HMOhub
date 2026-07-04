@@ -80,7 +80,7 @@
 
     <main class="flex-1 p-6 flex flex-col gap-4 overflow-y-auto min-w-0">
         
-        <header class="flex flex-col md:flex-row md:items-start md:justify-between gap-4 mb-2">
+        <header class="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4 mb-2">
             <div>
                 <h1 class="text-xl font-black uppercase tracking-tighter text-white">
                     HMO Central <span class="text-indigo-500">Intelligence</span>
@@ -88,7 +88,14 @@
                 <p id="status" class="text-[8px] font-bold uppercase tracking-widest text-emerald-500">System Ready</p>
             </div>
             
-            <div class="flex flex-wrap items-center gap-4 ml-auto">
+            <div class="flex flex-wrap items-center gap-3 xl:ml-auto">
+                <div class="flex items-center gap-1 bg-[#050505] border border-white/5 p-1 rounded-lg">
+                    <button onclick="setQuickScope('today')" class="text-[9px] font-black tracking-wider uppercase px-2.5 py-1.5 rounded text-neutral-400 hover:text-white hover:bg-white/5 transition-all">Today</button>
+                    <button onclick="setQuickScope('yesterday')" class="text-[9px] font-black tracking-wider uppercase px-2.5 py-1.5 rounded text-neutral-400 hover:text-white hover:bg-white/5 transition-all">Yesterday</button>
+                    <button onclick="setQuickScope('7days')" class="text-[9px] font-black tracking-wider uppercase px-2.5 py-1.5 rounded text-neutral-400 hover:text-white hover:bg-white/5 transition-all">7 Days</button>
+                    <button onclick="setQuickScope('all')" class="text-[9px] font-black tracking-wider uppercase px-2.5 py-1.5 rounded text-rose-500/80 hover:text-rose-400 hover:bg-rose-500/5 transition-all">All</button>
+                </div>
+
                 <div class="flex items-center gap-2 bg-[#050505] border border-white/5 p-2 rounded-lg">
                     <div class="flex flex-col">
                         <span class="text-[7px] text-neutral-500 uppercase font-black tracking-widest pl-1 mb-0.5">From</span>
@@ -248,87 +255,28 @@
         
         const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        // =========================================================================
-        // USERS-TABLE DRIVEN ROLE-BASED ACCESS CONTROL (RBAC) GUARD
-        // =========================================================================
+        // Security Authentication and Verification Guard System Engine
         async function enforceSecurityBarrier() {
             const { data: { session }, error: sessionError } = await _supabase.auth.getSession();
-            
-            if (sessionError || !session) {
-                triggerLockdown("Authentication Required • Session Missing");
-                return;
-            }
-
+            if (sessionError || !session) { triggerLockdown("Authentication Required • Session Missing"); return; }
             try {
-                const { data: userProfile, error: dbError } = await _supabase
-                    .from('users') 
-                    .select('role')
-                    .eq('email', session.user.email)
-                    .single();
-
-                if (dbError || !userProfile) {
-                    console.error("Profile query mismatch failure:", dbError);
-                    triggerLockdown("Security Registry Error • Profile Not Found");
-                    return;
-                }
-
+                const { data: userProfile, error: dbError } = await _supabase.from('users').select('role').eq('email', session.user.email).single();
+                if (dbError || !userProfile) { triggerLockdown("Security Registry Error • Profile Not Found"); return; }
                 const userRole = userProfile.role ? userProfile.role.toLowerCase().trim() : '';
                 const permittedRoles = ['manager', 'director', 'admin', 'supervisor'];
-
-                if (!permittedRoles.includes(userRole)) {
-                    console.warn(`Unauthorized access blocked for ${session.user.email}. Role: ${userRole}`);
-                    triggerLockdown("Management Clearance Required • Station Locked");
-                } else {
-                    console.log(`Access Verified: ${session.user.email} verified as [${userRole}]`);
-                }
-
-            } catch (err) {
-                console.error("Barrier processing exception triggered:", err);
-                triggerLockdown("System Integrity Fault • Execution Halting");
-            }
+                if (!permittedRoles.includes(userRole)) { triggerLockdown("Management Clearance Required • Station Locked"); }
+            } catch (err) { triggerLockdown("System Integrity Fault • Execution Halting"); }
         }
 
+        // Lockdown Interception Layout Injection Render
         function triggerLockdown(subtitleText) {
-            document.body.innerHTML = `
-                <div style="
-                    position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; 
-                    background-color: #030303; display: flex; flex-direction: column;
-                    align-items: center; justify-content: center; z-index: 999999; 
-                    font-family: 'Inter', sans-serif; user-select: none;
-                ">
-                    <h1 style="
-                        font-size: clamp(3rem, 12vw, 8rem); font-weight: 900; 
-                        color: #ef4444; text-transform: uppercase; letter-spacing: -0.05em;
-                        line-height: 0.9; text-align: center; margin: 0;
-                        text-shadow: 0 0 40px rgba(239, 68, 68, 0.2);
-                    ">
-                        ACCESS DENIED
-                    </h1>
-                    <p style="
-                        font-size: clamp(10px, 2.5vw, 14px); font-weight: 700; 
-                        color: #525252; text-transform: uppercase; letter-spacing: 0.4em; 
-                        margin-top: 24px; text-align: center; padding: 0 20px;
-                    ">
-                        ${subtitleText}
-                    </p>
-                    <a href="entryform.html" style="
-                        margin-top: 40px; background: rgba(255, 255, 255, 0.02);
-                        border: 1px solid rgba(255, 255, 255, 0.08); padding: 12px 24px;
-                        border-radius: 8px; color: #a3a3a3; font-size: 10px;
-                        font-weight: 800; text-transform: uppercase; letter-spacing: 0.2em;
-                        text-decoration: none; transition: all 0.2s ease;
-                    " onmouseover="this.style.borderColor='rgba(239,68,68,0.3)'; this.style.color='#fff';" 
-                       onmouseout="this.style.borderColor='rgba(255,255,255,0.08)'; this.style.color='#a3a3a3';">
-                        Return to Entry Form
-                    </a>
-                </div>
-            `;
+            document.body.innerHTML = `<div style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vw; background-color: #030303; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 999999; font-family: 'Inter', sans-serif;"><h1 style="font-size: clamp(3rem, 12vw, 8rem); font-weight: 900; color: #ef4444; text-transform: uppercase; text-align: center; margin: 0;">ACCESS DENIED</h1><p style="font-size: clamp(10px, 2.5vw, 14px); font-weight: 700; color: #525252; text-transform: uppercase; letter-spacing: 0.4em; margin-top: 24px; text-align: center;">${subtitleText}</p></div>`;
             throw new Error("Security Intercept: Unauthorized Access Terminated.");
         }
 
         enforceSecurityBarrier();
-        // =========================================================================
         
+        // Runtime Reactive State Engine Storage Containers
         let masterData = [];
         let itemReferenceMap = {}; 
         let selectedAssociate = null;
@@ -344,111 +292,110 @@
         let maxHmoLimit = 10;
         let maxServicesLimit = 10;
 
+        // Auto Setup Default Operational Temporal Window Configurations
         function initializeDatePickerDefaults() {
             const today = new Date().toISOString().split('T')[0];
             document.getElementById('dateFrom').value = today;
             document.getElementById('dateTo').value = today;
         }
 
+        // Sidebar Navigation Container UI Toggle Trigger Action Flow
         function toggleSidebarMenu() {
             const sidebar = document.getElementById('sidebarContainer');
             const content = document.getElementById('sidebarContent');
             const btn = document.getElementById('sidebarToggleBtn');
-            
             isSidebarCollapsed = !isSidebarCollapsed;
-            
             if (isSidebarCollapsed) {
-                sidebar.style.width = '12px';
-                content.style.opacity = '0';
-                content.style.pointerEvents = 'none';
-                btn.innerHTML = '▶';
+                sidebar.style.width = '12px'; content.style.opacity = '0'; content.style.pointerEvents = 'none'; btn.innerHTML = '▶';
             } else {
-                sidebar.style.width = '12rem';
-                content.style.opacity = '1';
-                content.style.pointerEvents = 'auto';
-                btn.innerHTML = '◀';
+                sidebar.style.width = '12rem'; content.style.opacity = '1'; content.style.pointerEvents = 'auto'; btn.innerHTML = '◀';
             }
-            
             setTimeout(() => { render(selectedAssociate || 'all'); }, 310);
         }
 
-        async function recursiveDataHarvestPipeline(offsetRangeStart = 0) {
-            const recordsPerBatchLimit = 1000;
-            
-            const { data, error } = await _supabase
-                .from('hmo_monitoring')
-                .select('*')
-                .range(offsetRangeStart, offsetRangeStart + recordsPerBatchLimit - 1);
-                
-            if (error) throw error;
-            if (!data) return [];
-            
-            if (data.length === recordsPerBatchLimit) {
-                const subsequentPayloadDepth = await recursiveDataHarvestPipeline(offsetRangeStart + recordsPerBatchLimit);
-                return [...data, ...subsequentPayloadDepth];
+        // Action Routing for Quick-Select Date Pre-Set Operations
+        function setQuickScope(scope) {
+            const todayStr = new Date().toISOString().split('T')[0];
+            const fromInput = document.getElementById('dateFrom');
+            const toInput = document.getElementById('dateTo');
+
+            if (scope === 'today') {
+                fromInput.value = todayStr; toInput.value = todayStr;
+            } else if (scope === 'yesterday') {
+                const yesterday = new Date(); yesterday.setDate(yesterday.getDate() - 1);
+                const mystr = yesterday.toISOString().split('T')[0];
+                fromInput.value = mystr; toInput.value = mystr;
+            } else if (scope === '7days') {
+                const past = new Date(); past.setDate(past.getDate() - 6);
+                fromInput.value = past.toISOString().split('T')[0]; toInput.value = todayStr;
+            } else if (scope === 'all') {
+                const proceed = confirm("Warning: Loading all structural records can heavily strain memory and networking. Explicitly execute?");
+                if (!proceed) return;
+                fromInput.value = ""; toInput.value = "";
             }
-            
-            return data;
+            sync();
         }
 
-        async function recursiveItemsHarvestPipeline(offsetRangeStart = 0) {
-            const recordsPerBatchLimit = 1000;
-
-            const { data, error } = await _supabase
-                .from('items')
-                .select('item_code, item_name')
-                .range(offsetRangeStart, offsetRangeStart + recordsPerBatchLimit - 1);
-
-            if (error) throw error;
-            if (!data) return [];
-
-            if (data.length === recordsPerBatchLimit) {
-                const subsequentPayloadDepth = await recursiveItemsHarvestPipeline(offsetRangeStart + recordsPerBatchLimit);
-                return [...data, ...subsequentPayloadDepth];
-            }
-
-            return data;
-        }
-
+        // Database Item Lookup Catalog Reference Map Integration Setup
         async function fetchItemReferenceCatalog() {
             try {
-                const fullCatalog = await recursiveItemsHarvestPipeline();
+                const { data, error } = await _supabase.from('items').select('item_code, item_name').limit(1000);
+                if (error) throw error;
                 itemReferenceMap = {};
-                fullCatalog.forEach(row => {
-                    if (row.item_name && row.item_code) {
-                        itemReferenceMap[row.item_name.toString().trim().toLowerCase()] = row.item_code.toString().trim();
-                    }
-                });
-            } catch (error) {
-                console.error("Relational lookup catalog load failure:", error);
-            }
+                if (data) {
+                    data.forEach(row => {
+                        if (row.item_name && row.item_code) {
+                            itemReferenceMap[row.item_name.toString().trim().toLowerCase()] = row.item_code.toString().trim();
+                        }
+                    });
+                }
+            } catch (error) { console.error("Relational lookup failure:", error); }
         }
 
+        // Optimized Targeted Server Side Sync Action Engine Core Pipeline 
         async function sync() {
             const statusNode = document.getElementById('status');
-            statusNode.innerText = "SYNCHRONIZING SECURE RECURSIVE ARCHIVE...";
+            statusNode.innerText = "SYNCHRONIZING RE-TARGETED TIMELINE...";
             statusNode.className = "text-[8px] font-bold uppercase tracking-widest text-indigo-400 animate-pulse";
 
+            const fromValue = document.getElementById('dateFrom').value;
+            const toValue = document.getElementById('dateTo').value;
+
             try {
-                const [harvestedData] = await Promise.all([
-                    recursiveDataHarvestPipeline(),
-                    fetchItemReferenceCatalog()
+                let query = _supabase.from('hmo_monitoring').select('*');
+                
+                // On-demand server date filter parameters application injection structures
+                if (fromValue) {
+                    const dStart = new Date(fromValue); dStart.setHours(0,0,0,0);
+                    query = query.gte('time_of_arrival', dStart.toISOString());
+                }
+                if (toValue) {
+                    const dEnd = new Date(toValue); dEnd.setHours(23,59,59,999);
+                    query = query.lte('time_of_arrival', dEnd.toISOString());
+                }
+
+                // Unified Promise Engine Executions Setup Array Wrapper 
+                const [dbResponse, _] = await Promise.all([
+                    query.limit(1000), 
+                    Object.keys(itemReferenceMap).length === 0 ? fetchItemReferenceCatalog() : Promise.resolve()
                 ]);
+
+                if (dbResponse.error) throw dbResponse.error;
+                masterData = dbResponse.data || [];
                 
-                masterData = harvestedData;
-                
-                statusNode.innerText = `SYSTEM LIVE | ${masterData.length.toLocaleString()} RECORDS SYNC'D`;
+                statusNode.innerText = `SYSTEM LIVE | ${masterData.length.toLocaleString()} TIMELINE RECORDS SYNC'D`;
                 statusNode.className = "text-[8px] font-bold uppercase tracking-widest text-emerald-500";
                 
                 setupSidebar();
                 render(selectedAssociate || 'all');
             } catch (error) {
-                statusNode.innerText = "AUTHENTICATION ERROR";
+                statusNode.innerText = "SYNCHRONIZATION METRIC FAULT";
                 statusNode.className = "text-[8px] font-bold uppercase tracking-widest text-red-500";
                 console.error(error);
             }
         }
 
+        // Set up and Populate Left Sidebar Associate Buttons Listing
         function setupSidebar() {
             const list = document.getElementById('associateList');
             const names = [...new Set(masterData.map(r => r.name_of_associate).filter(n => n))].sort();
@@ -458,6 +405,7 @@
             }).join('');
         }
 
+        // Sidebar Row Execution to Toggle Intercept Filters
         function filterByAssociate(name, el) {
             selectedAssociate = name;
             document.querySelectorAll('.associate-btn').forEach(b => b.classList.remove('active'));
@@ -467,32 +415,16 @@
             if (name) {
                 tag.classList.remove('hidden');
                 document.getElementById('currentFilterName').innerText = name;
-            } else {
-                tag.classList.add('hidden');
-            }
+            } else { tag.classList.add('hidden'); }
             render(name || 'all');
         }
 
-        function handleDateRangeChange() { render(selectedAssociate || 'all'); }
+        // Date Picker Manual Override Intercept Change Router
+        function handleDateRangeChange() { sync(); }
 
+        // Data Breakdown Metrics Processor Calculations UI Rendering Engine 
         function render(filter) {
             let data = filter === 'all' ? masterData : masterData.filter(r => r.name_of_associate === filter);
-            
-            const fromValue = document.getElementById('dateFrom').value;
-            const toothValue = document.getElementById('dateTo').value;
-
-            if (fromValue && toothValue) {
-                const startDate = new Date(fromValue);
-                startDate.setHours(0, 0, 0, 0);
-                const endDate = new Date(toothValue);
-                endDate.setHours(23, 59, 59, 999);
-
-                data = data.filter(r => {
-                    if (!r.time_of_arrival) return false;
-                    const recordTime = new Date(r.time_of_arrival);
-                    return recordTime >= startDate && recordTime <= endDate;
-                });
-            }
             
             const grossSum = data.reduce((acc, currentVal) => acc + parseFloat(currentVal.amount || 0), 0);
             document.getElementById('countRevenue').innerText = '₱' + grossSum.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -518,67 +450,42 @@
                 { name: 'PENDING', y: pending, color: '#f59e0b' }
             ], '0%');
 
-            // =========================================================================
-            // DYNAMIC MEAN CALCULATOR: AVERAGE TAT BY TRANSACTION TYPE
-            // =========================================================================
             let consultTatSum = 0, consultTatCount = 0;
             let procedureTatSum = 0, procedureTatCount = 0;
 
             data.forEach(r => {
                 const type = String(r.transaction_type || '').toLowerCase().trim();
-                // Extract minutes using safe fallback pattern to capture alternate column variants
                 const mins = parseFloat(r.tota_mins_of_call !== undefined ? r.tota_mins_of_call : (r.total_mins_of_call || 0));
-                
                 if (!isNaN(mins)) {
-                    if (type === 'consult') {
-                        consultTatSum += mins;
-                        consultTatCount++;
-                    } else if (type === 'procedure') {
-                        procedureTatSum += mins;
-                        procedureTatCount++;
-                    }
+                    if (type === 'consult') { consultTatSum += mins; consultTatCount++; }
+                    else if (type === 'procedure') { procedureTatSum += mins; procedureTatCount++; }
                 }
             });
 
             const avgConsultTat = consultTatCount > 0 ? parseFloat((consultTatSum / consultTatCount).toFixed(2)) : 0;
             const avgProcedureTat = procedureTatCount > 0 ? parseFloat((procedureTatSum / procedureTatCount).toFixed(2)) : 0;
 
-            // Render newly generated Column Chart detailing Average Turnaround Times
             Highcharts.chart('tatChart', {
                 chart: { type: 'column', backgroundColor: 'transparent', height: 300 },
                 title: { text: 'AVERAGE TAT (MINUTES)', style: { color: '#FFFFFF', fontSize: '10px', fontWeight: '900', letterSpacing: '2px' } },
-                credits: { enabled: false },
-                accessibility: { enabled: false },
+                credits: { enabled: false }, accessibility: { enabled: false },
                 xAxis: {
                     categories: ['CONSULT', 'PROCEDURE'],
-                    labels: { style: { color: '#a3a3a3', fontSize: '9px', fontWeight: '700' } },
-                    lineColor: 'rgba(255,255,255,0.1)'
+                    labels: { style: { color: '#a3a3a3', fontSize: '9px', fontWeight: '700' } }, lineColor: 'rgba(255,255,255,0.1)'
                 },
                 yAxis: {
                     title: { text: 'Minutes', style: { color: '#737373', fontSize: '9px', fontWeight: '700' } },
-                    labels: { style: { color: '#737373', fontSize: '9px' } },
-                    gridLineColor: 'rgba(255,255,255,0.05)'
+                    labels: { style: { color: '#737373', fontSize: '9px' } }, gridLineColor: 'rgba(255,255,255,0.05)'
                 },
                 legend: { enabled: false },
                 tooltip: { backgroundColor: '#000', style: { color: '#fff' }, pointFormat: 'Average: <b>{point.y} mins</b>' },
-                series: [{
-                    name: 'Avg Time',
-                    colorByPoint: true,
-                    data: [
-                        { y: avgConsultTat, color: '#6366f1' },
-                        { y: avgProcedureTat, color: '#10b981' }
-                    ]
-                }]
+                series: [{ name: 'Avg Time', colorByPoint: true, data: [{ y: avgConsultTat, color: '#6366f1' }, { y: avgProcedureTat, color: '#10b981' }] }]
             });
-            // =========================================================================
         }
 
+        // Multi Dimensional Array Processing & Metric Calculations Tokenization Logic 
         function processTopUtilizationMetrics(dataset) {
-            const consultTrackingMap = {};
-            const procedureTrackingMap = {};
-            const hmoTrackingMap = {};
-            const servicesTrackingMap = {};
-
+            const consultTrackingMap = {}; const procedureTrackingMap = {}; const hmoTrackingMap = {}; const servicesTrackingMap = {};
             dataset.forEach(row => {
                 const type = String(row.transaction_type || '').toLowerCase().trim();
                 const doctorName = row.doctor_procedure ? row.doctor_procedure.toString().trim() : null;
@@ -586,68 +493,37 @@
                 const costAmt = parseFloat(row.amount || 0);
 
                 if (doctorName && doctorName !== "" && doctorName !== "null" && type === 'consult') {
-                    if (!consultTrackingMap[doctorName]) {
-                        consultTrackingMap[doctorName] = { name: doctorName, patientCount: 0 };
-                    }
+                    if (!consultTrackingMap[doctorName]) consultTrackingMap[doctorName] = { name: doctorName, patientCount: 0 };
                     consultTrackingMap[doctorName].patientCount++;
                 }
-
                 if (doctorName && doctorName !== "" && doctorName !== "null" && (type === 'procedure' || type === 'loa')) {
-                    if (!procedureTrackingMap[doctorName]) {
-                        procedureTrackingMap[doctorName] = { name: doctorName, totalRevenue: 0 };
-                    }
+                    if (!procedureTrackingMap[doctorName]) procedureTrackingMap[doctorName] = { name: doctorName, totalRevenue: 0 };
                     procedureTrackingMap[doctorName].totalRevenue += costAmt;
                 }
-
                 if (hmoCompany && hmoCompany !== "" && hmoCompany !== "null") {
-                    if (!hmoTrackingMap[hmoCompany]) {
-                        hmoTrackingMap[hmoCompany] = { name: hmoCompany, totalRevenue: 0, casesCount: 0 };
-                    }
-                    hmoTrackingMap[hmoCompany].totalRevenue += costAmt;
-                    hmoTrackingMap[hmoCompany].casesCount++;
+                    if (!hmoTrackingMap[hmoCompany]) hmoTrackingMap[hmoCompany] = { name: hmoCompany, totalRevenue: 0, casesCount: 0 };
+                    hmoTrackingMap[hmoCompany].totalRevenue += costAmt; hmoTrackingMap[hmoCompany].casesCount++;
                 }
-
                 if (row.service) {
                     let rawString = row.service.toString().trim();
-                    if (rawString.startsWith('[') && rawString.endsWith(']')) {
-                        rawString = rawString.slice(1, -1);
-                    }
+                    if (rawString.startsWith('[') && rawString.endsWith(']')) rawString = rawString.slice(1, -1);
                     const items = rawString.split(/[,;]+/);
-
                     items.forEach(itemToken => {
-                        let token = itemToken.replace(/['"]+/g, '').trim();
-                        if (!token) return;
-
-                        const checkLower = token.toLowerCase();
-                        if (checkLower === 'consult' || checkLower === 'consultation') return;
-
-                        let code = "N/A";
-                        let description = token;
-                        
+                        let token = itemToken.replace(/['"]+/g, '').trim(); if (!token) return;
+                        const checkLower = token.toLowerCase(); if (checkLower === 'consult' || checkLower === 'consultation') return;
+                        let code = "N/A"; let description = token;
                         const matchDelim = token.match(/^([A-Za-z0-9_-]+)\s*[:|-]\s*(.+)$/);
-                        if (matchDelim) {
-                            code = matchDelim[1].trim();
-                            description = matchDelim[2].trim();
-                        } else {
+                        if (matchDelim) { code = matchDelim[1].trim(); description = matchDelim[2].trim(); } 
+                        else {
                             const matchParens = token.match(/^(.+?)\s*\(([A-Za-z0-9_-]+)\)$/);
-                            if (matchParens) {
-                                description = matchParens[1].trim();
-                                code = matchParens[2].trim();
-                            }
+                            if (matchParens) { description = matchParens[1].trim(); code = matchParens[2].trim(); }
                         }
-
                         if (code === "N/A") {
                             const descKey = description.toLowerCase();
-                            if (itemReferenceMap[descKey]) {
-                                code = itemReferenceMap[descKey];
-                            }
+                            if (itemReferenceMap[descKey]) code = itemReferenceMap[descKey];
                         }
-
                         const mapKey = `${code}:::${description.toLowerCase()}`;
-
-                        if (!servicesTrackingMap[mapKey]) {
-                            servicesTrackingMap[mapKey] = { code: code, description: description, usageCount: 0 };
-                        }
+                        if (!servicesTrackingMap[mapKey]) servicesTrackingMap[mapKey] = { code: code, description: description, usageCount: 0 };
                         servicesTrackingMap[mapKey].usageCount++;
                     });
                 }
@@ -658,141 +534,83 @@
             globalRankedHmo = Object.values(hmoTrackingMap).sort((a, b) => b.totalRevenue - a.totalRevenue);
             globalRankedServices = Object.values(servicesTrackingMap).sort((a, b) => b.usageCount - a.usageCount);
 
-            renderConsultantTableDOM();
-            renderDoctorTableDOM();
-            renderHmoTableDOM();
-            renderServicesTableDOM();
+            renderConsultantTableDOM(); renderDoctorTableDOM(); renderHmoTableDOM(); renderServicesTableDOM();
         }
 
+        // Sub-Table Content Builders Handlers 
         function renderConsultantTableDOM() {
-            const consultBody = document.getElementById('topConsultantTableBody');
-            const btn = document.getElementById('btnToggleConsultants');
+            const consultBody = document.getElementById('topConsultantTableBody'); const btn = document.getElementById('btnToggleConsultants');
             const visibleSubset = globalRankedConsultants.slice(0, maxConsultantsLimit);
-            
             if (visibleSubset.length === 0) {
                 consultBody.innerHTML = `<tr><td colspan="2" class="py-4 text-center text-neutral-600 uppercase text-[8px]">No Consult Records Available</td></tr>`;
-                btn.style.display = 'none';
-                return;
+                btn.style.display = 'none'; return;
             }
             btn.style.display = globalRankedConsultants.length > 10 ? 'inline-block' : 'none';
             btn.innerText = maxConsultantsLimit >= globalRankedConsultants.length ? 'Show Less' : 'Show More';
-
-            consultBody.innerHTML = visibleSubset.map(c => `
-                <tr class="hover:bg-white/[0.02] transition-colors border-b border-white/5">
-                    <td class="py-2.5 font-bold text-neutral-200 truncate max-w-[180px]">${c.name}</td>
-                    <td class="py-2.5 text-center text-indigo-400 font-black">${c.patientCount} Patients</td>
-                </tr>
-            `).join('');
+            consultBody.innerHTML = visibleSubset.map(c => `<tr class="hover:bg-white/[0.02] transition-colors border-b border-white/5"><td class="py-2.5 font-bold text-neutral-200 truncate max-w-[180px]">${c.name}</td><td class="py-2.5 text-center text-indigo-400 font-black">${c.patientCount} Patients</td></tr>`).join('');
         }
 
         function renderDoctorTableDOM() {
-            const doctorBody = document.getElementById('topDoctorTableBody');
-            const btn = document.getElementById('btnToggleDoctors');
+            const doctorBody = document.getElementById('topDoctorTableBody'); const btn = document.getElementById('btnToggleDoctors');
             const visibleSubset = globalRankedProcedures.slice(0, maxDoctorsLimit);
-            
             if (visibleSubset.length === 0) {
                 doctorBody.innerHTML = `<tr><td colspan="2" class="py-4 text-center text-neutral-600 uppercase text-[8px]">No Procedure/LOA Revenue Calculated</td></tr>`;
-                btn.style.display = 'none';
-                return;
+                btn.style.display = 'none'; return;
             }
             btn.style.display = globalRankedProcedures.length > 10 ? 'inline-block' : 'none';
             btn.innerText = maxDoctorsLimit >= globalRankedProcedures.length ? 'Show Less' : 'Show More';
-
-            doctorBody.innerHTML = visibleSubset.map(p => `
-                <tr class="hover:bg-white/[0.02] transition-colors border-b border-white/5">
-                    <td class="py-2.5 font-bold text-neutral-200 truncate max-w-[180px]">${p.name}</td>
-                    <td class="py-2.5 text-right text-emerald-400 font-black tabular-nums">₱${p.totalRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                </tr>
-            `).join('');
+            doctorBody.innerHTML = visibleSubset.map(p => `<tr class="hover:bg-white/[0.02] transition-colors border-b border-white/5"><td class="py-2.5 font-bold text-neutral-200 truncate max-w-[180px]">${p.name}</td><td class="py-2.5 text-right text-emerald-400 font-black tabular-nums">₱${p.totalRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td></tr>`).join('');
         }
 
         function renderHmoTableDOM() {
-            const hmoBody = document.getElementById('topHmoTableBody');
-            const btn = document.getElementById('btnToggleHmo');
+            const hmoBody = document.getElementById('topHmoTableBody'); const btn = document.getElementById('btnToggleHmo');
             const visibleSubset = globalRankedHmo.slice(0, maxHmoLimit);
-
             if (visibleSubset.length === 0) {
                 hmoBody.innerHTML = `<tr><td colspan="3" class="py-4 text-center text-neutral-600 uppercase text-[8px]">No HMO Registry Data Captured</td></tr>`;
-                btn.style.display = 'none';
-                return;
+                btn.style.display = 'none'; return;
             }
             btn.style.display = globalRankedHmo.length > 10 ? 'inline-block' : 'none';
             btn.innerText = maxHmoLimit >= globalRankedHmo.length ? 'Show Less' : 'Show More';
-
-            hmoBody.innerHTML = visibleSubset.map(h => `
-                <tr class="hover:bg-white/[0.02] transition-colors border-b border-white/5">
-                    <td class="py-2.5 font-bold text-neutral-200 truncate max-w-[150px]">${h.name}</td>
-                    <td class="py-2.5 text-center text-neutral-400 font-bold tabular-nums">${h.casesCount}</td>
-                    <td class="py-2.5 text-right text-cyan-400 font-black tabular-nums">₱${h.totalRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                </tr>
-            `).join('');
+            hmoBody.innerHTML = visibleSubset.map(h => `<tr class="hover:bg-white/[0.02] transition-colors border-b border-white/5"><td class="py-2.5 font-bold text-neutral-200 truncate max-w-[150px]">${h.name}</td><td class="py-2.5 text-center text-neutral-400 font-bold tabular-nums">${h.casesCount}</td><td class="py-2.5 text-right text-cyan-400 font-black tabular-nums">₱${h.totalRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td></tr>`).join('');
         }
 
         function renderServicesTableDOM() {
-            const servicesBody = document.getElementById('topServicesTableBody');
-            const btn = document.getElementById('btnToggleServices');
+            const servicesBody = document.getElementById('topServicesTableBody'); const btn = document.getElementById('btnToggleServices');
             const visibleSubset = globalRankedServices.slice(0, maxServicesLimit);
-
             if (visibleSubset.length === 0) {
                 servicesBody.innerHTML = `<tr><td colspan="3" class="py-4 text-center text-neutral-600 uppercase text-[8px]">No Recorded Work-Services Counted</td></tr>`;
-                btn.style.display = 'none';
-                return;
+                btn.style.display = 'none'; return;
             }
             btn.style.display = globalRankedServices.length > 10 ? 'inline-block' : 'none';
             btn.innerText = maxServicesLimit >= globalRankedServices.length ? 'Show Less' : 'Show More';
-
-            servicesBody.innerHTML = visibleSubset.map(s => `
-                <tr class="hover:bg-white/[0.02] transition-colors border-b border-white/5">
-                    <td class="py-2.5 font-mono text-neutral-500 font-bold text-[9px] tracking-wider truncate max-w-[80px]">${s.code}</td>
-                    <td class="py-2.5 font-bold text-neutral-200 truncate max-w-[160px]">${s.description}</td>
-                    <td class="py-2.5 text-center text-amber-400 font-black tabular-nums">${s.usageCount}</td>
-                </tr>
-            `).join('');
+            servicesBody.innerHTML = visibleSubset.map(s => `<tr class="hover:bg-white/[0.02] transition-colors border-b border-white/5"><td class="py-2.5 font-mono text-neutral-500 font-bold text-[9px] tracking-wider truncate max-w-[80px]">${s.code}</td><td class="py-2.5 font-bold text-neutral-200 truncate max-w-[160px]">${s.description}</td><td class="py-2.5 text-center text-amber-400 font-black tabular-nums">${s.usageCount}</td></tr>`).join('');
         }
 
-        function toggleConsultantViewRange() {
-            maxConsultantsLimit = maxConsultantsLimit >= globalRankedConsultants.length ? 10 : globalRankedConsultants.length;
-            renderConsultantTableDOM();
-        }
+        // Expanded/Collapsed Context Range Action Controls
+        function toggleConsultantViewRange() { maxConsultantsLimit = maxConsultantsLimit >= globalRankedConsultants.length ? 10 : globalRankedConsultants.length; renderConsultantTableDOM(); }
+        function toggleDoctorViewRange() { maxDoctorsLimit = maxDoctorsLimit >= globalRankedProcedures.length ? 10 : globalRankedProcedures.length; renderDoctorTableDOM(); }
+        function toggleHmoViewRange() { maxHmoLimit = maxHmoLimit >= globalRankedHmo.length ? 10 : globalRankedHmo.length; renderHmoTableDOM(); }
+        function toggleServicesViewRange() { maxServicesLimit = maxServicesLimit >= globalRankedServices.length ? 10 : globalRankedServices.length; renderServicesTableDOM(); }
 
-        function toggleDoctorViewRange() {
-            maxDoctorsLimit = maxDoctorsLimit >= globalRankedProcedures.length ? 10 : globalRankedProcedures.length;
-            renderDoctorTableDOM();
-        }
-
-        function toggleHmoViewRange() {
-            maxHmoLimit = maxHmoLimit >= globalRankedHmo.length ? 10 : globalRankedHmo.length;
-            renderHmoTableDOM();
-        }
-
-        function toggleServicesViewRange() {
-            maxServicesLimit = maxServicesLimit >= globalRankedServices.length ? 10 : globalRankedServices.length;
-            renderServicesTableDOM();
-        }
-
+        // Dynamic Highcharts Chart Generator Utility Factory Definition
         function drawHigh(id, title, data, innerSize) {
             Highcharts.chart(id, {
                 chart: { type: 'pie', backgroundColor: 'transparent', height: 300 },
                 title: { text: title.toUpperCase(), style: { color: '#FFFFFF', fontSize: '10px', fontWeight: '900', letterSpacing: '2px' } },
-                credits: { enabled: false },
-                accessibility: { enabled: false }, 
+                credits: { enabled: false }, accessibility: { enabled: false }, 
                 tooltip: { backgroundColor: '#000', style: { color: '#fff' }, pointFormat: '{series.name}: <b>{point.y}</b>' },
-                plotOptions: {
-                    pie: {
-                        innerSize: innerSize,
-                        borderWidth: 0,
-                        dataLabels: { enabled: true, format: '{point.name}', style: { color: '#888', fontSize: '9px', textOutline: 'none' } }
-                    }
-                },
+                plotOptions: { pie: { innerSize: innerSize, borderWidth: 0, dataLabels: { enabled: true, format: '{point.name}', style: { color: '#888', fontSize: '9px', textOutline: 'none' } } } },
                 series: [{ name: 'Cases', colorByPoint: true, data: data }]
             });
         }
 
+        // Workspace Signout Integration Routine Call
         async function terminateWorkspaceSession() {
             try { await _supabase.auth.signOut(); } catch (err) { console.error(err); }
             window.location.href = "index.html";
         }
 
+        // Active State Execution Initializations
         initializeDatePickerDefaults();
         sync();
     </script>
