@@ -5,6 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>HMO Intelligence | Advanced Analytics</title>
     <script src="https://code.highcharts.com/highcharts.js"></script>
+    <script src="https://code.highcharts.com/modules/exporting.js"></script>
+    <script src="https://code.highcharts.com/modules/export-data.js"></script>
+    <script src="https://code.highcharts.com/modules/accessibility.js"></script>
+    
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
@@ -69,7 +73,7 @@
         
         <header class="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4 mb-2">
             <div>
-                <h1 class="text-xl font-black uppercase tracking-tighter text-white">
+                <h1 class="textxl font-black uppercase tracking-tighter text-white">
                     HMO Central <span class="text-indigo-500">Intelligence</span>
                 </h1>
                 <p id="status" class="text-[8px] font-bold uppercase tracking-widest text-emerald-500">System Ready</p>
@@ -142,7 +146,6 @@
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-2">
-            
             <div class="glass p-5 border border-indigo-500/30 bg-indigo-950/5 animated-glow flex flex-col min-w-0">
                 <div class="flex items-center justify-between mb-3 pb-2 border-b border-white/5">
                     <h2 class="text-[10px] font-black tracking-wider uppercase text-indigo-400">Top Consultation Volumes</h2>
@@ -228,7 +231,6 @@
                     <button id="btnToggleServices" onclick="toggleServicesViewRange()" class="text-[9px] font-black tracking-widest uppercase text-amber-400 hover:text-amber-300 bg-amber-500/10 hover:bg-emerald-500/20 px-4 py-1.5 rounded transition-all">Show More</button>
                 </div>
             </div>
-
         </div>
     </main>
 
@@ -237,6 +239,63 @@
         const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpxbnFreHBzZWV1eW92dHFlemJjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3OTYyOTEsImV4cCI6MjA5MjM3MjI5MX0.uR9TcF4_J58cx7XsKx4BbAQcIeYBElgJpKglbMEyHQs";
         
         const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        // NATIVE HIGHCHARTS OVERRIDE MODULE FOR FAN-ENTRANCE ANIMATION
+        (function (H) {
+            H.seriesTypes.pie.prototype.animate = function (init) {
+                const series = this,
+                    chart = series.chart,
+                    points = series.points,
+                    { animation } = series.options,
+                    { startAngleRad } = series;
+
+                function fanAnimate(point, startAngleRad) {
+                    const graphic = point.graphic,
+                        args = point.shapeArgs;
+
+                    if (graphic && args) {
+                        graphic
+                            .attr({
+                                start: startAngleRad,
+                                end: startAngleRad,
+                                opacity: 1
+                            })
+                            .animate({
+                                start: args.start,
+                                end: args.end
+                            }, {
+                                duration: animation.duration / points.length
+                            }, function () {
+                                if (points[point.index + 1]) {
+                                    fanAnimate(points[point.index + 1], args.end);
+                                }
+                                if (point.index === series.points.length - 1) {
+                                    series.dataLabelsGroup.animate({
+                                        opacity: 1
+                                    }, void 0, function () {
+                                        points.forEach(p => { p.opacity = 1; });
+                                        series.update({ enableMouseTracking: true }, false);
+                                        chart.update({
+                                            plotOptions: {
+                                                pie: {
+                                                    innerSize: series.options.customInnerSize || '0%',
+                                                    borderRadius: 6
+                                                }
+                                            }
+                                        });
+                                    });
+                                }
+                            });
+                    }
+                }
+
+                if (init) {
+                    points.forEach(point => { point.opacity = 0; });
+                } else {
+                    fanAnimate(points[0], startAngleRad);
+                }
+            };
+        }(Highcharts));
 
         async function enforceSecurityBarrier() {
             const { data: { session }, error: sessionError } = await _supabase.auth.getSession();
@@ -389,25 +448,13 @@
 
         function handleDateRangeChange() { sync(); }
 
-        // Dynamic Highcharts Advanced Entrance Animation Generator 
-        function drawAnimatedPie(id, title, data, innerSize = '60%') {
+        // EXECUTOR PIPELINE WITH INTEGRATED TIMELINE ACCELERATION DRIVERS
+        function drawAnimatedPie(id, title, data, targetInnerSize = '0%') {
             Highcharts.chart(id, {
                 chart: { 
                     type: 'pie', 
                     backgroundColor: 'transparent', 
-                    height: 240,
-                    events: {
-                        load: function () {
-                            const chart = this;
-                            chart.series[0].points.forEach(point => {
-                                point.graphic.attr({ scaleX: 0, scaleY: 0, opacity: 0 });
-                                point.graphic.animate({ scaleX: 1, scaleY: 1, opacity: 1 }, {
-                                    duration: 1200,
-                                    easing: 'cubic-bezier(0.19, 1, 0.22, 1)'
-                                });
-                            });
-                        }
-                    }
+                    height: 240
                 },
                 title: { 
                     text: title.toUpperCase(), 
@@ -426,19 +473,29 @@
                 },
                 plotOptions: { 
                     pie: { 
-                        innerSize: innerSize, 
-                        borderWidth: 0, 
-                        slicedOffset: 8,
+                        innerSize: '0%', // Starts as flat pie for perfect fan animation, transforms post-draw
+                        borderWidth: 1, 
+                        borderColor: '#111',
+                        cursor: 'pointer',
                         dataLabels: { 
                             enabled: true, 
-                            format: '{point.name}: {point.y}', 
-                            distance: -25,
+                            format: '<b>{point.name}</b><br>{point.y}', 
+                            distance: -20,
                             style: { color: '#ffffff', fontSize: '8px', fontWeight: '700', textOutline: 'none' } 
                         },
                         showInLegend: false
                     } 
                 },
-                series: [{ name: 'Count', colorByPoint: true, data: data }]
+                series: [{ 
+                    name: 'Count', 
+                    colorByPoint: true, 
+                    data: data,
+                    enableMouseTracking: false,
+                    customInnerSize: targetInnerSize, // Transport parameter into prototype override loop
+                    animation: {
+                        duration: 1400
+                    }
+                }]
             });
         }
 
@@ -457,17 +514,17 @@
             document.getElementById('countLoa').innerText = loaData.length;
             document.getElementById('countProcedure').innerText = procedureData.length;
 
-            // --- Row 1 Calculations: Patient Flow Segment Sorting (New vs Old) ---
+            // Patient Flow Matrices (Fanning out to Donut style '60%')
             const getPatientMetrics = (dataset) => [
                 { name: 'NEW', y: dataset.filter(r => String(r.patient_type || '').toLowerCase() === 'new').length, color: '#6366f1' },
                 { name: 'OLD', y: dataset.filter(r => String(r.patient_type || '').toLowerCase() === 'old').length, color: '#10b981' }
             ];
             
-            drawAnimatedPie('patientFlowOverall', 'Patient Flow: Overall', getPatientMetrics(data), '65%');
-            drawAnimatedPie('patientFlowConsult', 'Patient Flow: Consults', getPatientMetrics(consultData), '65%');
-            drawAnimatedPie('patientFlowProcedure', 'Patient Flow: Procedures', getPatientMetrics([...procedureData, ...loaData]), '65%');
+            drawAnimatedPie('patientFlowOverall', 'Patient Flow: Overall', getPatientMetrics(data), '60%');
+            drawAnimatedPie('patientFlowConsult', 'Patient Flow: Consults', getPatientMetrics(consultData), '60%');
+            drawAnimatedPie('patientFlowProcedure', 'Patient Flow: Procedures', getPatientMetrics([...procedureData, ...loaData]), '60%');
 
-            // --- Row 2 Calculations: SLA Segment Sorting (Met vs Not Met vs Pending) ---
+            // SLA Execution Matrices (Fanning out to Solid Pie style '0%')
             const getSlaMetrics = (dataset) => [
                 { name: 'MET', y: dataset.filter(r => String(r.turnaround_time || '').toLowerCase() === 'met').length, color: '#10b981' },
                 { name: 'NOT MET', y: dataset.filter(r => String(r.turnaround_time || '').toLowerCase() === 'not met').length, color: '#f43f5e' },
