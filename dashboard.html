@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HMO Intelligence | Direct Sync</title>
+    <title>HMO Intelligence | Advanced Analytics</title>
     <script src="https://code.highcharts.com/highcharts.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -11,7 +11,6 @@
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght=400;700;900&display=swap');
         body { background: #010101; color: #e5e5e5; font-family: 'Inter', sans-serif; overflow: hidden; }
         
-        /* Smooth Google-Style Breathing Border Animation */
         @keyframes borderGlowLoop {
             0% { border-color: rgba(99, 102, 241, 0.15); box-shadow: 0 0 4px rgba(99, 102, 241, 0.02); }
             50% { border-color: rgba(16, 185, 129, 0.35); box-shadow: 0 0 10px rgba(16, 185, 129, 0.08); }
@@ -27,14 +26,8 @@
             position: relative;
         }
 
-        .animated-glow {
-            animation: borderGlowLoop 5s linear infinite;
-        }
-        
-        .fluid-number {
-            font-size: clamp(1.25rem, 13cqw, 1.85rem);
-            line-height: 1.1;
-        }
+        .animated-glow { animation: borderGlowLoop 5s linear infinite; }
+        .fluid-number { font-size: clamp(1.25rem, 13cqw, 1.85rem); line-height: 1.1; }
 
         .associate-btn { 
             width: 100%; padding: 8px; margin-bottom: 4px; background: #0a0a0a;
@@ -46,18 +39,12 @@
         .associate-btn.active { color: #fff; border-color: #6366f1; background: #0c0c1e; border-left: 3px solid #6366f1; }
         
         .date-picker {
-            background: #0a0a0a;
-            border: 1px solid #1a1a1a;
-            color: #fff;
-            font-size: 10px;
-            font-weight: 700;
-            padding: 6px 10px;
-            border-radius: 6px;
-            outline: none;
+            background: #0a0a0a; border: 1px solid #1a1a1a; color: #fff;
+            font-size: 10px; font-weight: 700; padding: 6px 10px; border-radius: 6px; outline: none;
         }
         .date-picker::-webkit-calendar-picker-indicator { filter: invert(1); cursor: pointer; }
 
-        .chart-container { width: 100%; height: 300px; }
+        .chart-container { width: 100%; height: 240px; }
         ::-webkit-scrollbar { width: 3px; }
         ::-webkit-scrollbar-thumb { background: #222; }
 
@@ -140,13 +127,21 @@
             </div>
         </div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 flex-shrink-0">
-            <div class="glass p-4 border border-violet-500/20"><div id="patientDonut" class="chart-container"></div></div>
-            <div class="glass p-4 border border-fuchsia-500/20"><div id="slaPie" class="chart-container"></div></div>
-            <div class="glass p-4 border border-cyan-500/20"><div id="tatChart" class="chart-container"></div></div>
+        <h2 class="text-[10px] font-black uppercase tracking-widest text-neutral-400 mt-2">— Patient Flow Matrices</h2>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 flex-shrink-0">
+            <div class="glass p-4 border border-violet-500/20"><div id="patientFlowOverall" class="chart-container"></div></div>
+            <div class="glass p-4 border border-indigo-500/20"><div id="patientFlowConsult" class="chart-container"></div></div>
+            <div class="glass p-4 border border-purple-500/20"><div id="patientFlowProcedure" class="chart-container"></div></div>
         </div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-1">
+        <h2 class="text-[10px] font-black uppercase tracking-widest text-neutral-400 mt-2">— SLA Execution Matrices</h2>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 flex-shrink-0">
+            <div class="glass p-4 border border-emerald-500/20"><div id="slaOverall" class="chart-container"></div></div>
+            <div class="glass p-4 border border-teal-500/20"><div id="slaConsult" class="chart-container"></div></div>
+            <div class="glass p-4 border border-cyan-500/20"><div id="slaProcedure" class="chart-container"></div></div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-2">
             
             <div class="glass p-5 border border-indigo-500/30 bg-indigo-950/5 animated-glow flex flex-col min-w-0">
                 <div class="flex items-center justify-between mb-3 pb-2 border-b border-white/5">
@@ -161,14 +156,11 @@
                                 <th class="pb-2 text-center">Consult Count</th>
                             </tr>
                         </thead>
-                        <tbody id="topConsultantTableBody" class="text-[10px] font-medium divide-y divide-white/5">
-                        </tbody>
+                        <tbody id="topConsultantTableBody" class="text-[10px] font-medium divide-y divide-white/5"></tbody>
                     </table>
                 </div>
                 <div class="mt-3 pt-2 border-t border-white/5 flex justify-center">
-                    <button id="btnToggleConsultants" onclick="toggleConsultantViewRange()" class="text-[9px] font-black tracking-widest uppercase text-indigo-400 hover:text-indigo-300 bg-indigo-500/10 hover:bg-indigo-500/20 px-4 py-1.5 rounded transition-all">
-                        Show More
-                    </button>
+                    <button id="btnToggleConsultants" onclick="toggleConsultantViewRange()" class="text-[9px] font-black tracking-widest uppercase text-indigo-400 hover:text-indigo-300 bg-indigo-500/10 hover:bg-indigo-500/20 px-4 py-1.5 rounded transition-all">Show More</button>
                 </div>
             </div>
 
@@ -185,14 +177,11 @@
                                 <th class="pb-2 text-right">Aggregated Revenue</th>
                             </tr>
                         </thead>
-                        <tbody id="topDoctorTableBody" class="text-[10px] font-medium divide-y divide-white/5">
-                        </tbody>
+                        <tbody id="topDoctorTableBody" class="text-[10px] font-medium divide-y divide-white/5"></tbody>
                     </table>
                 </div>
                 <div class="mt-3 pt-2 border-t border-white/5 flex justify-center">
-                    <button id="btnToggleDoctors" onclick="toggleDoctorViewRange()" class="text-[9px] font-black tracking-widest uppercase text-emerald-400 hover:text-emerald-300 bg-emerald-500/10 hover:bg-emerald-500/20 px-4 py-1.5 rounded transition-all">
-                        Show More
-                    </button>
+                    <button id="btnToggleDoctors" onclick="toggleDoctorViewRange()" class="text-[9px] font-black tracking-widest uppercase text-emerald-400 hover:text-emerald-300 bg-emerald-500/10 hover:bg-emerald-500/20 px-4 py-1.5 rounded transition-all">Show More</button>
                 </div>
             </div>
 
@@ -210,14 +199,11 @@
                                 <th class="pb-2 text-right">Gross Amount</th>
                             </tr>
                         </thead>
-                        <tbody id="topHmoTableBody" class="text-[10px] font-medium divide-y divide-white/5">
-                        </tbody>
+                        <tbody id="topHmoTableBody" class="text-[10px] font-medium divide-y divide-white/5"></tbody>
                     </table>
                 </div>
                 <div class="mt-3 pt-2 border-t border-white/5 flex justify-center">
-                    <button id="btnToggleHmo" onclick="toggleHmoViewRange()" class="text-[9px] font-black tracking-widest uppercase text-cyan-400 hover:text-cyan-300 bg-cyan-500/10 hover:bg-cyan-500/20 px-4 py-1.5 rounded transition-all">
-                        Show More
-                    </button>
+                    <button id="btnToggleHmo" onclick="toggleHmoViewRange()" class="text-[9px] font-black tracking-widest uppercase text-cyan-400 hover:text-cyan-300 bg-cyan-500/10 hover:bg-cyan-500/20 px-4 py-1.5 rounded transition-all">Show More</button>
                 </div>
             </div>
 
@@ -235,14 +221,11 @@
                                 <th class="pb-2 text-center">Frequencies</th>
                             </tr>
                         </thead>
-                        <tbody id="topServicesTableBody" class="text-[10px] font-medium divide-y divide-white/5">
-                        </tbody>
+                        <tbody id="topServicesTableBody" class="text-[10px] font-medium divide-y divide-white/5"></tbody>
                     </table>
                 </div>
                 <div class="mt-3 pt-2 border-t border-white/5 flex justify-center">
-                    <button id="btnToggleServices" onclick="toggleServicesViewRange()" class="text-[9px] font-black tracking-widest uppercase text-amber-400 hover:text-amber-300 bg-amber-500/10 hover:bg-emerald-500/20 px-4 py-1.5 rounded transition-all">
-                        Show More
-                    </button>
+                    <button id="btnToggleServices" onclick="toggleServicesViewRange()" class="text-[9px] font-black tracking-widest uppercase text-amber-400 hover:text-amber-300 bg-amber-500/10 hover:bg-emerald-500/20 px-4 py-1.5 rounded transition-all">Show More</button>
                 </div>
             </div>
 
@@ -255,7 +238,6 @@
         
         const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        // Security Authentication and Verification Guard System Engine
         async function enforceSecurityBarrier() {
             const { data: { session }, error: sessionError } = await _supabase.auth.getSession();
             if (sessionError || !session) { triggerLockdown("Authentication Required • Session Missing"); return; }
@@ -268,15 +250,13 @@
             } catch (err) { triggerLockdown("System Integrity Fault • Execution Halting"); }
         }
 
-        // Lockdown Interception Layout Injection Render
         function triggerLockdown(subtitleText) {
-            document.body.innerHTML = `<div style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vw; background-color: #030303; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 999999; font-family: 'Inter', sans-serif;"><h1 style="font-size: clamp(3rem, 12vw, 8rem); font-weight: 900; color: #ef4444; text-transform: uppercase; text-align: center; margin: 0;">ACCESS DENIED</h1><p style="font-size: clamp(10px, 2.5vw, 14px); font-weight: 700; color: #525252; text-transform: uppercase; letter-spacing: 0.4em; margin-top: 24px; text-align: center;">${subtitleText}</p></div>`;
+            document.body.innerHTML = `<div style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: #030303; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 999999; font-family: 'Inter', sans-serif;"><h1 style="font-size: clamp(3rem, 12vw, 8rem); font-weight: 900; color: #ef4444; text-transform: uppercase; text-align: center; margin: 0;">ACCESS DENIED</h1><p style="font-size: clamp(10px, 2.5vw, 14px); font-weight: 700; color: #525252; text-transform: uppercase; letter-spacing: 0.4em; margin-top: 24px; text-align: center;">${subtitleText}</p></div>`;
             throw new Error("Security Intercept: Unauthorized Access Terminated.");
         }
 
         enforceSecurityBarrier();
         
-        // Runtime Reactive State Engine Storage Containers
         let masterData = [];
         let itemReferenceMap = {}; 
         let selectedAssociate = null;
@@ -292,14 +272,12 @@
         let maxHmoLimit = 10;
         let maxServicesLimit = 10;
 
-        // Auto Setup Default Operational Temporal Window Configurations
         function initializeDatePickerDefaults() {
             const today = new Date().toISOString().split('T')[0];
             document.getElementById('dateFrom').value = today;
             document.getElementById('dateTo').value = today;
         }
 
-        // Sidebar Navigation Container UI Toggle Trigger Action Flow
         function toggleSidebarMenu() {
             const sidebar = document.getElementById('sidebarContainer');
             const content = document.getElementById('sidebarContent');
@@ -313,7 +291,6 @@
             setTimeout(() => { render(selectedAssociate || 'all'); }, 310);
         }
 
-        // Action Routing for Quick-Select Date Pre-Set Operations
         function setQuickScope(scope) {
             const todayStr = new Date().toISOString().split('T')[0];
             const fromInput = document.getElementById('dateFrom');
@@ -323,20 +300,17 @@
                 fromInput.value = todayStr; toInput.value = todayStr;
             } else if (scope === 'yesterday') {
                 const yesterday = new Date(); yesterday.setDate(yesterday.getDate() - 1);
-                const mystr = yesterday.toISOString().split('T')[0];
-                fromInput.value = mystr; toInput.value = mystr;
+                fromInput.value = yesterday.toISOString().split('T')[0]; toInput.value = yesterday.toISOString().split('T')[0];
             } else if (scope === '7days') {
                 const past = new Date(); past.setDate(past.getDate() - 6);
                 fromInput.value = past.toISOString().split('T')[0]; toInput.value = todayStr;
             } else if (scope === 'all') {
-                const proceed = confirm("Warning: Loading all structural records can heavily strain memory and networking. Explicitly execute?");
-                if (!proceed) return;
+                if (!confirm("Warning: Loading all structural records can heavily strain memory. Execute?")) return;
                 fromInput.value = ""; toInput.value = "";
             }
             sync();
         }
 
-        // Database Item Lookup Catalog Reference Map Integration Setup
         async function fetchItemReferenceCatalog() {
             try {
                 const { data, error } = await _supabase.from('items').select('item_code, item_name').limit(1000);
@@ -352,7 +326,6 @@
             } catch (error) { console.error("Relational lookup failure:", error); }
         }
 
-        // Optimized Targeted Server Side Sync Action Engine Core Pipeline 
         async function sync() {
             const statusNode = document.getElementById('status');
             statusNode.innerText = "SYNCHRONIZING RE-TARGETED TIMELINE...";
@@ -363,8 +336,6 @@
 
             try {
                 let query = _supabase.from('hmo_monitoring').select('*');
-                
-                // On-demand server date filter parameters application injection structures
                 if (fromValue) {
                     const dStart = new Date(fromValue); dStart.setHours(0,0,0,0);
                     query = query.gte('time_of_arrival', dStart.toISOString());
@@ -374,7 +345,6 @@
                     query = query.lte('time_of_arrival', dEnd.toISOString());
                 }
 
-                // Unified Promise Engine Executions Setup Array Wrapper 
                 const [dbResponse, _] = await Promise.all([
                     query.limit(1000), 
                     Object.keys(itemReferenceMap).length === 0 ? fetchItemReferenceCatalog() : Promise.resolve()
@@ -395,7 +365,6 @@
             }
         }
 
-        // Set up and Populate Left Sidebar Associate Buttons Listing
         function setupSidebar() {
             const list = document.getElementById('associateList');
             const names = [...new Set(masterData.map(r => r.name_of_associate).filter(n => n))].sort();
@@ -405,7 +374,6 @@
             }).join('');
         }
 
-        // Sidebar Row Execution to Toggle Intercept Filters
         function filterByAssociate(name, el) {
             selectedAssociate = name;
             document.querySelectorAll('.associate-btn').forEach(b => b.classList.remove('active'));
@@ -419,73 +387,103 @@
             render(name || 'all');
         }
 
-        // Date Picker Manual Override Intercept Change Router
         function handleDateRangeChange() { sync(); }
 
-        // Data Breakdown Metrics Processor Calculations UI Rendering Engine 
-        function render(filter) {
-            let data = filter === 'all' ? masterData : masterData.filter(r => r.name_of_associate === filter);
-            
-            const grossSum = data.reduce((acc, currentVal) => acc + parseFloat(currentVal.amount || 0), 0);
-            document.getElementById('countRevenue').innerText = '₱' + grossSum.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-            document.getElementById('countTotalCensus').innerText = data.length;
-            document.getElementById('countConsult').innerText = data.filter(r => String(r.transaction_type || '').toLowerCase() === 'consult').length;
-            document.getElementById('countLoa').innerText = data.filter(r => String(r.transaction_type || '').toLowerCase() === 'loa').length;
-            document.getElementById('countProcedure').innerText = data.filter(r => String(r.transaction_type || '').toLowerCase() === 'procedure').length;
-
-            processTopUtilizationMetrics(data);
-
-            drawHigh('patientDonut', 'Patient Flow', [
-                { name: 'NEW', y: data.filter(r => String(r.patient_type || '').toLowerCase() === 'new').length, color: '#6366f1' },
-                { name: 'OLD', y: data.filter(r => String(r.patient_type || '').toLowerCase() === 'old').length, color: '#10b981' }
-            ], '70%');
-
-            const met = data.filter(r => String(r.turnaround_time || '').toLowerCase() === 'met').length;
-            const notMet = data.filter(r => String(r.turnaround_time || '').toLowerCase() === 'not met').length;
-            const pending = data.filter(r => String(r.turnaround_time || '').toLowerCase() === 'pending').length;
-
-            drawHigh('slaPie', 'SLA Status', [
-                { name: 'MET', y: met, color: '#10b981' },
-                { name: 'NOT MET', y: notMet, color: '#f43f5e' },
-                { name: 'PENDING', y: pending, color: '#f59e0b' }
-            ], '0%');
-
-            let consultTatSum = 0, consultTatCount = 0;
-            let procedureTatSum = 0, procedureTatCount = 0;
-
-            data.forEach(r => {
-                const type = String(r.transaction_type || '').toLowerCase().trim();
-                const mins = parseFloat(r.tota_mins_of_call !== undefined ? r.tota_mins_of_call : (r.total_mins_of_call || 0));
-                if (!isNaN(mins)) {
-                    if (type === 'consult') { consultTatSum += mins; consultTatCount++; }
-                    else if (type === 'procedure') { procedureTatSum += mins; procedureTatCount++; }
-                }
-            });
-
-            const avgConsultTat = consultTatCount > 0 ? parseFloat((consultTatSum / consultTatCount).toFixed(2)) : 0;
-            const avgProcedureTat = procedureTatCount > 0 ? parseFloat((procedureTatSum / procedureTatCount).toFixed(2)) : 0;
-
-            Highcharts.chart('tatChart', {
-                chart: { type: 'column', backgroundColor: 'transparent', height: 300 },
-                title: { text: 'AVERAGE TAT (MINUTES)', style: { color: '#FFFFFF', fontSize: '10px', fontWeight: '900', letterSpacing: '2px' } },
-                credits: { enabled: false }, accessibility: { enabled: false },
-                xAxis: {
-                    categories: ['CONSULT', 'PROCEDURE'],
-                    labels: { style: { color: '#a3a3a3', fontSize: '9px', fontWeight: '700' } }, lineColor: 'rgba(255,255,255,0.1)'
+        // Dynamic Highcharts Advanced Entrance Animation Generator 
+        function drawAnimatedPie(id, title, data, innerSize = '60%') {
+            Highcharts.chart(id, {
+                chart: { 
+                    type: 'pie', 
+                    backgroundColor: 'transparent', 
+                    height: 240,
+                    events: {
+                        load: function () {
+                            const chart = this;
+                            chart.series[0].points.forEach(point => {
+                                point.graphic.attr({ scaleX: 0, scaleY: 0, opacity: 0 });
+                                point.graphic.animate({ scaleX: 1, scaleY: 1, opacity: 1 }, {
+                                    duration: 1200,
+                                    easing: 'cubic-bezier(0.19, 1, 0.22, 1)'
+                                });
+                            });
+                        }
+                    }
                 },
-                yAxis: {
-                    title: { text: 'Minutes', style: { color: '#737373', fontSize: '9px', fontWeight: '700' } },
-                    labels: { style: { color: '#737373', fontSize: '9px' } }, gridLineColor: 'rgba(255,255,255,0.05)'
+                title: { 
+                    text: title.toUpperCase(), 
+                    style: { color: '#FFFFFF', fontSize: '9px', fontWeight: '900', letterSpacing: '1.5px' },
+                    align: 'center',
+                    y: 15
                 },
-                legend: { enabled: false },
-                tooltip: { backgroundColor: '#000', style: { color: '#fff' }, pointFormat: 'Average: <b>{point.y} mins</b>' },
-                series: [{ name: 'Avg Time', colorByPoint: true, data: [{ y: avgConsultTat, color: '#6366f1' }, { y: avgProcedureTat, color: '#10b981' }] }]
+                credits: { enabled: false }, 
+                accessibility: { enabled: false }, 
+                tooltip: { 
+                    backgroundColor: '#050505', 
+                    borderWidth: 1,
+                    borderColor: '#1a1a1a',
+                    style: { color: '#fff', fontSize: '10px' }, 
+                    pointFormat: '{series.name}: <b>{point.y} ({point.percentage:.1f}%)</b>' 
+                },
+                plotOptions: { 
+                    pie: { 
+                        innerSize: innerSize, 
+                        borderWidth: 0, 
+                        slicedOffset: 8,
+                        dataLabels: { 
+                            enabled: true, 
+                            format: '{point.name}: {point.y}', 
+                            distance: -25,
+                            style: { color: '#ffffff', fontSize: '8px', fontWeight: '700', textOutline: 'none' } 
+                        },
+                        showInLegend: false
+                    } 
+                },
+                series: [{ name: 'Count', colorByPoint: true, data: data }]
             });
         }
 
-        // Multi Dimensional Array Processing & Metric Calculations Tokenization Logic 
+        function render(filter) {
+            let data = filter === 'all' ? masterData : masterData.filter(r => r.name_of_associate === filter);
+            
+            const grossSum = data.reduce((acc, c) => acc + parseFloat(c.amount || 0), 0);
+            document.getElementById('countRevenue').innerText = '₱' + grossSum.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            document.getElementById('countTotalCensus').innerText = data.length;
+            
+            const consultData = data.filter(r => String(r.transaction_type || '').toLowerCase() === 'consult');
+            const procedureData = data.filter(r => String(r.transaction_type || '').toLowerCase() === 'procedure');
+            const loaData = data.filter(r => String(r.transaction_type || '').toLowerCase() === 'loa');
+            
+            document.getElementById('countConsult').innerText = consultData.length;
+            document.getElementById('countLoa').innerText = loaData.length;
+            document.getElementById('countProcedure').innerText = procedureData.length;
+
+            // --- Row 1 Calculations: Patient Flow Segment Sorting (New vs Old) ---
+            const getPatientMetrics = (dataset) => [
+                { name: 'NEW', y: dataset.filter(r => String(r.patient_type || '').toLowerCase() === 'new').length, color: '#6366f1' },
+                { name: 'OLD', y: dataset.filter(r => String(r.patient_type || '').toLowerCase() === 'old').length, color: '#10b981' }
+            ];
+            
+            drawAnimatedPie('patientFlowOverall', 'Patient Flow: Overall', getPatientMetrics(data), '65%');
+            drawAnimatedPie('patientFlowConsult', 'Patient Flow: Consults', getPatientMetrics(consultData), '65%');
+            drawAnimatedPie('patientFlowProcedure', 'Patient Flow: Procedures', getPatientMetrics([...procedureData, ...loaData]), '65%');
+
+            // --- Row 2 Calculations: SLA Segment Sorting (Met vs Not Met vs Pending) ---
+            const getSlaMetrics = (dataset) => [
+                { name: 'MET', y: dataset.filter(r => String(r.turnaround_time || '').toLowerCase() === 'met').length, color: '#10b981' },
+                { name: 'NOT MET', y: dataset.filter(r => String(r.turnaround_time || '').toLowerCase() === 'not met').length, color: '#f43f5e' },
+                { name: 'PENDING', y: dataset.filter(r => String(r.turnaround_time || '').toLowerCase() === 'pending').length, color: '#f59e0b' }
+            ];
+
+            drawAnimatedPie('slaOverall', 'SLA: Overall Status', getSlaMetrics(data), '0%');
+            drawAnimatedPie('slaConsult', 'SLA: Consult Status', getSlaMetrics(consultData), '0%');
+            drawAnimatedPie('slaProcedure', 'SLA: Procedure Status', getSlaMetrics([...procedureData, ...loaData]), '0%');
+
+            processTopUtilizationMetrics(data);
+        }
+
         function processTopUtilizationMetrics(dataset) {
             const consultTrackingMap = {}; const procedureTrackingMap = {}; const hmoTrackingMap = {}; const servicesTrackingMap = {};
+            
             dataset.forEach(row => {
                 const type = String(row.transaction_type || '').toLowerCase().trim();
                 const doctorName = row.doctor_procedure ? row.doctor_procedure.toString().trim() : null;
@@ -537,7 +535,6 @@
             renderConsultantTableDOM(); renderDoctorTableDOM(); renderHmoTableDOM(); renderServicesTableDOM();
         }
 
-        // Sub-Table Content Builders Handlers 
         function renderConsultantTableDOM() {
             const consultBody = document.getElementById('topConsultantTableBody'); const btn = document.getElementById('btnToggleConsultants');
             const visibleSubset = globalRankedConsultants.slice(0, maxConsultantsLimit);
@@ -586,31 +583,16 @@
             servicesBody.innerHTML = visibleSubset.map(s => `<tr class="hover:bg-white/[0.02] transition-colors border-b border-white/5"><td class="py-2.5 font-mono text-neutral-500 font-bold text-[9px] tracking-wider truncate max-w-[80px]">${s.code}</td><td class="py-2.5 font-bold text-neutral-200 truncate max-w-[160px]">${s.description}</td><td class="py-2.5 text-center text-amber-400 font-black tabular-nums">${s.usageCount}</td></tr>`).join('');
         }
 
-        // Expanded/Collapsed Context Range Action Controls
         function toggleConsultantViewRange() { maxConsultantsLimit = maxConsultantsLimit >= globalRankedConsultants.length ? 10 : globalRankedConsultants.length; renderConsultantTableDOM(); }
         function toggleDoctorViewRange() { maxDoctorsLimit = maxDoctorsLimit >= globalRankedProcedures.length ? 10 : globalRankedProcedures.length; renderDoctorTableDOM(); }
         function toggleHmoViewRange() { maxHmoLimit = maxHmoLimit >= globalRankedHmo.length ? 10 : globalRankedHmo.length; renderHmoTableDOM(); }
         function toggleServicesViewRange() { maxServicesLimit = maxServicesLimit >= globalRankedServices.length ? 10 : globalRankedServices.length; renderServicesTableDOM(); }
 
-        // Dynamic Highcharts Chart Generator Utility Factory Definition
-        function drawHigh(id, title, data, innerSize) {
-            Highcharts.chart(id, {
-                chart: { type: 'pie', backgroundColor: 'transparent', height: 300 },
-                title: { text: title.toUpperCase(), style: { color: '#FFFFFF', fontSize: '10px', fontWeight: '900', letterSpacing: '2px' } },
-                credits: { enabled: false }, accessibility: { enabled: false }, 
-                tooltip: { backgroundColor: '#000', style: { color: '#fff' }, pointFormat: '{series.name}: <b>{point.y}</b>' },
-                plotOptions: { pie: { innerSize: innerSize, borderWidth: 0, dataLabels: { enabled: true, format: '{point.name}', style: { color: '#888', fontSize: '9px', textOutline: 'none' } } } },
-                series: [{ name: 'Cases', colorByPoint: true, data: data }]
-            });
-        }
-
-        // Workspace Signout Integration Routine Call
         async function terminateWorkspaceSession() {
             try { await _supabase.auth.signOut(); } catch (err) { console.error(err); }
             window.location.href = "index.html";
         }
 
-        // Active State Execution Initializations
         initializeDatePickerDefaults();
         sync();
     </script>
