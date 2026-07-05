@@ -130,6 +130,11 @@
                             <option value="Consult">Consult (5m)</option>
                             <option value="Loa">LOA (30m)</option>
                             <option value="Procedure">Procedure (30m)</option>
+                            <option value="Online(Consult)">Online(Consult) (5m)</option>
+                            <option value="Online(Procedure)">Online(Procedure) (30m)</option>
+                            <option value="Viber(Consult)">Viber(Consult) (5m)</option>
+                            <option value="Viber(Procedure)">Viber(Procedure) (30m)</option>
+                            <option value="Clinic(Procedure)">Clinic(Procedure) (30m)</option>
                         </select>
                     </div>
                     <div class="relative">
@@ -353,7 +358,8 @@
 
         transTypeSelect.addEventListener('change', (e) => {
             const val = e.target.value; selectedServices = []; renderBadges(); amountField.value = "";
-            if (val === 'Loa' || val === 'Procedure') {
+            // Matches 'Loa', 'Procedure', 'Online(Procedure)', 'Viber(Procedure)', 'Clinic(Procedure)'
+            if (val === 'Loa' || val.includes('Procedure')) {
                 serviceContainer.innerHTML = `
                     <label class="text-[10px] text-slate-400 dark:text-slate-400 ml-1 uppercase font-bold">Service (Smart Array)</label>
                     <input type="text" id="service_search_input" placeholder="Type test or code..." class="w-full rounded-lg p-2.5 outline-none" autocomplete="off">
@@ -433,7 +439,26 @@
             document.getElementById('field_patient_name').value = match.patient_name || '';
             document.getElementById('card_company_select').value = match.card_company || '';
             document.getElementById('field_patient_type').value = match.patient_type || 'Old';
-            document.getElementById('transaction_type').value = match.transaction_type || 'Consult';
+            
+            // Set the transaction type first so fields render correctly
+            const transType = match.transaction_type || 'Consult';
+            document.getElementById('transaction_type').value = transType;
+            
+            // Trigger layout redraw context manually for correct data element placement
+            if (transType === 'Loa' || transType.includes('Procedure')) {
+                serviceContainer.innerHTML = `
+                    <label class="text-[10px] text-slate-400 dark:text-slate-400 ml-1 uppercase font-bold">Service (Smart Array)</label>
+                    <input type="text" id="service_search_input" placeholder="Type test or code..." class="w-full rounded-lg p-2.5 outline-none" autocomplete="off">
+                    <div id="service_smart_dropdown" class="dropdown-menu absolute left-0 right-0 mt-1 border rounded-lg shadow-xl max-h-60 overflow-y-auto"></div>
+                `;
+                document.getElementById('service_search_input').addEventListener('input', (el) => filterServices(el.target.value));
+            } else {
+                serviceContainer.innerHTML = `
+                    <label class="text-[10px] text-slate-400 dark:text-slate-400 ml-1 uppercase font-bold">Service</label>
+                    <input type="text" name="service" id="service_field" placeholder="e.g. Consult" class="w-full rounded-lg p-2.5 outline-none">
+                `;
+            }
+
             document.getElementById('field_name_of_associate').value = match.name_of_associate || '';
             document.getElementById('amount_field').value = match.amount || '0.00';
             document.getElementById('field_remarks').value = match.remarks || '';
@@ -447,6 +472,12 @@
                 renderBadges();
             } else if (match.service) {
                 if (document.getElementById('service_field')) document.getElementById('service_field').value = match.service;
+            }
+
+            if (match.doctor_procedure) {
+                docInput.value = match.doctor_procedure;
+                docHidden.value = match.doctor_procedure;
+                clearDocBtn.classList.remove('hidden');
             }
 
             document.getElementById('field_status').value = (match.status === 'On Process' || !match.status) ? "Approved" : match.status; 
@@ -500,7 +531,9 @@
             const endCallTime = existingEndCallTime && existingEndCallTime !== 'null' ? new Date(existingEndCallTime) : new Date();
             const arrival = new Date(arrivalTime);
             const diffMins = Math.floor((endCallTime - arrival) / 60000);
-            const limit = transType === 'Consult' ? 5 : 30;
+            
+            // Evaluates dynamically if it contains an active Consult type matrix
+            const limit = transType.includes('Consult') ? 5 : 30;
             const turnaround_time = diffMins <= limit ? "MET" : "NOT MET";
 
             const { error } = await _supabase.from('hmo_monitoring').update({
@@ -618,6 +651,7 @@
             const approvalCodeField = document.getElementById('field_approval_code').value;
             const agentNameField = document.getElementById('field_agent_name').value;
             const remarksField = document.getElementById('field_remarks').value;
+            const selectedTransType = document.getElementById('transaction_type').value;
 
             btn.innerText = "PROCESSING SUBMIT..."; btn.disabled = true;
 
@@ -639,7 +673,9 @@
                 const endCallTime = new Date();
                 const arrival = new Date(document.getElementById('time_of_arrival').value);
                 const diffMins = Math.floor((endCallTime - arrival) / 60000);
-                const limit = document.getElementById('transaction_type').value === 'Consult' ? 5 : 30;
+                
+                // SLA verification structure matching fallback metrics dynamically
+                const limit = selectedTransType.includes('Consult') ? 5 : 30;
                 const turnaround_time = diffMins <= limit ? "MET" : "NOT MET";
 
                 const { error } = await _supabase.from('hmo_monitoring').update({
@@ -670,8 +706,9 @@
                 entry.amount = entry.amount ? parseFloat(entry.amount) : 0.00;
                 entry.status = "On Process"; 
                 entry.remarks = entry.remarks.trim() || null;
+                entry.doctor_procedure = document.getElementById('doctor_hidden_value').value || null;
 
-                if (entry.transaction_type === 'Loa' || entry.transaction_type === 'Procedure') {
+                if (entry.transaction_type === 'Loa' || entry.transaction_type.includes('Procedure')) {
                     entry.service = selectedServices.map(s => s.name); 
                 } else {
                     const fallbackVal = document.getElementById('service_field')?.value || 'Consultation';
