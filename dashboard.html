@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>HMO Intelligence | Advanced Analytics</title>
-    <!-- Core Highcharts + Required Animation Modules -->
     <script src="https://code.highcharts.com/highcharts.js"></script>
     <script src="https://code.highcharts.com/modules/exporting.js"></script>
     <script src="https://code.highcharts.com/modules/export-data.js"></script>
@@ -58,7 +57,6 @@
 </head>
 <body class="flex h-screen w-screen overflow-hidden">
 
-    <!-- Sidebar Layout Container -->
     <div id="sidebarContainer" class="w-48 border-r border-white/5 p-4 flex flex-col bg-[#050505] flex-shrink-0 relative">
         <div id="sidebarContent" class="h-full w-full flex flex-col opacity-100 transition-opacity duration-200 overflow-hidden">
             <h3 class="text-[9px] font-black uppercase tracking-widest text-neutral-500 mb-4">Associates</h3>
@@ -71,10 +69,8 @@
         </button>
     </div>
 
-    <!-- Main Workspace Console -->
     <main class="flex-1 p-6 flex flex-col gap-4 overflow-y-auto min-w-0">
         
-        <!-- Header -->
         <header class="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4 mb-2">
             <div>
                 <h1 class="textxl font-black uppercase tracking-tighter text-white">
@@ -112,7 +108,6 @@
             </div>
         </header>
 
-        <!-- KPI Strip -->
         <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 w-full flex-shrink-0">
             <div class="glass p-4 border-l-4 border-cyan-500 bg-cyan-950/5 animated-glow min-w-0">
                 <p class="text-[8px] font-black text-neutral-400 uppercase tracking-widest truncate">Gross Revenue</p>
@@ -136,7 +131,6 @@
             </div>
         </div>
 
-        <!-- Row 1: Patient Flow Segment Breakdowns -->
         <h2 class="text-[10px] font-black uppercase tracking-widest text-neutral-400 mt-2">— Patient Flow Matrices</h2>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4 flex-shrink-0">
             <div class="glass p-4 border border-violet-500/20"><div id="patientFlowOverall" class="chart-container"></div></div>
@@ -144,7 +138,6 @@
             <div class="glass p-4 border border-purple-500/20"><div id="patientFlowProcedure" class="chart-container"></div></div>
         </div>
 
-        <!-- Row 2: SLA Status Segment Breakdowns -->
         <h2 class="text-[10px] font-black uppercase tracking-widest text-neutral-400 mt-2">— SLA Execution Matrices</h2>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4 flex-shrink-0">
             <div class="glass p-4 border border-emerald-500/20"><div id="slaOverall" class="chart-container"></div></div>
@@ -152,15 +145,12 @@
             <div class="glass p-4 border border-cyan-500/20"><div id="slaProcedure" class="chart-container"></div></div>
         </div>
 
-        <!-- Row 3: Average Minutes Duration (Strict Single Consolidated Chart) -->
         <h2 class="text-[10px] font-black uppercase tracking-widest text-neutral-400 mt-2">— Call Duration Efficiency</h2>
         <div class="grid grid-cols-1 gap-4 flex-shrink-0">
             <div class="glass p-4 border border-blue-500/20"><div id="tatUnifiedBar" class="chart-container"></div></div>
         </div>
 
-        <!-- Data Presentation Tables Grid -->
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-2">
-            <!-- Table 1: Top Consultants -->
             <div class="glass p-5 border border-indigo-500/30 bg-indigo-950/5 animated-glow flex flex-col min-w-0">
                 <div class="flex items-center justify-between mb-3 pb-2 border-b border-white/5">
                     <h2 class="text-[10px] font-black tracking-wider uppercase text-indigo-400">Top Consultation Volumes</h2>
@@ -182,7 +172,6 @@
                 </div>
             </div>
 
-            <!-- Table 2: Top Medical Procedures / LOAs -->
             <div class="glass p-5 border border-emerald-500/30 bg-emerald-950/5 animated-glow flex flex-col min-w-0">
                 <div class="flex items-center justify-between mb-3 pb-2 border-b border-white/5">
                     <h2 class="text-[10px] font-black tracking-wider uppercase text-emerald-400">Top Medical Procedures / LOAs</h2>
@@ -204,7 +193,6 @@
                 </div>
             </div>
 
-            <!-- Table 3: HMO Provider Matrix Grid -->
             <div class="glass p-5 border border-cyan-500/30 bg-cyan-950/5 animated-glow flex flex-col min-w-0">
                 <div class="flex items-center justify-between mb-3 pb-2 border-b border-white/5">
                     <h2 class="text-[10px] font-black tracking-wider uppercase text-cyan-400">Top HMO Providers by Volume</h2>
@@ -227,7 +215,6 @@
                 </div>
             </div>
 
-            <!-- Table 4: Top Services -->
             <div class="glass p-5 border border-amber-500/30 bg-amber-950/5 animated-glow flex flex-col min-w-0">
                 <div class="flex items-center justify-between mb-3 pb-2 border-b border-white/5">
                     <h2 class="text-[10px] font-black tracking-wider uppercase text-amber-400">Top Requested Services</h2>
@@ -252,7 +239,6 @@
         </div>
     </main>
 
-    <!-- Operational Application Architecture Script Logic Block -->
     <script>
         const SUPABASE_URL = "https://zqnqkxpseeuyovtqezbc.supabase.co";
         const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpxbnFreHBzZWV1eW92dHFlemJjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3OTYyOTEsImV4cCI6MjA5MjM3MjI5MX0.uR9TcF4_J58cx7XsKx4BbAQcIeYBElgJpKglbMEyHQs";
@@ -498,7 +484,6 @@
             });
         }
 
-        // UNIFIED BAR CHART GENERATOR (STRICT SINGLE ROW FOR TRANSACTION TYPES)
         function drawUnifiedDurationChart(id, title, categories, seriesData) {
             Highcharts.chart(id, {
                 chart: { type: 'bar', backgroundColor: 'transparent', height: 240 },
@@ -555,7 +540,6 @@
             document.getElementById('countLoa').innerText = loaData.length;
             document.getElementById('countProcedure').innerText = procedureData.length;
 
-            // Patient Flow Matrices
             const getPatientMetrics = (dataset) => [
                 { name: 'NEW', y: dataset.filter(r => String(r.patient_type || '').toLowerCase() === 'new').length, color: '#6366f1' },
                 { name: 'OLD', y: dataset.filter(r => String(r.patient_type || '').toLowerCase() === 'old').length, color: '#10b981' }
@@ -565,7 +549,6 @@
             drawAnimatedPie('patientFlowConsult', 'Patient Flow: Consults', getPatientMetrics(consultData), '60%');
             drawAnimatedPie('patientFlowProcedure', 'Patient Flow: Procedures', getPatientMetrics([...procedureData, ...loaData]), '60%');
 
-            // SLA Execution Matrices
             const getSlaMetrics = (dataset) => [
                 { name: 'MET', y: dataset.filter(r => String(r.turnaround_time || '').toLowerCase() === 'met').length, color: '#10b981' },
                 { name: 'NOT MET', y: dataset.filter(r => String(r.turnaround_time || '').toLowerCase() === 'not met').length, color: '#f43f5e' },
@@ -576,9 +559,7 @@
             drawAnimatedPie('slaConsult', 'SLA: Consult Status', getSlaMetrics(consultData), '0%');
             drawAnimatedPie('slaProcedure', 'SLA: Procedure Status', getSlaMetrics([...procedureData, ...loaData]), '0%');
 
-            // Consolidated calculation directly from total_mins_of_call
             calculateAndDrawTatBars(consultData, procedureData);
-
             processTopUtilizationMetrics(data);
         }
 
@@ -589,7 +570,6 @@
                 return isNaN(parsed) ? 0 : parsed;
             };
 
-            // Strict flat average calculations for Consult vs Procedure
             const avgConsult = consults.length === 0 ? 0 : (consults.reduce((acc, curr) => acc + getCallMinutes(curr), 0) / consults.length);
             const avgProcedure = procedures.length === 0 ? 0 : (procedures.reduce((acc, curr) => acc + getCallMinutes(curr), 0) / procedures.length);
 
