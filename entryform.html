@@ -284,7 +284,7 @@
             const matches = cachedDoctors.filter(d => d.name.toLowerCase().includes(searchVal.toLowerCase()));
             docDropdown.innerHTML = matches.map(d => `
                 <div class="p-2.5 hover:bg-blue-600/30 cursor-pointer text-xs" onclick="selectDoctor('${d.name}', '${d.specialization}')">
-                    <span class="font-bold text-slate-900 dark:text-slate-100">${d.name}</span> 
+                    <span class="font-bold text-slate-900 dark:text-white">${d.name}</span> 
                     <span class="text-slate-500 dark:text-slate-400 block text-[10px] uppercase font-semibold">${d.specialization}</span>
                 </div>
             `).join('');
@@ -319,8 +319,8 @@
             drop.innerHTML = matches.map(i => `
                 <div class="p-2.5 hover:bg-emerald-600/30 cursor-pointer text-xs flex justify-between items-center border-b border-slate-100 dark:border-slate-800/50" onclick="addServiceToken('${i.item_name}', ${i.price || 0})">
                     <div class="flex flex-col">
-                        <span class="text-slate-900 dark:text-slate-100 font-medium">${i.item_name}</span>
-                        <span class="text-[10px] text-slate-400 dark:text-slate-400 uppercase font-mono tracking-wider">${i.item_code || 'NO CODE'}</span>
+                        <span class="text-slate-900 dark:text-white font-medium">${i.item_name}</span>
+                        <span class="text-[10px] text-slate-400 dark:text-slate-300 uppercase font-mono tracking-wider">${i.item_code || 'NO CODE'}</span>
                     </div>
                     <span class="text-emerald-600 dark:text-emerald-400 font-mono font-bold">₱${Number(i.price || 0).toFixed(2)}</span>
                 </div>
@@ -358,7 +358,6 @@
 
         transTypeSelect.addEventListener('change', (e) => {
             const val = e.target.value; selectedServices = []; renderBadges(); amountField.value = "";
-            // Matches 'Loa', 'Procedure', 'Online(Procedure)', 'Viber(Procedure)', 'Clinic(Procedure)'
             if (val === 'Loa' || val.includes('Procedure')) {
                 serviceContainer.innerHTML = `
                     <label class="text-[10px] text-slate-400 dark:text-slate-400 ml-1 uppercase font-bold">Service (Smart Array)</label>
@@ -440,11 +439,9 @@
             document.getElementById('card_company_select').value = match.card_company || '';
             document.getElementById('field_patient_type').value = match.patient_type || 'Old';
             
-            // Set the transaction type first so fields render correctly
             const transType = match.transaction_type || 'Consult';
             document.getElementById('transaction_type').value = transType;
             
-            // Trigger layout redraw context manually for correct data element placement
             if (transType === 'Loa' || transType.includes('Procedure')) {
                 serviceContainer.innerHTML = `
                     <label class="text-[10px] text-slate-400 dark:text-slate-400 ml-1 uppercase font-bold">Service (Smart Array)</label>
@@ -532,7 +529,6 @@
             const arrival = new Date(arrivalTime);
             const diffMins = Math.floor((endCallTime - arrival) / 60000);
             
-            // Evaluates dynamically if it contains an active Consult type matrix
             const limit = transType.includes('Consult') ? 5 : 30;
             const turnaround_time = diffMins <= limit ? "MET" : "NOT MET";
 
@@ -674,7 +670,6 @@
                 const arrival = new Date(document.getElementById('time_of_arrival').value);
                 const diffMins = Math.floor((endCallTime - arrival) / 60000);
                 
-                // SLA verification structure matching fallback metrics dynamically
                 const limit = selectedTransType.includes('Consult') ? 5 : 30;
                 const turnaround_time = diffMins <= limit ? "MET" : "NOT MET";
 
