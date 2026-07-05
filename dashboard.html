@@ -5,8 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>HMO Intelligence | Advanced Analytics</title>
     <script src="https://code.highcharts.com/highcharts.js"></script>
-    <script src="https://code.highcharts.com/modules/exporting.js"></script>
-    <script src="https://code.highcharts.com/modules/export-data.js"></script>
     <script src="https://code.highcharts.com/modules/accessibility.js"></script>
     
     <script src="https://cdn.tailwindcss.com"></script>
@@ -49,9 +47,6 @@
         .date-picker::-webkit-calendar-picker-indicator { filter: invert(1); cursor: pointer; }
 
         .chart-container { width: 100%; height: 240px; }
-        
-        /* Floating Dropdown Escape Configuration */
-        .highcharts-contextmenu { z-index: 999999 !important; }
         
         ::-webkit-scrollbar { width: 3px; height: 3px; }
         ::-webkit-scrollbar-thumb { background: #222; border-radius: 2px; }
@@ -138,9 +133,30 @@
 
         <h2 class="text-[10px] font-black uppercase tracking-widest text-neutral-400 mt-2">— Patient Flow Matrices</h2>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4 flex-shrink-0">
-            <div class="glass p-4 border border-violet-500/20"><div id="patientFlowOverall" class="chart-container"></div></div>
-            <div class="glass p-4 border border-indigo-500/20"><div id="patientFlowConsult" class="chart-container"></div></div>
-            <div class="glass p-4 border border-purple-500/20"><div id="patientFlowProcedure" class="chart-container"></div></div>
+            <div class="glass p-4 border border-violet-500/20 relative">
+                <div id="patientFlowOverall" class="chart-container"></div>
+                <div class="absolute bottom-2 right-2 bg-[#050505]/90 border border-white/5 rounded p-1.5 pointer-events-none text-[8px] font-bold tracking-wider uppercase text-neutral-400">
+                    <table class="table-auto text-left">
+                        <tbody id="miniTableOverall"></tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="glass p-4 border border-indigo-500/20 relative">
+                <div id="patientFlowConsult" class="chart-container"></div>
+                <div class="absolute bottom-2 right-2 bg-[#050505]/90 border border-white/5 rounded p-1.5 pointer-events-none text-[8px] font-bold tracking-wider uppercase text-neutral-400">
+                    <table class="table-auto text-left">
+                        <tbody id="miniTableConsult"></tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="glass p-4 border border-purple-500/20 relative">
+                <div id="patientFlowProcedure" class="chart-container"></div>
+                <div class="absolute bottom-2 right-2 bg-[#050505]/90 border border-white/5 rounded p-1.5 pointer-events-none text-[8px] font-bold tracking-wider uppercase text-neutral-400">
+                    <table class="table-auto text-left">
+                        <tbody id="miniTableProcedure"></tbody>
+                    </table>
+                </div>
+            </div>
         </div>
 
         <h2 class="text-[10px] font-black uppercase tracking-widest text-neutral-400 mt-2">— SLA Execution Matrices</h2>
@@ -468,6 +484,8 @@
                 },
                 credits: { enabled: false }, 
                 accessibility: { enabled: false }, 
+                // EXPORTING DISABLED COMPLETELY: Solves layout shift & container overflow bugs cleanly.
+                exporting: { enabled: false }, 
                 tooltip: { 
                     backgroundColor: '#050505', borderWidth: 1, borderColor: '#1a1a1a',
                     style: { color: '#fff', fontSize: '10px' }, 
@@ -481,20 +499,6 @@
                             style: { color: '#ffffff', fontSize: '8.5px', fontWeight: '800', textOutline: 'none' } 
                         }
                     } 
-                },
-                /* ESCAPE CAPTIVE OVERFLOW CONTAINER LAYER GHOSTING */
-                navigation: {
-                    buttonOptions: {
-                        theme: {
-                            states: {
-                                hover: { fill: '#111111' },
-                                select: { fill: '#111111' }
-                            }
-                        }
-                    },
-                    menuStyle: { background: '#050505', borderColor: '#1a1a1a', padding: '5px' },
-                    menuItemStyle: { color: '#a3a3a3', fontSize: '9px', padding: '6px 10px' },
-                    menuItemHoverStyle: { background: '#6366f1', color: '#ffffff' }
                 },
                 series: [{ 
                     name: 'Count', colorByPoint: true, data: data, enableMouseTracking: false,
@@ -524,6 +528,7 @@
                 },
                 legend: { enabled: false },
                 credits: { enabled: false },
+                exporting: { enabled: false },
                 tooltip: {
                     backgroundColor: '#050505', borderWidth: 1, borderColor: '#1a1a1a',
                     style: { color: '#fff', fontSize: '10px' }, valueSuffix: ' min'
@@ -564,9 +569,13 @@
                 { name: 'OLD', y: dataset.filter(r => String(r.patient_type || '').toLowerCase() === 'old').length, color: '#10b981' }
             ].filter(p => p.y > 0);
             
+            // Render Highcharts Pie Elements
             drawAnimatedPie('patientFlowOverall', 'Patient Flow: Overall', getPatientMetrics(data), '60%');
             drawAnimatedPie('patientFlowConsult', 'Patient Flow: Consults', getPatientMetrics(consultData), '60%');
             drawAnimatedPie('patientFlowProcedure', 'Patient Flow: Procedures', getPatientMetrics([...procedureData, ...loaData]), '60%');
+
+            // Render absolute corner tables inside the chart layouts
+            renderMiniCornerTables(getPatientMetrics(data), getPatientMetrics(consultData), getPatientMetrics([...procedureData, ...loaData]));
 
             const getSlaMetrics = (dataset) => [
                 { name: 'MET', y: dataset.filter(r => String(r.turnaround_time || '').toLowerCase() === 'met').length, color: '#10b981' },
@@ -580,6 +589,14 @@
 
             calculateAndDrawTatBars(consultData, procedureData);
             processTopUtilizationMetrics(data);
+        }
+
+        function renderMiniCornerTables(overallMetrics, consultMetrics, procedureMetrics) {
+            const buildRows = metrics => metrics.map(m => `<tr><td class="pr-2 text-neutral-500">${m.name}:</td><td class="text-white font-black">${m.y}</td></tr>`).join('');
+            
+            document.getElementById('miniTableOverall').innerHTML = buildRows(overallMetrics);
+            document.getElementById('miniTableConsult').innerHTML = buildRows(consultMetrics);
+            document.getElementById('miniTableProcedure').innerHTML = buildRows(procedureMetrics);
         }
 
         function calculateAndDrawTatBars(consults, procedures) {
