@@ -196,8 +196,14 @@
             </form>
         </div>
 
-        <div class="mb-5 relative max-w-md">
-            <input type="text" id="patientSearchInput" oninput="filterTableBySearch()" placeholder="🔍 Search patient by name..." class="w-full rounded-xl p-3 pl-10 text-sm bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 focus:outline-none focus:border-blue-500 text-slate-900 dark:text-slate-100 shadow-sm">
+        <!-- Filter Controls Bar -->
+        <div class="mb-5 flex flex-col sm:flex-row gap-3 max-w-xl">
+            <div class="relative flex-1">
+                <input type="text" id="patientSearchInput" oninput="filterTableBySearch()" placeholder="🔍 Search patient by name..." class="w-full rounded-xl p-3 pl-10 text-sm bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 focus:outline-none focus:border-blue-500 text-slate-900 dark:text-slate-100 shadow-sm">
+            </div>
+            <div class="relative">
+                <input type="date" id="dateFilterInput" onchange="fetchRecords()" class="w-full sm:w-auto rounded-xl p-3 text-sm bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 focus:outline-none focus:border-blue-500 text-slate-900 dark:text-slate-100 shadow-sm font-medium">
+            </div>
         </div>
 
         <div class="table-container backdrop-blur-sm">
@@ -231,6 +237,9 @@
         let selectedServices = [];
         let currentRecordDataset = []; 
         let isEditMode = false; 
+
+        // Set default date filter to Today
+        document.getElementById('dateFilterInput').value = new Date().toISOString().split('T')[0];
 
         function toggleTheme() {
             const root = document.documentElement;
@@ -556,8 +565,21 @@
             renderTable(items);
         }
 
+        // Adapted from dash V1: Date-specific data fetching
         async function fetchRecords() {
-            const { data, error } = await _supabase.from('hmo_monitoring').select('*').order('created_at', { ascending: false });
+            const selectedDateVal = document.getElementById('dateFilterInput').value;
+            if (!selectedDateVal) return;
+
+            const startDate = `${selectedDateVal}T00:00:00.000Z`;
+            const endDate = `${selectedDateVal}T23:59:59.999Z`;
+
+            const { data, error } = await _supabase
+                .from('hmo_monitoring')
+                .select('*')
+                .gte('created_at', startDate)
+                .lte('created_at', endDate)
+                .order('created_at', { ascending: false });
+
             if (!error) {
                 currentRecordDataset = data;
                 filterTableBySearch(); 
