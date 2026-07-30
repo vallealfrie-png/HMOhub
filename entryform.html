@@ -538,7 +538,7 @@
             const arrival = new Date(arrivalTime);
             const diffMins = Math.floor((endCallTime - arrival) / 60000);
             
-            const limit = transType.includes('Consult') ? 5 : 30;
+            const limit = transType.includes('Consult') ? 10 : 40;
             const turnaround_time = diffMins <= limit ? "MET" : "NOT MET";
 
             const { error } = await _supabase.from('hmo_monitoring').update({
@@ -692,7 +692,7 @@
                 const arrival = new Date(document.getElementById('time_of_arrival').value);
                 const diffMins = Math.floor((endCallTime - arrival) / 60000);
                 
-                const limit = selectedTransType.includes('Consult') ? 5 : 30;
+                const limit = selectedTransType.includes('Consult') ? 10 : 40;
                 const turnaround_time = diffMins <= limit ? "MET" : "NOT MET";
 
                 const { error } = await _supabase.from('hmo_monitoring').update({
