@@ -238,8 +238,17 @@
         let currentRecordDataset = []; 
         let isEditMode = false; 
 
-        // Set default date filter to Today
-        document.getElementById('dateFilterInput').value = new Date().toISOString().split('T')[0];
+        // Helper function to dynamically construct the current local date string (YYYY-MM-DD)
+        function getLocalDateString() {
+            const today = new Date();
+            const year = today.getFullYear();
+            const month = String(today.getMonth() + 1).padStart(2, '0');
+            const day = String(today.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+        // Set default date filter to local Today
+        document.getElementById('dateFilterInput').value = getLocalDateString();
 
         function toggleTheme() {
             const root = document.documentElement;
@@ -565,7 +574,7 @@
             renderTable(items);
         }
 
-        // Adapted from dash V1: Date-specific data fetching
+        // Date-specific data fetching based on selected date filter
         async function fetchRecords() {
             const selectedDateVal = document.getElementById('dateFilterInput').value;
             if (!selectedDateVal) return;
