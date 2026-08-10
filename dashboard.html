@@ -112,7 +112,7 @@
             <div class="glass p-4 border-l-4 border-cyan-500 bg-cyan-950/5 animated-glow min-w-0">
                 <p class="text-[8px] font-black text-neutral-400 uppercase tracking-widest truncate">Gross Revenue</p>
                 <h3 id="countRevenue" class="fluid-number font-black tabular-nums text-cyan-400 tracking-tight whitespace-nowrap overflow-hidden select-all mt-1">₱0.00</h3>
-                <p class="text-[7px] text-neutral-500 uppercase font-semibold mt-1">Excludes Clinic(Procedure)</p>
+                <p class="text-[7px] text-neutral-500 uppercase font-semibold mt-1">Procedure Types Only</p>
             </div>
             <div class="glass p-4 border-l-4 border-amber-500 bg-amber-950/5 animated-glow min-w-0">
                 <p class="text-[8px] font-black text-neutral-400 uppercase tracking-widest truncate">Total Census</p>
@@ -585,11 +585,15 @@
         function render(filter) {
             let data = filter === 'all' ? masterData : masterData.filter(r => r.name_of_associate === filter);
             
-            // EXCLUDE Clinic(Procedure) from Gross Revenue
+            // Calculate Gross Revenue ONLY for Procedures/LOAs (excluding Clinic(Procedure))
             const grossSum = data.reduce((acc, c) => {
                 const type = String(c.transaction_type || '').toLowerCase().trim();
                 if (type === 'clinic(procedure)') return acc;
-                return acc + parseFloat(c.amount || 0);
+                
+                if (type.includes('procedure') || type.includes('loa')) {
+                    return acc + parseFloat(c.amount || 0);
+                }
+                return acc;
             }, 0);
 
             document.getElementById('countRevenue').innerText = '₱' + grossSum.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
