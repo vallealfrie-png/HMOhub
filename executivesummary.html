@@ -1,0 +1,1462 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-slate-50">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HMO Monitoring Report - Healthcare Authorization & Performance</title>
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            dark: '#2F6B4F',
+                            light: '#8ABB6C',
+                            gold: '#C7A24A',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- Google Fonts Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Supabase JS CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <!-- Highcharts Core & Modules -->
+    <script src="https://code.highcharts.com/highcharts.js"></script>
+    <script src="https://code.highcharts.com/modules/exporting.js"></script>
+    <script src="https://code.highcharts.com/modules/export-data.js"></script>
+    <script src="https://code.highcharts.com/modules/accessibility.js"></script>
+
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        
+        /* Print Stylesheet Rules */
+        @media print {
+            .no-print { display: none !important; }
+            body { background-color: #ffffff !important; color: #000000 !important; }
+            .print-break-inside-avoid { break-inside: avoid; }
+            .shadow-sm, .shadow-md, .shadow-lg { box-shadow: none !important; }
+            .border { border-color: #e2e8f0 !important; }
+            .highcharts-container { width: 100% !important; }
+            @page { margin: 1cm; size: landscape; }
+        }
+        
+        /* Custom Scrollbars for Data Tables */
+        .custom-scrollbar::-webkit-scrollbar { height: 6px; width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    </style>
+</head>
+<body class="text-slate-800 antialiased min-h-full flex flex-col">
+
+    <!-- Top Navigation / Header -->
+    <header class="bg-[#2F6B4F] text-white border-b border-emerald-800 shadow-md">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div>
+                <div class="flex items-center space-x-3">
+                    <div class="bg-[#8ABB6C] text-[#2F6B4F] p-2 rounded-lg font-bold text-xl">HMO</div>
+                    <div>
+                        <h1 class="text-2xl font-bold tracking-tight text-white">HMO Monitoring Report</h1>
+                        <p class="text-xs text-emerald-100 font-medium">Healthcare Authorization & Transaction Performance</p>
+                    </div>
+                </div>
+            </div>
+            <div class="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+                <div class="text-xs text-emerald-100 bg-emerald-900/40 px-3 py-2 rounded-md border border-emerald-700/50">
+                    <div><span class="font-semibold text-white">Period:</span> <span id="headerPeriod">Calculations pending...</span></div>
+                    <div><span class="font-semibold text-white">Generated:</span> <span id="headerGenerated">--</span></div>
+                </div>
+                <button onclick="window.print()" class="no-print inline-flex items-center gap-1.5 bg-[#8ABB6C] hover:bg-emerald-500 text-[#2F6B4F] font-semibold text-sm px-4 py-2 rounded-lg transition shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-400">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
+                    Print Report
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+
+        <!-- Global State Loading / Error Displays -->
+        <div id="loadingState" class="bg-white rounded-xl p-12 text-center border border-slate-200 shadow-sm my-8">
+            <div class="inline-block animate-spin rounded-full h-12 w-12 border-4 border-slate-200 border-t-[#2F6B4F] mb-4"></div>
+            <h3 class="text-lg font-semibold text-slate-700">Loading HMO Monitoring Data...</h3>
+            <p class="text-sm text-slate-500 mt-1">Establishing connection to Supabase repository</p>
+        </div>
+
+        <div id="errorState" class="hidden bg-rose-50 border border-rose-200 rounded-xl p-6 text-rose-800 my-8">
+            <div class="flex items-start gap-3">
+                <svg class="w-6 h-6 text-rose-600 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                <div>
+                    <h3 class="font-bold text-rose-900">Unable to load HMO Monitoring data.</h3>
+                    <p class="text-sm mt-1">Please check your Supabase connection parameters (URL and Anon Key) or check the browser console for details.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Dashboard View Container (hidden during load/error) -->
+        <div id="reportContent" class="hidden space-y-8">
+
+            <!-- 6. FILTER PANEL -->
+            <section class="no-print bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+                <div class="flex items-center justify-between pb-4 border-b border-slate-100 mb-4">
+                    <div class="flex items-center gap-2">
+                        <svg class="w-5 h-5 text-[#2F6B4F]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path></svg>
+                        <h2 class="font-bold text-slate-800">Filter Controls</h2>
+                    </div>
+                    <span id="activeRecordCount" class="text-xs font-semibold bg-emerald-50 text-[#2F6B4F] px-2.5 py-1 rounded-full border border-emerald-200">0 Records Filtered</span>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                    <!-- Date Range -->
+                    <div>
+                        <label class="block text-xs font-medium text-slate-600 mb-1">Start Date</label>
+                        <input type="date" id="filterStartDate" class="w-full text-xs border border-slate-300 rounded-lg p-2 focus:ring-2 focus:ring-[#2F6B4F] focus:border-[#2F6B4F] outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-600 mb-1">End Date</label>
+                        <input type="date" id="filterEndDate" class="w-full text-xs border border-slate-300 rounded-lg p-2 focus:ring-2 focus:ring-[#2F6B4F] focus:border-[#2F6B4F] outline-none">
+                    </div>
+
+                    <!-- HMO / Card Company -->
+                    <div>
+                        <label class="block text-xs font-medium text-slate-600 mb-1">HMO / Card Company</label>
+                        <select id="filterCardCompany" class="w-full text-xs border border-slate-300 rounded-lg p-2 bg-white focus:ring-2 focus:ring-[#2F6B4F] focus:border-[#2F6B4F] outline-none">
+                            <option value="">All HMO Companies</option>
+                        </select>
+                    </div>
+
+                    <!-- Transaction Type -->
+                    <div>
+                        <label class="block text-xs font-medium text-slate-600 mb-1">Transaction Type</label>
+                        <select id="filterTransactionType" class="w-full text-xs border border-slate-300 rounded-lg p-2 bg-white focus:ring-2 focus:ring-[#2F6B4F] focus:border-[#2F6B4F] outline-none">
+                            <option value="">All Types</option>
+                        </select>
+                    </div>
+
+                    <!-- Patient Type -->
+                    <div>
+                        <label class="block text-xs font-medium text-slate-600 mb-1">Patient Type</label>
+                        <select id="filterPatientType" class="w-full text-xs border border-slate-300 rounded-lg p-2 bg-white focus:ring-2 focus:ring-[#2F6B4F] focus:border-[#2F6B4F] outline-none">
+                            <option value="">All Patient Types</option>
+                        </select>
+                    </div>
+
+                    <!-- Status -->
+                    <div>
+                        <label class="block text-xs font-medium text-slate-600 mb-1">Status</label>
+                        <select id="filterStatus" class="w-full text-xs border border-slate-300 rounded-lg p-2 bg-white focus:ring-2 focus:ring-[#2F6B4F] focus:border-[#2F6B4F] outline-none">
+                            <option value="">All Statuses</option>
+                        </select>
+                    </div>
+
+                    <!-- Turnaround Time -->
+                    <div>
+                        <label class="block text-xs font-medium text-slate-600 mb-1">Turnaround Time</label>
+                        <select id="filterTurnaroundTime" class="w-full text-xs border border-slate-300 rounded-lg p-2 bg-white focus:ring-2 focus:ring-[#2F6B4F] focus:border-[#2F6B4F] outline-none">
+                            <option value="">All</option>
+                            <option value="MET">MET</option>
+                            <option value="NOT MET">NOT MET</option>
+                            <option value="PENDING">PENDING</option>
+                        </select>
+                    </div>
+
+                    <!-- Associate -->
+                    <div>
+                        <label class="block text-xs font-medium text-slate-600 mb-1">Associate</label>
+                        <select id="filterAssociate" class="w-full text-xs border border-slate-300 rounded-lg p-2 bg-white focus:ring-2 focus:ring-[#2F6B4F] focus:border-[#2F6B4F] outline-none">
+                            <option value="">All Associates</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="flex justify-end gap-3 mt-5 pt-4 border-t border-slate-100">
+                    <button id="btnResetFilters" class="px-4 py-2 border border-slate-300 hover:bg-slate-50 text-slate-700 font-semibold text-xs rounded-lg transition">
+                        Reset Filters
+                    </button>
+                    <button id="btnApplyFilters" class="px-5 py-2 bg-[#2F6B4F] hover:bg-emerald-900 text-white font-semibold text-xs rounded-lg shadow-sm transition">
+                        Apply Filters
+                    </button>
+                </div>
+            </section>
+
+            <!-- 27. EMPTY FILTER STATE -->
+            <div id="emptyFilterState" class="hidden bg-amber-50 border border-amber-200 rounded-xl p-8 text-center text-amber-900 my-6">
+                <svg class="w-10 h-10 text-amber-500 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                <h3 class="font-bold text-lg">No transactions found for the selected filters.</h3>
+                <p class="text-sm mt-1 text-amber-700">Please adjust or clear your selected criteria to view performance metrics.</p>
+            </div>
+
+            <!-- Content Container Wrapper (toggled by empty state) -->
+            <div id="dashboardDataContainer" class="space-y-8">
+
+                <!-- 7. EXECUTIVE KPI CARDS -->
+                <section class="print-break-inside-avoid">
+                    <h2 class="text-xs font-bold uppercase tracking-wider text-slate-500 mb-3">Executive Metrics Overview</h2>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+                        <!-- Total Tx -->
+                        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                            <div class="text-xs font-semibold text-slate-500 uppercase">Total Transactions</div>
+                            <div class="text-2xl font-bold text-slate-900 mt-1" id="kpiTotalTx">0</div>
+                            <div class="text-[11px] text-slate-400 mt-1">100% Volume Share</div>
+                        </div>
+                        <!-- Approved & Rate -->
+                        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm border-l-4 border-l-emerald-600">
+                            <div class="text-xs font-semibold text-slate-500 uppercase">Approved</div>
+                            <div class="text-2xl font-bold text-emerald-700 mt-1" id="kpiApproved">0</div>
+                            <div class="text-[11px] text-emerald-600 font-semibold mt-1" id="kpiApprovalRate">0.0% Approval Rate</div>
+                        </div>
+                        <!-- Cancel / Disapproved / On Process -->
+                        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                            <div class="text-xs font-semibold text-slate-500 uppercase">Cancel / Disapp. / Proc.</div>
+                            <div class="text-lg font-bold text-slate-800 mt-1 flex justify-between">
+                                <span title="Cancelled" id="kpiCancelled" class="text-amber-600">0</span>
+                                <span class="text-slate-300">/</span>
+                                <span title="Disapproved" id="kpiDisapproved" class="text-rose-600">0</span>
+                                <span class="text-slate-300">/</span>
+                                <span title="On Process" id="kpiOnProcess" class="text-blue-600">0</span>
+                            </div>
+                            <div class="text-[11px] text-slate-400 mt-1">Cancelled / Disapproved / Process</div>
+                        </div>
+                        <!-- TAT Performance -->
+                        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm border-l-4 border-l-blue-600">
+                            <div class="text-xs font-semibold text-slate-500 uppercase">TAT MET / NOT MET</div>
+                            <div class="text-lg font-bold text-slate-800 mt-1 flex items-baseline gap-2">
+                                <span id="kpiTatMet" class="text-emerald-700 text-2xl">0</span>
+                                <span class="text-xs text-slate-400">vs</span>
+                                <span id="kpiTatNotMet" class="text-rose-600 text-xl">0</span>
+                            </div>
+                            <div class="text-[11px] text-blue-600 font-semibold mt-1" id="kpiTatMetRate">0.0% TAT Compliance</div>
+                        </div>
+                        <!-- Total Amount -->
+                        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm border-l-4 border-l-amber-500">
+                            <div class="text-xs font-semibold text-slate-500 uppercase">Total Recorded Amount</div>
+                            <div class="text-2xl font-bold text-slate-900 mt-1" id="kpiTotalAmount">₱0.00</div>
+                            <div class="text-[11px] text-slate-400 mt-1">Sum of authorization values</div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 8. EXECUTIVE SUMMARY -->
+                <section class="bg-gradient-to-r from-emerald-900 to-[#2F6B4F] text-white rounded-xl p-6 shadow-md print-break-inside-avoid">
+                    <h2 class="text-sm font-bold uppercase tracking-wider text-[#8ABB6C] mb-2 flex items-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                        Executive Operational Summary
+                    </h2>
+                    <p id="executiveSummaryText" class="text-base leading-relaxed text-emerald-50">
+                        Calculating dynamic operational performance metrics...
+                    </p>
+                </section>
+
+                <!-- 9. TRANSACTION STATUS ANALYSIS -->
+                <section class="bg-white rounded-xl border border-slate-200 shadow-sm p-6 print-break-inside-avoid">
+                    <h2 class="text-lg font-bold text-slate-800 mb-4">Transaction Status Analysis</h2>
+                    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
+                        <div class="lg:col-span-5">
+                            <div id="statusChart" class="w-full h-72"></div>
+                        </div>
+                        <div class="lg:col-span-7 overflow-x-auto custom-scrollbar">
+                            <table class="w-full text-sm text-left border-collapse">
+                                <thead>
+                                    <tr class="bg-slate-50 border-b border-slate-200 text-xs text-slate-600 font-semibold uppercase">
+                                        <th class="py-3 px-4">Status</th>
+                                        <th class="py-3 px-4 text-right">Transactions</th>
+                                        <th class="py-3 px-4 text-right">% of Total</th>
+                                        <th class="py-3 px-4 text-right">Amount</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="statusTableBody" class="divide-y divide-slate-100"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 10. HMO / CARD COMPANY PERFORMANCE -->
+                <section class="bg-white rounded-xl border border-slate-200 shadow-sm p-6 print-break-inside-avoid">
+                    <h2 class="text-lg font-bold text-slate-800 mb-4">HMO / Card Company Performance</h2>
+                    <div class="space-y-6">
+                        <div id="hmoChart" class="w-full h-80"></div>
+                        <div class="overflow-x-auto custom-scrollbar">
+                            <table class="w-full text-sm text-left border-collapse">
+                                <thead>
+                                    <tr class="bg-slate-50 border-b border-slate-200 text-xs text-slate-600 font-semibold uppercase">
+                                        <th class="py-3 px-4">Card Company</th>
+                                        <th class="py-3 px-4 text-right">Transactions</th>
+                                        <th class="py-3 px-4 text-right">Volume %</th>
+                                        <th class="py-3 px-4 text-right">Amount</th>
+                                        <th class="py-3 px-4 text-right">Approved</th>
+                                        <th class="py-3 px-4 text-right">TAT NOT MET</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="hmoTableBody" class="divide-y divide-slate-100"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 11. TRANSACTION TYPE ANALYSIS -->
+                <section class="bg-white rounded-xl border border-slate-200 shadow-sm p-6 print-break-inside-avoid">
+                    <h2 class="text-lg font-bold text-slate-800 mb-4">Transaction Type Analysis</h2>
+                    <div class="space-y-6">
+                        <div id="transactionTypeChart" class="w-full h-80"></div>
+                        <div class="overflow-x-auto custom-scrollbar">
+                            <table class="w-full text-sm text-left border-collapse">
+                                <thead>
+                                    <tr class="bg-slate-50 border-b border-slate-200 text-xs text-slate-600 font-semibold uppercase">
+                                        <th class="py-3 px-4">Transaction Type</th>
+                                        <th class="py-3 px-4 text-right">Transactions</th>
+                                        <th class="py-3 px-4 text-right">Share %</th>
+                                        <th class="py-3 px-4 text-right">Amount</th>
+                                        <th class="py-3 px-4 text-right">Average Amount</th>
+                                        <th class="py-3 px-4 text-right">TAT NOT MET</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="transactionTypeTableBody" class="divide-y divide-slate-100"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 12. PATIENT TYPE ANALYSIS -->
+                <section class="bg-white rounded-xl border border-slate-200 shadow-sm p-6 print-break-inside-avoid">
+                    <h2 class="text-lg font-bold text-slate-800 mb-4">Patient Type Analysis</h2>
+                    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
+                        <div class="lg:col-span-5">
+                            <div id="patientTypeChart" class="w-full h-72"></div>
+                        </div>
+                        <div class="lg:col-span-7 overflow-x-auto custom-scrollbar">
+                            <table class="w-full text-sm text-left border-collapse">
+                                <thead>
+                                    <tr class="bg-slate-50 border-b border-slate-200 text-xs text-slate-600 font-semibold uppercase">
+                                        <th class="py-3 px-4">Patient Type</th>
+                                        <th class="py-3 px-4 text-right">Transactions</th>
+                                        <th class="py-3 px-4 text-right">Share %</th>
+                                        <th class="py-3 px-4 text-right">Amount</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="patientTypeTableBody" class="divide-y divide-slate-100"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 13. TRANSACTION AMOUNT ANALYSIS -->
+                <section class="bg-white rounded-xl border border-slate-200 shadow-sm p-6 print-break-inside-avoid">
+                    <h2 class="text-lg font-bold text-slate-800 mb-4">Transaction Amount Analysis</h2>
+                    
+                    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
+                        <div class="bg-slate-50 p-3 rounded-lg border border-slate-200">
+                            <div class="text-[11px] font-semibold text-slate-500 uppercase">Total Recorded</div>
+                            <div class="text-base font-bold text-slate-900 mt-1" id="amtCardTotal">₱0.00</div>
+                        </div>
+                        <div class="bg-slate-50 p-3 rounded-lg border border-slate-200">
+                            <div class="text-[11px] font-semibold text-emerald-700 uppercase">Approved</div>
+                            <div class="text-base font-bold text-emerald-700 mt-1" id="amtCardApproved">₱0.00</div>
+                        </div>
+                        <div class="bg-slate-50 p-3 rounded-lg border border-slate-200">
+                            <div class="text-[11px] font-semibold text-amber-700 uppercase">Cancelled</div>
+                            <div class="text-base font-bold text-amber-700 mt-1" id="amtCardCancelled">₱0.00</div>
+                        </div>
+                        <div class="bg-slate-50 p-3 rounded-lg border border-slate-200">
+                            <div class="text-[11px] font-semibold text-rose-700 uppercase">Disapproved</div>
+                            <div class="text-base font-bold text-rose-700 mt-1" id="amtCardDisapproved">₱0.00</div>
+                        </div>
+                        <div class="bg-slate-50 p-3 rounded-lg border border-slate-200">
+                            <div class="text-[11px] font-semibold text-blue-700 uppercase">On Process</div>
+                            <div class="text-base font-bold text-blue-700 mt-1" id="amtCardOnProcess">₱0.00</div>
+                        </div>
+                        <div class="bg-slate-50 p-3 rounded-lg border border-slate-200">
+                            <div class="text-[11px] font-semibold text-slate-600 uppercase">Average Tx</div>
+                            <div class="text-base font-bold text-slate-800 mt-1" id="amtCardAverage">₱0.00</div>
+                        </div>
+                    </div>
+
+                    <div id="amountChart" class="w-full h-80"></div>
+                </section>
+
+                <!-- 14. & 15. TURNAROUND TIME PERFORMANCE -->
+                <section class="bg-white rounded-xl border border-slate-200 shadow-sm p-6 print-break-inside-avoid">
+                    <h2 class="text-lg font-bold text-slate-800 mb-4">Turnaround Time Performance</h2>
+                    
+                    <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3 mb-6">
+                        <div class="bg-emerald-50 border border-emerald-200 p-3 rounded-lg">
+                            <div class="text-[11px] font-bold text-emerald-800 uppercase">TAT MET</div>
+                            <div class="text-xl font-bold text-emerald-900 mt-1" id="tatCardMet">0</div>
+                        </div>
+                        <div class="bg-rose-50 border border-rose-200 p-3 rounded-lg">
+                            <div class="text-[11px] font-bold text-rose-800 uppercase">TAT NOT MET</div>
+                            <div class="text-xl font-bold text-rose-900 mt-1" id="tatCardNotMet">0</div>
+                        </div>
+                        <div class="bg-amber-50 border border-amber-200 p-3 rounded-lg">
+                            <div class="text-[11px] font-bold text-amber-800 uppercase">Pending</div>
+                            <div class="text-xl font-bold text-amber-900 mt-1" id="tatCardPending">0</div>
+                        </div>
+                        <div class="bg-slate-50 border border-slate-200 p-3 rounded-lg">
+                            <div class="text-[11px] font-bold text-slate-600 uppercase">Average TAT</div>
+                            <div class="text-xl font-bold text-slate-900 mt-1" id="tatCardAvg">0.0 min</div>
+                        </div>
+                        <div class="bg-slate-50 border border-slate-200 p-3 rounded-lg">
+                            <div class="text-[11px] font-bold text-slate-600 uppercase">Median TAT</div>
+                            <div class="text-xl font-bold text-slate-900 mt-1" id="tatCardMedian">0.0 min</div>
+                        </div>
+                        <div class="bg-slate-50 border border-slate-200 p-3 rounded-lg">
+                            <div class="text-[11px] font-bold text-slate-600 uppercase">P90 TAT</div>
+                            <div class="text-xl font-bold text-slate-900 mt-1" id="tatCardP90">0.0 min</div>
+                        </div>
+                        <div class="bg-slate-50 border border-slate-200 p-3 rounded-lg">
+                            <div class="text-[11px] font-bold text-slate-600 uppercase">Max TAT</div>
+                            <div class="text-xl font-bold text-slate-900 mt-1" id="tatCardMax">0.0 min</div>
+                        </div>
+                    </div>
+
+                    <div id="tatPerformanceChart" class="w-full h-72"></div>
+                </section>
+
+                <!-- 16. TAT BY TRANSACTION TYPE -->
+                <section class="bg-white rounded-xl border border-slate-200 shadow-sm p-6 print-break-inside-avoid">
+                    <h2 class="text-lg font-bold text-slate-800 mb-4">Turnaround Time by Transaction Type</h2>
+                    <div class="space-y-6">
+                        <div id="tatTxTypeChart" class="w-full h-80"></div>
+                        <div class="overflow-x-auto custom-scrollbar">
+                            <table class="w-full text-sm text-left border-collapse">
+                                <thead>
+                                    <tr class="bg-slate-50 border-b border-slate-200 text-xs text-slate-600 font-semibold uppercase">
+                                        <th class="py-3 px-4">Transaction Type</th>
+                                        <th class="py-3 px-4 text-right">Transactions</th>
+                                        <th class="py-3 px-4 text-right">Avg TAT</th>
+                                        <th class="py-3 px-4 text-right">Median TAT</th>
+                                        <th class="py-3 px-4 text-right">TAT MET</th>
+                                        <th class="py-3 px-4 text-right">TAT NOT MET</th>
+                                        <th class="py-3 px-4 text-right">NOT-MET Rate</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tatTxTypeTableBody" class="divide-y divide-slate-100"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 17. TAT BY HMO -->
+                <section class="bg-white rounded-xl border border-slate-200 shadow-sm p-6 print-break-inside-avoid">
+                    <h2 class="text-lg font-bold text-slate-800 mb-4">Turnaround Time by HMO</h2>
+                    <div class="space-y-6">
+                        <div id="tatHmoChart" class="w-full h-80"></div>
+                        <div class="overflow-x-auto custom-scrollbar">
+                            <table class="w-full text-sm text-left border-collapse">
+                                <thead>
+                                    <tr class="bg-slate-50 border-b border-slate-200 text-xs text-slate-600 font-semibold uppercase">
+                                        <th class="py-3 px-4">HMO / Card Company</th>
+                                        <th class="py-3 px-4 text-right">Transactions</th>
+                                        <th class="py-3 px-4 text-right">Avg TAT</th>
+                                        <th class="py-3 px-4 text-right">TAT MET</th>
+                                        <th class="py-3 px-4 text-right">TAT NOT MET</th>
+                                        <th class="py-3 px-4 text-right">NOT-MET Rate</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tatHmoTableBody" class="divide-y divide-slate-100"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 18. ASSOCIATE WORKLOAD -->
+                <section class="bg-white rounded-xl border border-slate-200 shadow-sm p-6 print-break-inside-avoid">
+                    <h2 class="text-lg font-bold text-slate-800 mb-4">Associate Workload</h2>
+                    <div class="space-y-6">
+                        <div id="associateChart" class="w-full h-80"></div>
+                        <div class="overflow-x-auto custom-scrollbar">
+                            <table class="w-full text-sm text-left border-collapse">
+                                <thead>
+                                    <tr class="bg-slate-50 border-b border-slate-200 text-xs text-slate-600 font-semibold uppercase">
+                                        <th class="py-3 px-4">Associate</th>
+                                        <th class="py-3 px-4 text-right">Transactions</th>
+                                        <th class="py-3 px-4 text-right">Amount</th>
+                                        <th class="py-3 px-4 text-right">Avg TAT</th>
+                                        <th class="py-3 px-4 text-right">TAT NOT MET</th>
+                                        <th class="py-3 px-4 text-right">NOT-MET Rate</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="associateTableBody" class="divide-y divide-slate-100"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 19. DAILY TRANSACTION TREND -->
+                <section class="bg-white rounded-xl border border-slate-200 shadow-sm p-6 print-break-inside-avoid space-y-8">
+                    <div>
+                        <h2 class="text-lg font-bold text-slate-800 mb-4">Daily Transaction Volume Trend</h2>
+                        <div id="dailyTrendChart" class="w-full h-80"></div>
+                    </div>
+                    
+                    <div class="pt-6 border-t border-slate-100">
+                        <h2 class="text-lg font-bold text-slate-800 mb-4">Daily Recorded Transaction Amount</h2>
+                        <div id="dailyAmountTrendChart" class="w-full h-80"></div>
+                    </div>
+                </section>
+
+            </div> <!-- End Dashboard Data Container -->
+        </div> <!-- End Report Content -->
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-slate-100 border-t border-slate-200 py-6 text-center text-xs text-slate-500 no-print mt-auto">
+        <div class="max-w-7xl mx-auto px-4">
+            HMO Monitoring Management Report &bull; Powered by Supabase & Highcharts
+        </div>
+    </footer>
+
+    <!-- JavaScript Implementation -->
+    <script>
+        // ==========================================
+        // 4. SUPABASE CONNECTION CONFIGURATION
+        // ==========================================
+        const SUPABASE_URL = 'YOUR_SUPABASE_URL';
+        const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
+
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        // Global State Registry
+        let rawData = [];
+        let filteredData = [];
+        const charts = {};
+
+        // ==========================================
+        // 20. HIGHCHARTS GLOBAL STYLE CONFIGURATION
+        // ==========================================
+        Highcharts.setOptions({
+            colors: [
+                '#2F6B4F', // Primary Healthcare Green
+                '#8ABB6C', // Secondary Light Green
+                '#C7A24A', // Corporate Gold
+                '#16A34A', // Success / MET
+                '#D97706', // Warning / Pending
+                '#DC2626', // Danger / NOT MET
+                '#64748B', // Neutral Slate
+                '#3B82F6'  // Accent Blue
+            ],
+            chart: {
+                backgroundColor: 'transparent',
+                style: {
+                    fontFamily: 'Inter, Arial, sans-serif'
+                }
+            },
+            title: {
+                style: {
+                    fontWeight: '600',
+                    color: '#1F2937',
+                    fontSize: '14px'
+                }
+            },
+            credits: {
+                enabled: false
+            },
+            accessibility: {
+                enabled: true
+            },
+            exporting: {
+                enabled: true,
+                buttons: {
+                    contextButton: {
+                        menuItems: [
+                            'viewFullscreen', 'separator',
+                            'downloadPNG', 'downloadJPEG', 'downloadPDF', 'downloadSVG',
+                            'separator',
+                            'downloadCSV', 'downloadXLS', 'viewData'
+                        ]
+                    }
+                }
+            }
+        });
+
+        // ==========================================
+        // 29. HELPER FUNCTIONS
+        // ==========================================
+        function formatCurrency(val) {
+            const num = Number(val) || 0;
+            return new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' }).format(num);
+        }
+
+        function formatNumber(val) {
+            const num = Number(val) || 0;
+            return new Intl.NumberFormat('en-US').format(num);
+        }
+
+        function formatPercentage(val) {
+            const num = Number(val) || 0;
+            return `${num.toFixed(1)}%`;
+        }
+
+        function formatMinutes(val) {
+            const num = Number(val) || 0;
+            return `${num.toFixed(1)} min`;
+        }
+
+        function calculateMedian(arr) {
+            if (!arr || arr.length === 0) return 0;
+            const sorted = [...arr].sort((a, b) => a - b);
+            const middle = Math.floor(sorted.length / 2);
+            if (sorted.length % 2 === 0) {
+                return (sorted[middle - 1] + sorted[middle]) / 2;
+            }
+            return sorted[middle];
+        }
+
+        function calculatePercentile(arr, percentile) {
+            if (!arr || arr.length === 0) return 0;
+            const sorted = [...arr].sort((a, b) => a - b);
+            const index = (percentile / 100) * (sorted.length - 1);
+            const lower = Math.floor(index);
+            const upper = Math.ceil(index);
+            const weight = index - lower;
+            if (upper >= sorted.length) return sorted[sorted.length - 1];
+            return sorted[lower] * (1 - weight) + sorted[upper] * weight;
+        }
+
+        function groupBy(array, key) {
+            return array.reduce((result, currentValue) => {
+                const groupKey = currentValue[key] || 'Unspecified';
+                (result[groupKey] = result[groupKey] || []).push(currentValue);
+                return result;
+            }, {});
+        }
+
+        function escapeHTML(str) {
+            if (!str) return '';
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+
+        function destroyChart(name) {
+            if (charts[name]) {
+                charts[name].destroy();
+                charts[name] = null;
+            }
+        }
+
+        // ==========================================
+        // INITIALIZATION & DATA FETCHING
+        // ==========================================
+        document.addEventListener('DOMContentLoaded', () => {
+            loadData();
+
+            document.getElementById('btnApplyFilters').addEventListener('click', applyFilters);
+            document.getElementById('btnResetFilters').addEventListener('click', resetFilters);
+        });
+
+        async function loadData() {
+            try {
+                document.getElementById('loadingState').classList.remove('hidden');
+                document.getElementById('errorState').classList.add('hidden');
+                document.getElementById('reportContent').classList.add('hidden');
+
+                const { data, error } = await supabaseClient
+                    .from('hmo_monitoring')
+                    .select('*');
+
+                if (error) throw error;
+
+                rawData = data || [];
+                filteredData = [...rawData];
+
+                document.getElementById('loadingState').classList.add('hidden');
+                document.getElementById('reportContent').classList.remove('hidden');
+
+                populateFilterDropdowns();
+                updateReportingPeriodHeader();
+                renderAllDashboardComponents();
+
+            } catch (err) {
+                console.error('Supabase Data Retrieval Error:', err);
+                document.getElementById('loadingState').classList.add('hidden');
+                document.getElementById('errorState').classList.remove('hidden');
+            }
+        }
+
+        // Populates filter options dynamically based on exact column values
+        function populateFilterDropdowns() {
+            const cardCompanies = [...new Set(rawData.map(r => r.card_company).filter(Boolean))].sort();
+            const txTypes = [...new Set(rawData.map(r => r.transaction_type).filter(Boolean))].sort();
+            const patientTypes = [...new Set(rawData.map(r => r.patient_type).filter(Boolean))].sort();
+            const statuses = [...new Set(rawData.map(r => r.status).filter(Boolean))].sort();
+            const associates = [...new Set(rawData.map(r => r.name_of_associate).filter(Boolean))].sort();
+
+            populateSelect('filterCardCompany', cardCompanies);
+            populateSelect('filterTransactionType', txTypes);
+            populateSelect('filterPatientType', patientTypes);
+            populateSelect('filterStatus', statuses);
+            populateSelect('filterAssociate', associates);
+        }
+
+        function populateSelect(elementId, items) {
+            const select = document.getElementById(elementId);
+            items.forEach(item => {
+                const opt = document.createElement('option');
+                opt.value = item;
+                opt.textContent = item;
+                select.appendChild(opt);
+            });
+        }
+
+        // ==========================================
+        // 5. REPORT TITLE & PERIOD CALCULATIONS
+        // ==========================================
+        function updateReportingPeriodHeader() {
+            if (rawData.length === 0) {
+                document.getElementById('headerPeriod').textContent = 'No Data Available';
+                document.getElementById('headerGenerated').textContent = new Date().toLocaleString();
+                return;
+            }
+
+            const dates = rawData
+                .map(r => r.created_at ? new Date(r.created_at) : null)
+                .filter(d => d && !isNaN(d.getTime()));
+
+            if (dates.length === 0) {
+                document.getElementById('headerPeriod').textContent = 'N/A';
+            } else {
+                const minDate = new Date(Math.min(...dates));
+                const maxDate = new Date(Math.max(...dates));
+                const formatOpts = { year: 'numeric', month: 'short', day: 'numeric' };
+                document.getElementById('headerPeriod').textContent = 
+                    `${minDate.toLocaleDateString('en-US', formatOpts)} – ${maxDate.toLocaleDateString('en-US', formatOpts)}`;
+            }
+
+            document.getElementById('headerGenerated').textContent = new Date().toLocaleString('en-US', {
+                year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+            });
+        }
+
+        // ==========================================
+        // 6. FILTER LOGIC
+        // ==========================================
+        function applyFilters() {
+            const startDate = document.getElementById('filterStartDate').value;
+            const endDate = document.getElementById('filterEndDate').value;
+            const cardCompany = document.getElementById('filterCardCompany').value;
+            const transactionType = document.getElementById('filterTransactionType').value;
+            const patientType = document.getElementById('filterPatientType').value;
+            const status = document.getElementById('filterStatus').value;
+            const turnaroundTime = document.getElementById('filterTurnaroundTime').value;
+            const associate = document.getElementById('filterAssociate').value;
+
+            filteredData = rawData.filter(r => {
+                // Date Range Check
+                if (startDate || endDate) {
+                    if (!r.created_at) return false;
+                    const recordDate = new Date(r.created_at).toISOString().split('T')[0];
+                    if (startDate && recordDate < startDate) return false;
+                    if (endDate && recordDate > endDate) return false;
+                }
+
+                if (cardCompany && r.card_company !== cardCompany) return false;
+                if (transactionType && r.transaction_type !== transactionType) return false;
+                if (patientType && r.patient_type !== patientType) return false;
+                if (status && r.status !== status) return false;
+                if (turnaroundTime && r.turnaround_time !== turnaroundTime) return false;
+                if (associate && r.name_of_associate !== associate) return false;
+
+                return true;
+            });
+
+            document.getElementById('activeRecordCount').textContent = `${formatNumber(filteredData.length)} Records Filtered`;
+
+            if (filteredData.length === 0) {
+                document.getElementById('emptyFilterState').classList.remove('hidden');
+                document.getElementById('dashboardDataContainer').classList.add('hidden');
+            } else {
+                document.getElementById('emptyFilterState').classList.add('hidden');
+                document.getElementById('dashboardDataContainer').classList.remove('hidden');
+                renderAllDashboardComponents();
+            }
+        }
+
+        function resetFilters() {
+            document.getElementById('filterStartDate').value = '';
+            document.getElementById('filterEndDate').value = '';
+            document.getElementById('filterCardCompany').value = '';
+            document.getElementById('filterTransactionType').value = '';
+            document.getElementById('filterPatientType').value = '';
+            document.getElementById('filterStatus').value = '';
+            document.getElementById('filterTurnaroundTime').value = '';
+            document.getElementById('filterAssociate').value = '';
+
+            filteredData = [...rawData];
+            document.getElementById('activeRecordCount').textContent = `${formatNumber(filteredData.length)} Records Filtered`;
+            document.getElementById('emptyFilterState').classList.add('hidden');
+            document.getElementById('dashboardDataContainer').classList.remove('hidden');
+
+            renderAllDashboardComponents();
+        }
+
+        // Master Renderer
+        function renderAllDashboardComponents() {
+            const kpis = calculateKPIs();
+            renderKPIs(kpis);
+            renderExecutiveSummary(kpis);
+            renderStatusChart();
+            renderHMOChart();
+            renderTransactionTypeChart();
+            renderPatientTypeChart();
+            renderAmountChart(kpis);
+            renderTATCharts(kpis);
+            renderAssociateChart();
+            renderDailyTrend();
+        }
+
+        // ==========================================
+        // 7. KPI CALCULATIONS & RENDERING
+        // ==========================================
+        function calculateKPIs() {
+            const totalTx = filteredData.length;
+            const approved = filteredData.filter(r => r.status === "Approved").length;
+            const cancelled = filteredData.filter(r => r.status === "Cancel").length;
+            const disapproved = filteredData.filter(r => r.status === "Disapproved").length;
+            const onProcess = filteredData.filter(r => r.status === "On Process").length;
+
+            const tatMet = filteredData.filter(r => r.turnaround_time === "MET").length;
+            const tatNotMet = filteredData.filter(r => r.turnaround_time === "NOT MET").length;
+            const tatPending = filteredData.filter(r => r.turnaround_time === "PENDING" || !r.turnaround_time).length;
+
+            const approvalRate = totalTx > 0 ? (approved / totalTx) * 100 : 0;
+            const tatMetRate = totalTx > 0 ? (tatMet / totalTx) * 100 : 0;
+
+            const totalAmount = filteredData.reduce((sum, r) => sum + (Number(r.amount) || 0), 0);
+            const approvedAmount = filteredData.filter(r => r.status === "Approved").reduce((sum, r) => sum + (Number(r.amount) || 0), 0);
+            const cancelledAmount = filteredData.filter(r => r.status === "Cancel").reduce((sum, r) => sum + (Number(r.amount) || 0), 0);
+            const disapprovedAmount = filteredData.filter(r => r.status === "Disapproved").reduce((sum, r) => sum + (Number(r.amount) || 0), 0);
+            const onProcessAmount = filteredData.filter(r => r.status === "On Process").reduce((sum, r) => sum + (Number(r.amount) || 0), 0);
+            const avgAmount = totalTx > 0 ? totalAmount / totalTx : 0;
+
+            // TAT Numerical Analysis
+            const tatMins = filteredData
+                .map(r => Number(r.total_mins_of_call))
+                .filter(n => !isNaN(n) && n >= 0);
+
+            const avgTat = tatMins.length > 0 ? tatMins.reduce((a, b) => a + b, 0) / tatMins.length : 0;
+            const medianTat = calculateMedian(tatMins);
+            const p90Tat = calculatePercentile(tatMins, 90);
+            const maxTat = tatMins.length > 0 ? Math.max(...tatMins) : 0;
+
+            return {
+                totalTx, approved, cancelled, disapproved, onProcess,
+                tatMet, tatNotMet, tatPending, approvalRate, tatMetRate,
+                totalAmount, approvedAmount, cancelledAmount, disapprovedAmount, onProcessAmount, avgAmount,
+                avgTat, medianTat, p90Tat, maxTat
+            };
+        }
+
+        function renderKPIs(kpis) {
+            document.getElementById('kpiTotalTx').textContent = formatNumber(kpis.totalTx);
+            document.getElementById('kpiApproved').textContent = formatNumber(kpis.approved);
+            document.getElementById('kpiApprovalRate').textContent = `${formatPercentage(kpis.approvalRate)} Approval Rate`;
+            
+            document.getElementById('kpiCancelled').textContent = formatNumber(kpis.cancelled);
+            document.getElementById('kpiDisapproved').textContent = formatNumber(kpis.disapproved);
+            document.getElementById('kpiOnProcess').textContent = formatNumber(kpis.onProcess);
+
+            document.getElementById('kpiTatMet').textContent = formatNumber(kpis.tatMet);
+            document.getElementById('kpiTatNotMet').textContent = formatNumber(kpis.tatNotMet);
+            document.getElementById('kpiTatMetRate').textContent = `${formatPercentage(kpis.tatMetRate)} TAT Compliance`;
+
+            document.getElementById('kpiTotalAmount').textContent = formatCurrency(kpis.totalAmount);
+        }
+
+        // ==========================================
+        // 8. EXECUTIVE SUMMARY
+        // ==========================================
+        function renderExecutiveSummary(kpis) {
+            const amountInMillions = (kpis.totalAmount / 1000000).toFixed(2);
+            
+            document.getElementById('executiveSummaryText').innerHTML = `
+                The report contains <strong class="text-white">${formatNumber(kpis.totalTx)}</strong> transactions for the selected period. 
+                <strong class="text-white">${formatNumber(kpis.approved)}</strong> transactions were approved, representing a 
+                <strong class="text-white">${formatPercentage(kpis.approvalRate)}</strong> approval rate. 
+                Turnaround Time (TAT) performance shows <strong class="text-white">${formatNumber(kpis.tatMet)} MET</strong> transactions and 
+                <strong class="text-white">${formatNumber(kpis.tatNotMet)} NOT-MET</strong> transactions. 
+                The total recorded transaction amount is <strong class="text-white">${formatCurrency(kpis.totalAmount)}</strong> (₱${amountInMillions}M).
+            `;
+        }
+
+        // ==========================================
+        // 9. TRANSACTION STATUS ANALYSIS
+        // ==========================================
+        function renderStatusChart() {
+            destroyChart('statusChart');
+
+            const grouped = groupBy(filteredData, 'status');
+            const categories = ['Approved', 'Cancel', 'Disapproved', 'On Process'];
+            
+            const seriesData = categories.map(statusName => {
+                const items = grouped[statusName] || [];
+                return {
+                    name: statusName,
+                    y: items.length,
+                    amount: items.reduce((s, r) => s + (Number(r.amount) || 0), 0)
+                };
+            });
+
+            charts['statusChart'] = Highcharts.chart('statusChart', {
+                chart: { type: 'pie' },
+                title: { text: null },
+                plotOptions: {
+                    pie: {
+                        innerSize: '60%',
+                        dataLabels: {
+                            enabled: true,
+                            format: '<b>{point.name}</b>: {point.percentage:.1f}%'
+                        }
+                    }
+                },
+                tooltip: {
+                    formatter: function () {
+                        return `<b>${this.point.name}</b><br/>
+                                Transactions: <b>${formatNumber(this.y)}</b><br/>
+                                Share: <b>${formatPercentage(this.percentage)}</b><br/>
+                                Amount: <b>${formatCurrency(this.point.amount)}</b>`;
+                    }
+                },
+                series: [{
+                    name: 'Transactions',
+                    data: seriesData
+                }]
+            });
+
+            // Table Rendering
+            const tbody = document.getElementById('statusTableBody');
+            tbody.innerHTML = '';
+            
+            const totalCount = filteredData.length;
+            seriesData.forEach(item => {
+                const share = totalCount > 0 ? (item.y / totalCount) * 100 : 0;
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-slate-50 transition';
+                tr.innerHTML = `
+                    <td class="py-3 px-4 font-semibold text-slate-700">${escapeHTML(item.name)}</td>
+                    <td class="py-3 px-4 text-right font-medium">${formatNumber(item.y)}</td>
+                    <td class="py-3 px-4 text-right">${formatPercentage(share)}</td>
+                    <td class="py-3 px-4 text-right font-medium">${formatCurrency(item.amount)}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // ==========================================
+        // 10. HMO / CARD COMPANY PERFORMANCE
+        // ==========================================
+        function renderHMOChart() {
+            destroyChart('hmoChart');
+
+            const grouped = groupBy(filteredData, 'card_company');
+            const hmoStats = Object.keys(grouped).map(company => {
+                const items = grouped[company];
+                const count = items.length;
+                const amount = items.reduce((s, r) => s + (Number(r.amount) || 0), 0);
+                const approved = items.filter(r => r.status === 'Approved').length;
+                const tatNotMet = items.filter(r => r.turnaround_time === 'NOT MET').length;
+                return { company, count, amount, approved, tatNotMet };
+            }).sort((a, b) => b.count - a.count);
+
+            const categories = hmoStats.map(h => h.company);
+            const dataCounts = hmoStats.map(h => h.count);
+
+            charts['hmoChart'] = Highcharts.chart('hmoChart', {
+                chart: { type: 'bar' },
+                title: { text: null },
+                xAxis: { categories: categories, title: { text: null } },
+                yAxis: { title: { text: 'Transactions' }, allowDecimals: false },
+                tooltip: {
+                    formatter: function () {
+                        return `<b>${this.x}</b><br/>Transactions: <b>${formatNumber(this.y)}</b>`;
+                    }
+                },
+                series: [{
+                    name: 'Transactions',
+                    data: dataCounts,
+                    color: '#2F6B4F'
+                }]
+            });
+
+            // Detailed Table
+            const tbody = document.getElementById('hmoTableBody');
+            tbody.innerHTML = '';
+            const totalCount = filteredData.length;
+
+            hmoStats.forEach(stat => {
+                const share = totalCount > 0 ? (stat.count / totalCount) * 100 : 0;
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-slate-50 transition';
+                tr.innerHTML = `
+                    <td class="py-3 px-4 font-semibold text-slate-700">${escapeHTML(stat.company)}</td>
+                    <td class="py-3 px-4 text-right font-medium">${formatNumber(stat.count)}</td>
+                    <td class="py-3 px-4 text-right">${formatPercentage(share)}</td>
+                    <td class="py-3 px-4 text-right font-medium">${formatCurrency(stat.amount)}</td>
+                    <td class="py-3 px-4 text-right text-emerald-700 font-medium">${formatNumber(stat.approved)}</td>
+                    <td class="py-3 px-4 text-right text-rose-600 font-medium">${formatNumber(stat.tatNotMet)}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // ==========================================
+        // 11. TRANSACTION TYPE ANALYSIS
+        // ==========================================
+        function renderTransactionTypeChart() {
+            destroyChart('transactionTypeChart');
+
+            const grouped = groupBy(filteredData, 'transaction_type');
+            const stats = Object.keys(grouped).map(type => {
+                const items = grouped[type];
+                const count = items.length;
+                const amount = items.reduce((s, r) => s + (Number(r.amount) || 0), 0);
+                const avgAmt = count > 0 ? amount / count : 0;
+                const tatNotMet = items.filter(r => r.turnaround_time === 'NOT MET').length;
+                return { type, count, amount, avgAmt, tatNotMet };
+            }).sort((a, b) => b.count - a.count);
+
+            const categories = stats.map(s => s.type);
+            const dataCounts = stats.map(s => s.count);
+
+            charts['transactionTypeChart'] = Highcharts.chart('transactionTypeChart', {
+                chart: { type: 'column' },
+                title: { text: null },
+                xAxis: { categories: categories, crosshair: true },
+                yAxis: { title: { text: 'Transactions' }, allowDecimals: false },
+                tooltip: {
+                    formatter: function () {
+                        return `<b>${this.x}</b><br/>Transactions: <b>${formatNumber(this.y)}</b>`;
+                    }
+                },
+                series: [{
+                    name: 'Transactions',
+                    data: dataCounts,
+                    color: '#8ABB6C'
+                }]
+            });
+
+            // Table
+            const tbody = document.getElementById('transactionTypeTableBody');
+            tbody.innerHTML = '';
+            const totalCount = filteredData.length;
+
+            stats.forEach(stat => {
+                const share = totalCount > 0 ? (stat.count / totalCount) * 100 : 0;
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-slate-50 transition';
+                tr.innerHTML = `
+                    <td class="py-3 px-4 font-semibold text-slate-700">${escapeHTML(stat.type)}</td>
+                    <td class="py-3 px-4 text-right font-medium">${formatNumber(stat.count)}</td>
+                    <td class="py-3 px-4 text-right">${formatPercentage(share)}</td>
+                    <td class="py-3 px-4 text-right font-medium">${formatCurrency(stat.amount)}</td>
+                    <td class="py-3 px-4 text-right">${formatCurrency(stat.avgAmt)}</td>
+                    <td class="py-3 px-4 text-right text-rose-600 font-medium">${formatNumber(stat.tatNotMet)}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // ==========================================
+        // 12. PATIENT TYPE ANALYSIS
+        // ==========================================
+        function renderPatientTypeChart() {
+            destroyChart('patientTypeChart');
+
+            const grouped = groupBy(filteredData, 'patient_type');
+            const seriesData = Object.keys(grouped).map(type => {
+                const items = grouped[type];
+                return {
+                    name: type,
+                    y: items.length,
+                    amount: items.reduce((s, r) => s + (Number(r.amount) || 0), 0)
+                };
+            });
+
+            charts['patientTypeChart'] = Highcharts.chart('patientTypeChart', {
+                chart: { type: 'pie' },
+                title: { text: null },
+                plotOptions: {
+                    pie: {
+                        innerSize: '60%',
+                        dataLabels: {
+                            enabled: true,
+                            format: '<b>{point.name}</b>: {point.percentage:.1f}%'
+                        }
+                    }
+                },
+                tooltip: {
+                    formatter: function () {
+                        return `<b>${this.point.name}</b><br/>
+                                Transactions: <b>${formatNumber(this.y)}</b><br/>
+                                Amount: <b>${formatCurrency(this.point.amount)}</b>`;
+                    }
+                },
+                series: [{
+                    name: 'Patient Types',
+                    data: seriesData
+                }]
+            });
+
+            // Table
+            const tbody = document.getElementById('patientTypeTableBody');
+            tbody.innerHTML = '';
+            const totalCount = filteredData.length;
+
+            seriesData.forEach(item => {
+                const share = totalCount > 0 ? (item.y / totalCount) * 100 : 0;
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-slate-50 transition';
+                tr.innerHTML = `
+                    <td class="py-3 px-4 font-semibold text-slate-700">${escapeHTML(item.name)}</td>
+                    <td class="py-3 px-4 text-right font-medium">${formatNumber(item.y)}</td>
+                    <td class="py-3 px-4 text-right">${formatPercentage(share)}</td>
+                    <td class="py-3 px-4 text-right font-medium">${formatCurrency(item.amount)}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // ==========================================
+        // 13. TRANSACTION AMOUNT ANALYSIS
+        // ==========================================
+        function renderAmountChart(kpis) {
+            destroyChart('amountChart');
+
+            document.getElementById('amtCardTotal').textContent = formatCurrency(kpis.totalAmount);
+            document.getElementById('amtCardApproved').textContent = formatCurrency(kpis.approvedAmount);
+            document.getElementById('amtCardCancelled').textContent = formatCurrency(kpis.cancelledAmount);
+            document.getElementById('amtCardDisapproved').textContent = formatCurrency(kpis.disapprovedAmount);
+            document.getElementById('amtCardOnProcess').textContent = formatCurrency(kpis.onProcessAmount);
+            document.getElementById('amtCardAverage').textContent = formatCurrency(kpis.avgAmount);
+
+            charts['amountChart'] = Highcharts.chart('amountChart', {
+                chart: { type: 'column' },
+                title: { text: 'Status vs Recorded Transaction Amount' },
+                xAxis: { categories: ['Approved', 'Cancel', 'Disapproved', 'On Process'] },
+                yAxis: {
+                    title: { text: 'Recorded Amount (₱)' },
+                    labels: {
+                        formatter: function () {
+                            return '₱' + (this.value >= 1000000 ? (this.value / 1000000) + 'M' : this.value);
+                        }
+                    }
+                },
+                tooltip: {
+                    formatter: function () {
+                        return `<b>${this.x}</b><br/>Recorded Transaction Amount: <b>${formatCurrency(this.y)}</b>`;
+                    }
+                },
+                series: [{
+                    name: 'Recorded Transaction Amount',
+                    data: [
+                        { y: kpis.approvedAmount, color: '#16A34A' },
+                        { y: kpis.cancelledAmount, color: '#D97706' },
+                        { y: kpis.disapprovedAmount, color: '#DC2626' },
+                        { y: kpis.onProcessAmount, color: '#3B82F6' }
+                    ]
+                }]
+            });
+        }
+
+        // ==========================================
+        // 14., 15., 16., 17. TURNAROUND TIME PERFORMANCE & DRILLDOWNS
+        // ==========================================
+        function renderTATCharts(kpis) {
+            // Update TAT Cards
+            document.getElementById('tatCardMet').textContent = formatNumber(kpis.tatMet);
+            document.getElementById('tatCardNotMet').textContent = formatNumber(kpis.tatNotMet);
+            document.getElementById('tatCardPending').textContent = formatNumber(kpis.tatPending);
+            document.getElementById('tatCardAvg').textContent = formatMinutes(kpis.avgTat);
+            document.getElementById('tatCardMedian').textContent = formatMinutes(kpis.medianTat);
+            document.getElementById('tatCardP90').textContent = formatMinutes(kpis.p90Tat);
+            document.getElementById('tatCardMax').textContent = formatMinutes(kpis.maxTat);
+
+            // 15. TAT Doughnut Chart
+            destroyChart('tatPerformanceChart');
+            charts['tatPerformanceChart'] = Highcharts.chart('tatPerformanceChart', {
+                chart: { type: 'pie' },
+                title: { text: 'Turnaround Time Compliance' },
+                plotOptions: {
+                    pie: {
+                        innerSize: '60%',
+                        dataLabels: {
+                            enabled: true,
+                            format: '<b>{point.name}</b>: {point.percentage:.1f}%'
+                        }
+                    }
+                },
+                tooltip: {
+                    formatter: function () {
+                        return `<b>${this.point.name}</b>: ${formatNumber(this.y)} transactions (${formatPercentage(this.percentage)})`;
+                    }
+                },
+                series: [{
+                    name: 'TAT Status',
+                    data: [
+                        { name: 'MET', y: kpis.tatMet, color: '#16A34A' },
+                        { name: 'NOT MET', y: kpis.tatNotMet, color: '#DC2626' },
+                        { name: 'PENDING', y: kpis.tatPending, color: '#D97706' }
+                    ]
+                }]
+            });
+
+            // 16. TAT by Transaction Type
+            renderTATByTxType();
+
+            // 17. TAT by HMO
+            renderTATByHMO();
+        }
+
+        function renderTATByTxType() {
+            destroyChart('tatTxTypeChart');
+
+            const grouped = groupBy(filteredData, 'transaction_type');
+            const stats = Object.keys(grouped).map(type => {
+                const items = grouped[type];
+                const count = items.length;
+                const tatMins = items.map(r => Number(r.total_mins_of_call)).filter(n => !isNaN(n) && n >= 0);
+                const avgTat = tatMins.length > 0 ? tatMins.reduce((a, b) => a + b, 0) / tatMins.length : 0;
+                const medianTat = calculateMedian(tatMins);
+                const tatMet = items.filter(r => r.turnaround_time === 'MET').length;
+                const tatNotMet = items.filter(r => r.turnaround_time === 'NOT MET').length;
+                const notMetRate = count > 0 ? (tatNotMet / count) * 100 : 0;
+
+                return { type, count, avgTat, medianTat, tatMet, tatNotMet, notMetRate };
+            }).sort((a, b) => b.notMetRate - a.notMetRate); // Sorted NOT-MET Rate DESC
+
+            const categories = stats.map(s => s.type);
+            const rates = stats.map(s => Number(s.notMetRate.toFixed(1)));
+
+            charts['tatTxTypeChart'] = Highcharts.chart('tatTxTypeChart', {
+                chart: { type: 'bar' },
+                title: { text: null },
+                xAxis: { categories: categories },
+                yAxis: { title: { text: 'NOT-MET Rate (%)' }, max: 100 },
+                tooltip: {
+                    formatter: function () {
+                        return `<b>${this.x}</b><br/>NOT-MET Rate: <b>${formatPercentage(this.y)}</b>`;
+                    }
+                },
+                series: [{
+                    name: 'NOT-MET Rate',
+                    data: rates,
+                    color: '#DC2626'
+                }]
+            });
+
+            // Table
+            const tbody = document.getElementById('tatTxTypeTableBody');
+            tbody.innerHTML = '';
+            stats.forEach(stat => {
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-slate-50 transition';
+                tr.innerHTML = `
+                    <td class="py-3 px-4 font-semibold text-slate-700">${escapeHTML(stat.type)}</td>
+                    <td class="py-3 px-4 text-right font-medium">${formatNumber(stat.count)}</td>
+                    <td class="py-3 px-4 text-right">${formatMinutes(stat.avgTat)}</td>
+                    <td class="py-3 px-4 text-right">${formatMinutes(stat.medianTat)}</td>
+                    <td class="py-3 px-4 text-right text-emerald-700 font-medium">${formatNumber(stat.tatMet)}</td>
+                    <td class="py-3 px-4 text-right text-rose-600 font-medium">${formatNumber(stat.tatNotMet)}</td>
+                    <td class="py-3 px-4 text-right font-bold text-rose-700">${formatPercentage(stat.notMetRate)}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function renderTATByHMO() {
+            destroyChart('tatHmoChart');
+
+            const grouped = groupBy(filteredData, 'card_company');
+            const stats = Object.keys(grouped).map(company => {
+                const items = grouped[company];
+                const count = items.length;
+                const tatMins = items.map(r => Number(r.total_mins_of_call)).filter(n => !isNaN(n) && n >= 0);
+                const avgTat = tatMins.length > 0 ? tatMins.reduce((a, b) => a + b, 0) / tatMins.length : 0;
+                const tatMet = items.filter(r => r.turnaround_time === 'MET').length;
+                const tatNotMet = items.filter(r => r.turnaround_time === 'NOT MET').length;
+                const notMetRate = count > 0 ? (tatNotMet / count) * 100 : 0;
+
+                return { company, count, avgTat, tatMet, tatNotMet, notMetRate };
+            }).sort((a, b) => b.notMetRate - a.notMetRate); // Sorted NOT-MET Rate DESC
+
+            const categories = stats.map(s => s.company);
+            const rates = stats.map(s => Number(s.notMetRate.toFixed(1)));
+
+            charts['tatHmoChart'] = Highcharts.chart('tatHmoChart', {
+                chart: { type: 'bar' },
+                title: { text: null },
+                xAxis: { categories: categories },
+                yAxis: { title: { text: 'NOT-MET Rate (%)' }, max: 100 },
+                tooltip: {
+                    formatter: function () {
+                        return `<b>${this.x}</b><br/>NOT-MET Rate: <b>${formatPercentage(this.y)}</b>`;
+                    }
+                },
+                series: [{
+                    name: 'NOT-MET Rate',
+                    data: rates,
+                    color: '#DC2626'
+                }]
+            });
+
+            // Table
+            const tbody = document.getElementById('tatHmoTableBody');
+            tbody.innerHTML = '';
+            stats.forEach(stat => {
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-slate-50 transition';
+                tr.innerHTML = `
+                    <td class="py-3 px-4 font-semibold text-slate-700">${escapeHTML(stat.company)}</td>
+                    <td class="py-3 px-4 text-right font-medium">${formatNumber(stat.count)}</td>
+                    <td class="py-3 px-4 text-right">${formatMinutes(stat.avgTat)}</td>
+                    <td class="py-3 px-4 text-right text-emerald-700 font-medium">${formatNumber(stat.tatMet)}</td>
+                    <td class="py-3 px-4 text-right text-rose-600 font-medium">${formatNumber(stat.tatNotMet)}</td>
+                    <td class="py-3 px-4 text-right font-bold text-rose-700">${formatPercentage(stat.notMetRate)}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // ==========================================
+        // 18. ASSOCIATE WORKLOAD
+        // ==========================================
+        function renderAssociateChart() {
+            destroyChart('associateChart');
+
+            const grouped = groupBy(filteredData, 'name_of_associate');
+            const stats = Object.keys(grouped).map(associate => {
+                const items = grouped[associate];
+                const count = items.length;
+                const amount = items.reduce((s, r) => s + (Number(r.amount) || 0), 0);
+                const tatMins = items.map(r => Number(r.total_mins_of_call)).filter(n => !isNaN(n) && n >= 0);
+                const avgTat = tatMins.length > 0 ? tatMins.reduce((a, b) => a + b, 0) / tatMins.length : 0;
+                const tatNotMet = items.filter(r => r.turnaround_time === 'NOT MET').length;
+                const notMetRate = count > 0 ? (tatNotMet / count) * 100 : 0;
+
+                return { associate, count, amount, avgTat, tatNotMet, notMetRate };
+            }).sort((a, b) => b.count - a.count);
+
+            const categories = stats.map(s => s.associate);
+            const dataCounts = stats.map(s => s.count);
+
+            charts['associateChart'] = Highcharts.chart('associateChart', {
+                chart: { type: 'bar' },
+                title: { text: 'Operational Workload Distribution' },
+                xAxis: { categories: categories },
+                yAxis: { title: { text: 'Transactions Processed' }, allowDecimals: false },
+                tooltip: {
+                    formatter: function () {
+                        return `<b>${this.x}</b><br/>Transactions: <b>${formatNumber(this.y)}</b>`;
+                    }
+                },
+                series: [{
+                    name: 'Transactions',
+                    data: dataCounts,
+                    color: '#2F6B4F'
+                }]
+            });
+
+            // Table
+            const tbody = document.getElementById('associateTableBody');
+            tbody.innerHTML = '';
+            stats.forEach(stat => {
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-slate-50 transition';
+                tr.innerHTML = `
+                    <td class="py-3 px-4 font-semibold text-slate-700">${escapeHTML(stat.associate)}</td>
+                    <td class="py-3 px-4 text-right font-medium">${formatNumber(stat.count)}</td>
+                    <td class="py-3 px-4 text-right font-medium">${formatCurrency(stat.amount)}</td>
+                    <td class="py-3 px-4 text-right">${formatMinutes(stat.avgTat)}</td>
+                    <td class="py-3 px-4 text-right text-rose-600 font-medium">${formatNumber(stat.tatNotMet)}</td>
+                    <td class="py-3 px-4 text-right font-bold text-slate-700">${formatPercentage(stat.notMetRate)}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // ==========================================
+        // 19. DAILY TRANSACTION TREND
+        // ==========================================
+        function renderDailyTrend() {
+            destroyChart('dailyTrendChart');
+            destroyChart('dailyAmountTrendChart');
+
+            // Grouping records chronologically by date
+            const dailyMap = {};
+            filteredData.forEach(r => {
+                if (!r.created_at) return;
+                const dateKey = new Date(r.created_at).toISOString().split('T')[0];
+                if (!dailyMap[dateKey]) {
+                    dailyMap[dateKey] = { count: 0, amount: 0 };
+                }
+                dailyMap[dateKey].count += 1;
+                dailyMap[dateKey].amount += (Number(r.amount) || 0);
+            });
+
+            const sortedDates = Object.keys(dailyMap).sort();
+            const counts = sortedDates.map(d => dailyMap[d].count);
+            const amounts = sortedDates.map(d => dailyMap[d].amount);
+
+            // Daily Volume Chart
+            charts['dailyTrendChart'] = Highcharts.chart('dailyTrendChart', {
+                chart: { type: 'spline' },
+                title: { text: null },
+                xAxis: { categories: sortedDates, title: { text: 'Date' } },
+                yAxis: { title: { text: 'Transaction Volume' }, allowDecimals: false },
+                tooltip: {
+                    formatter: function () {
+                        return `Date: <b>${this.x}</b><br/>Transactions: <b>${formatNumber(this.y)}</b>`;
+                    }
+                },
+                series: [{
+                    name: 'Daily Transactions',
+                    data: counts,
+                    color: '#2F6B4F'
+                }]
+            });
+
+            // Daily Amount Trend Chart
+            charts['dailyAmountTrendChart'] = Highcharts.chart('dailyAmountTrendChart', {
+                chart: { type: 'spline' },
+                title: { text: null },
+                xAxis: { categories: sortedDates, title: { text: 'Date' } },
+                yAxis: {
+                    title: { text: 'Recorded Amount (₱)' },
+                    labels: {
+                        formatter: function () {
+                            return '₱' + (this.value >= 1000000 ? (this.value / 1000000) + 'M' : this.value);
+                        }
+                    }
+                },
+                tooltip: {
+                    formatter: function () {
+                        return `Date: <b>${this.x}</b><br/>Amount: <b>${formatCurrency(this.y)}</b>`;
+                    }
+                },
+                series: [{
+                    name: 'Daily Recorded Amount',
+                    data: amounts,
+                    color: '#C7A24A'
+                }]
+            });
+        }
+    </script>
+</body>
+</html>
