@@ -108,26 +108,48 @@
             </div>
         </header>
 
-        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 w-full flex-shrink-0">
+        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 w-full flex-shrink-0 items-start">
             <div class="glass p-4 border-l-4 border-cyan-500 bg-cyan-950/5 animated-glow min-w-0">
                 <p class="text-[8px] font-black text-neutral-400 uppercase tracking-widest truncate">Gross Revenue</p>
                 <h3 id="countRevenue" class="fluid-number font-black tabular-nums text-cyan-400 tracking-tight whitespace-nowrap overflow-hidden select-all mt-1">₱0.00</h3>
+                <p class="text-[7px] text-neutral-500 uppercase font-semibold mt-1">Excludes Clinic(Procedure)</p>
             </div>
             <div class="glass p-4 border-l-4 border-amber-500 bg-amber-950/5 animated-glow min-w-0">
                 <p class="text-[8px] font-black text-neutral-400 uppercase tracking-widest truncate">Total Census</p>
                 <h3 id="countTotalCensus" class="fluid-number font-black tabular-nums whitespace-nowrap overflow-hidden text-amber-400 mt-1">0</h3>
             </div>
-            <div class="glass p-4 border-l-4 border-indigo-600 bg-indigo-950/5 animated-glow min-w-0">
-                <p class="text-[8px] font-black text-neutral-400 uppercase tracking-widest truncate">Consults</p>
-                <h3 id="countConsult" class="fluid-number font-black tabular-nums whitespace-nowrap overflow-hidden text-indigo-400 mt-1">0</h3>
+            
+            <!-- Collapsible Consult Metric Card -->
+            <div class="glass p-4 border-l-4 border-indigo-600 bg-indigo-950/5 animated-glow min-w-0 flex flex-col justify-between">
+                <div>
+                    <div class="flex items-center justify-between">
+                        <p class="text-[8px] font-black text-neutral-400 uppercase tracking-widest truncate">Consults</p>
+                        <button onclick="toggleCardBreakdown('consultBreakdown', 'consultToggleBtn')" id="consultToggleBtn" class="text-[8px] text-indigo-400 hover:text-indigo-300 font-bold uppercase tracking-wider bg-indigo-500/10 px-1.5 py-0.5 rounded transition">
+                            ▼ Details
+                        </button>
+                    </div>
+                    <h3 id="countConsult" class="fluid-number font-black tabular-nums whitespace-nowrap overflow-hidden text-indigo-400 mt-1">0</h3>
+                </div>
+                <div id="consultBreakdown" class="hidden mt-3 pt-2 border-t border-white/5 space-y-1 text-[8.5px] text-neutral-300 font-medium"></div>
             </div>
+
             <div class="glass p-4 border-l-4 border-emerald-600 bg-emerald-950/5 animated-glow min-w-0">
                 <p class="text-[8px] font-black text-neutral-400 uppercase tracking-widest truncate">LOAs</p>
                 <h3 id="countLoa" class="fluid-number font-black tabular-nums whitespace-nowrap overflow-hidden text-emerald-400 mt-1">0</h3>
             </div>
-            <div class="glass p-4 border-l-4 border-rose-600 bg-rose-950/5 animated-glow min-w-0">
-                <p class="text-[8px] font-black text-neutral-400 uppercase tracking-widest truncate">Procedures</p>
-                <h3 id="countProcedure" class="fluid-number font-black tabular-nums whitespace-nowrap overflow-hidden text-rose-400 mt-1">0</h3>
+
+            <!-- Collapsible Procedure Metric Card -->
+            <div class="glass p-4 border-l-4 border-rose-600 bg-rose-950/5 animated-glow min-w-0 flex flex-col justify-between">
+                <div>
+                    <div class="flex items-center justify-between">
+                        <p class="text-[8px] font-black text-neutral-400 uppercase tracking-widest truncate">Procedures</p>
+                        <button onclick="toggleCardBreakdown('procedureBreakdown', 'procedureToggleBtn')" id="procedureToggleBtn" class="text-[8px] text-rose-400 hover:text-rose-300 font-bold uppercase tracking-wider bg-rose-500/10 px-1.5 py-0.5 rounded transition">
+                            ▼ Details
+                        </button>
+                    </div>
+                    <h3 id="countProcedure" class="fluid-number font-black tabular-nums whitespace-nowrap overflow-hidden text-rose-400 mt-1">0</h3>
+                </div>
+                <div id="procedureBreakdown" class="hidden mt-3 pt-2 border-t border-white/5 space-y-1 text-[8.5px] text-neutral-300 font-medium"></div>
             </div>
         </div>
 
@@ -376,6 +398,18 @@
             setTimeout(() => { render(selectedAssociate || 'all'); }, 310);
         }
 
+        function toggleCardBreakdown(containerId, btnId) {
+            const container = document.getElementById(containerId);
+            const btn = document.getElementById(btnId);
+            if (container.classList.contains('hidden')) {
+                container.classList.remove('hidden');
+                btn.innerText = '▲ Hide';
+            } else {
+                container.classList.add('hidden');
+                btn.innerText = '▼ Details';
+            }
+        }
+
         function setQuickScope(scope) {
             const todayStr = new Date().toISOString().split('T')[0];
             const fromInput = document.getElementById('dateFrom');
@@ -484,7 +518,6 @@
                 },
                 credits: { enabled: false }, 
                 accessibility: { enabled: false }, 
-                // EXPORTING DISABLED COMPLETELY: Solves layout shift & container overflow bugs cleanly.
                 exporting: { enabled: false }, 
                 tooltip: { 
                     backgroundColor: '#050505', borderWidth: 1, borderColor: '#1a1a1a',
@@ -552,17 +585,31 @@
         function render(filter) {
             let data = filter === 'all' ? masterData : masterData.filter(r => r.name_of_associate === filter);
             
-            const grossSum = data.reduce((acc, c) => acc + parseFloat(c.amount || 0), 0);
+            // EXCLUDE Clinic(Procedure) from Gross Revenue
+            const grossSum = data.reduce((acc, c) => {
+                const type = String(c.transaction_type || '').toLowerCase().trim();
+                if (type === 'clinic(procedure)') return acc;
+                return acc + parseFloat(c.amount || 0);
+            }, 0);
+
             document.getElementById('countRevenue').innerText = '₱' + grossSum.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
             document.getElementById('countTotalCensus').innerText = data.length;
             
-            const consultData = data.filter(r => String(r.transaction_type || '').toLowerCase() === 'consult');
-            const procedureData = data.filter(r => String(r.transaction_type || '').toLowerCase() === 'procedure');
-            const loaData = data.filter(r => String(r.transaction_type || '').toLowerCase() === 'loa');
+            // Inclusive Substring Matching for Consult vs. Procedure
+            const consultData = data.filter(r => String(r.transaction_type || '').toLowerCase().includes('consult'));
+            const procedureData = data.filter(r => {
+                const type = String(r.transaction_type || '').toLowerCase();
+                return type.includes('procedure') || type.includes('loa');
+            });
+            const loaData = data.filter(r => String(r.transaction_type || '').toLowerCase().includes('loa'));
             
             document.getElementById('countConsult').innerText = consultData.length;
             document.getElementById('countLoa').innerText = loaData.length;
             document.getElementById('countProcedure').innerText = procedureData.length;
+
+            // Render Collapsible Detail Maps
+            renderCardBreakdownDOM('consultBreakdown', consultData);
+            renderCardBreakdownDOM('procedureBreakdown', procedureData);
 
             const getPatientMetrics = (dataset) => [
                 { name: 'NEW', y: dataset.filter(r => String(r.patient_type || '').toLowerCase() === 'new').length, color: '#6366f1' },
@@ -572,10 +619,10 @@
             // Render Highcharts Pie Elements
             drawAnimatedPie('patientFlowOverall', 'Patient Flow: Overall', getPatientMetrics(data), '60%');
             drawAnimatedPie('patientFlowConsult', 'Patient Flow: Consults', getPatientMetrics(consultData), '60%');
-            drawAnimatedPie('patientFlowProcedure', 'Patient Flow: Procedures', getPatientMetrics([...procedureData, ...loaData]), '60%');
+            drawAnimatedPie('patientFlowProcedure', 'Patient Flow: Procedures', getPatientMetrics(procedureData), '60%');
 
             // Render absolute corner tables inside the chart layouts
-            renderMiniCornerTables(getPatientMetrics(data), getPatientMetrics(consultData), getPatientMetrics([...procedureData, ...loaData]));
+            renderMiniCornerTables(getPatientMetrics(data), getPatientMetrics(consultData), getPatientMetrics(procedureData));
 
             const getSlaMetrics = (dataset) => [
                 { name: 'MET', y: dataset.filter(r => String(r.turnaround_time || '').toLowerCase() === 'met').length, color: '#10b981' },
@@ -585,10 +632,30 @@
 
             drawAnimatedPie('slaOverall', 'SLA: Overall Status', getSlaMetrics(data), '0%');
             drawAnimatedPie('slaConsult', 'SLA: Consult Status', getSlaMetrics(consultData), '0%');
-            drawAnimatedPie('slaProcedure', 'SLA: Procedure Status', getSlaMetrics([...procedureData, ...loaData]), '0%');
+            drawAnimatedPie('slaProcedure', 'SLA: Procedure Status', getSlaMetrics(procedureData), '0%');
 
             calculateAndDrawTatBars(consultData, procedureData);
             processTopUtilizationMetrics(data);
+        }
+
+        function renderCardBreakdownDOM(containerId, dataset) {
+            const container = document.getElementById(containerId);
+            const counts = {};
+            dataset.forEach(r => {
+                const type = r.transaction_type || 'Unspecified';
+                counts[type] = (counts[type] || 0) + 1;
+            });
+            const keys = Object.keys(counts);
+            if (keys.length === 0) {
+                container.innerHTML = `<p class="text-neutral-500 italic">No items</p>`;
+                return;
+            }
+            container.innerHTML = keys.map(k => `
+                <div class="flex justify-between items-center">
+                    <span class="text-neutral-400 font-semibold truncate max-w-[110px]">${k}</span>
+                    <span class="text-white font-bold tabular-nums">${counts[k]}</span>
+                </div>
+            `).join('');
         }
 
         function renderMiniCornerTables(overallMetrics, consultMetrics, procedureMetrics) {
@@ -609,7 +676,7 @@
             const avgConsult = consults.length === 0 ? 0 : (consults.reduce((acc, curr) => acc + getCallMinutes(curr), 0) / consults.length);
             const avgProcedure = procedures.length === 0 ? 0 : (procedures.reduce((acc, curr) => acc + getCallMinutes(curr), 0) / procedures.length);
 
-            const optionsList = ['Consult', 'Procedure'];
+            const optionsList = ['Consult Types', 'Procedure/LOA Types'];
             const metricsDataset = [
                 { y: avgConsult, color: '#3b82f6' },
                 { y: avgProcedure, color: '#f59e0b' }
@@ -625,20 +692,29 @@
                 const type = String(row.transaction_type || '').toLowerCase().trim();
                 const doctorName = row.doctor_procedure ? row.doctor_procedure.toString().trim() : null;
                 const hmoCompany = row.card_company ? row.card_company.toString().trim() : null;
-                const costAmt = parseFloat(row.amount || 0);
+                
+                // EXCLUDE Clinic(Procedure) from cost tracking
+                const isClinicProcedure = (type === 'clinic(procedure)');
+                const costAmt = isClinicProcedure ? 0 : parseFloat(row.amount || 0);
 
-                if (doctorName && doctorName !== "" && doctorName !== "null" && type === 'consult') {
+                // Check for any consult variant
+                if (doctorName && doctorName !== "" && doctorName !== "null" && type.includes('consult')) {
                     if (!consultTrackingMap[doctorName]) consultTrackingMap[doctorName] = { name: doctorName, patientCount: 0 };
                     consultTrackingMap[doctorName].patientCount++;
                 }
-                if (doctorName && doctorName !== "" && doctorName !== "null" && (type === 'procedure' || type === 'loa')) {
+                
+                // Check for any procedure or LOA variant
+                if (doctorName && doctorName !== "" && doctorName !== "null" && (type.includes('procedure') || type.includes('loa'))) {
                     if (!procedureTrackingMap[doctorName]) procedureTrackingMap[doctorName] = { name: doctorName, totalRevenue: 0 };
                     procedureTrackingMap[doctorName].totalRevenue += costAmt;
                 }
+
                 if (hmoCompany && hmoCompany !== "" && hmoCompany !== "null") {
                     if (!hmoTrackingMap[hmoCompany]) hmoTrackingMap[hmoCompany] = { name: hmoCompany, totalRevenue: 0, casesCount: 0 };
-                    hmoTrackingMap[hmoCompany].totalRevenue += costAmt; hmoTrackingMap[hmoCompany].casesCount++;
+                    hmoTrackingMap[hmoCompany].totalRevenue += costAmt; 
+                    hmoTrackingMap[hmoCompany].casesCount++;
                 }
+
                 if (row.service) {
                     let rawString = row.service.toString().trim();
                     if (rawString.startsWith('[') && rawString.endsWith(']')) rawString = rawString.slice(1, -1);
