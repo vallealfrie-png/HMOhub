@@ -284,7 +284,7 @@
 
     <script>
         const SUPABASE_URL = "https://zqnqkxpseeuyovtqezbc.supabase.co";
-        const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpxbnFreHBzZWV1eW92dHFlemJjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3OTYyOTEsImV4cCI6MjA5MjM3MjI5MX0.uR9TcF4_J58cx7XsKx4BbAQcIeYBElgJpKglbMEyHQs";
+        const SUPABASE_KEY = "sb_publishable_EnGVUAl1bAs_rp35OEWRiQ_O6K9VuBc";
         
         const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
@@ -379,10 +379,20 @@
         let maxHmoLimit = 10;
         let maxServicesLimit = 10;
 
+        // Helper function to dynamically construct local date string (YYYY-MM-DD)
+        function getLocalDateString(offsetDays = 0) {
+            const date = new Date();
+            date.setDate(date.getDate() + offsetDays);
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
         function initializeDatePickerDefaults() {
-            const today = new Date().toISOString().split('T')[0];
-            document.getElementById('dateFrom').value = today;
-            document.getElementById('dateTo').value = today;
+            const todayStr = getLocalDateString();
+            document.getElementById('dateFrom').value = todayStr;
+            document.getElementById('dateTo').value = todayStr;
         }
 
         function toggleSidebarMenu() {
@@ -411,18 +421,18 @@
         }
 
         function setQuickScope(scope) {
-            const todayStr = new Date().toISOString().split('T')[0];
             const fromInput = document.getElementById('dateFrom');
             const toInput = document.getElementById('dateTo');
 
             if (scope === 'today') {
+                const todayStr = getLocalDateString();
                 fromInput.value = todayStr; toInput.value = todayStr;
             } else if (scope === 'yesterday') {
-                const yesterday = new Date(); yesterday.setDate(yesterday.getDate() - 1);
-                fromInput.value = yesterday.toISOString().split('T')[0]; toInput.value = yesterday.toISOString().split('T')[0];
+                const yesterdayStr = getLocalDateString(-1);
+                fromInput.value = yesterdayStr; toInput.value = yesterdayStr;
             } else if (scope === '7days') {
-                const past = new Date(); past.setDate(past.getDate() - 6);
-                fromInput.value = past.toISOString().split('T')[0]; toInput.value = todayStr;
+                const past7Str = getLocalDateString(-6);
+                fromInput.value = past7Str; toInput.value = getLocalDateString();
             } else if (scope === 'all') {
                 if (!confirm("Warning: Loading all structural records can heavily strain memory. Execute?")) return;
                 fromInput.value = ""; toInput.value = "";
@@ -456,11 +466,11 @@
             try {
                 let query = _supabase.from('hmo_monitoring').select('*');
                 if (fromValue) {
-                    const dStart = new Date(fromValue); dStart.setHours(0,0,0,0);
+                    const dStart = new Date(fromValue + "T00:00:00");
                     query = query.gte('time_of_arrival', dStart.toISOString());
                 }
                 if (toValue) {
-                    const dEnd = new Date(toValue); dEnd.setHours(23,59,59,999);
+                    const dEnd = new Date(toValue + "T23:59:59.999");
                     query = query.lte('time_of_arrival', dEnd.toISOString());
                 }
 
