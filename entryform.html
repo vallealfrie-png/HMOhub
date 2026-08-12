@@ -74,9 +74,9 @@
                 <button onclick="prepareNewCheckIn()" class="bg-blue-600 hover:bg-blue-500 text-white px-5 py-2.5 rounded-xl font-bold transition text-xs flex items-center gap-2 tracking-wide uppercase">
                     <span id="toggleIcon">+</span> New Check-In
                 </button>
-                <button onclick="terminateWorkspaceSession()" class="bg-red-500/10 hover:bg-red-600 border border-red-500/30 hover:border-red-600 text-red-600 dark:text-red-400 hover:text-white px-4 py-2.5 rounded-xl font-bold transition text-xs tracking-wide uppercase flex items-center gap-1.5 shadow-sm">
+                <a href="index.html" class="bg-red-500/10 hover:bg-red-600 border border-red-500/30 hover:border-red-600 text-red-600 dark:text-red-400 hover:text-white px-4 py-2.5 rounded-xl font-bold transition text-xs tracking-wide uppercase flex items-center gap-1.5 shadow-sm">
                     🚪 Log Out
-                </button>
+                </a>
             </div>
         </header>
 
@@ -231,37 +231,6 @@
         const SUPABASE_URL = "https://zqnqkxpseeuyovtqezbc.supabase.co";
         const SUPABASE_KEY = "sb_publishable_EnGVUAl1bAs_rp35OEWRiQ_O6K9VuBc";
         const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
-        // Security Check: Prevents bypassing the login page
-        async function enforceSecurityBarrier() {
-            const { data: { session }, error } = await _supabase.auth.getSession();
-            if (error || !session) {
-                triggerAccessDeniedScreen("Authentication Required • Active Session Missing");
-            }
-        }
-
-        function triggerAccessDeniedScreen(subtitleText) {
-            document.body.innerHTML = `
-                <div style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: #030712; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 999999; font-family: ui-sans-serif, system-ui, sans-serif; padding: 24px; box-sizing: border-box; text-align: center;">
-                    <div style="max-width: 480px; width: 100%; background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(239, 68, 68, 0.2); border-radius: 24px; padding: 40px 24px; backdrop-filter: blur(16px); box-shadow: 0 25px 50px -12px rgba(239, 68, 68, 0.15);">
-                        <div style="font-size: 48px; margin-bottom: 16px;">🚫</div>
-                        <h1 style="font-size: clamp(1.875rem, 5vw, 2.5rem); font-weight: 900; color: #ef4444; text-transform: uppercase; margin: 0; tracking: -0.025em; line-height: 1.1;">ACCESS DENIED</h1>
-                        <p style="font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.25em; margin-top: 12px; margin-bottom: 32px;">${subtitleText}</p>
-                        <a href="index.html" style="display: inline-block; width: 100%; background-color: #ef4444; color: #ffffff; font-weight: 800; font-size: 12px; text-transform: uppercase; letter-spacing: 0.15em; padding: 16px 24px; border-radius: 12px; text-decoration: none; transition: all 0.2s ease; box-shadow: 0 10px 15px -3px rgba(239, 68, 68, 0.3); box-sizing: border-box;">
-                            Return to Login Page 🔑
-                        </a>
-                    </div>
-                </div>
-            `;
-            throw new Error("Security Intercept: Unauthenticated Access Blocked.");
-        }
-
-        enforceSecurityBarrier();
-
-        async function terminateWorkspaceSession() {
-            try { await _supabase.auth.signOut(); } catch (err) { console.error(err); }
-            window.location.href = "index.html";
-        }
 
         let cachedItems = [];
         let cachedDoctors = [];
@@ -560,7 +529,6 @@
             document.getElementById('submitBtn').classList.remove('hidden');
         }
 
-        // Direct Cancellation Handler (Restored)
         async function handleDirectCancel(rowId, arrivalTime, transType, existingEndCallTime) {
             const match = currentRecordDataset.find(r => String(r.id) === String(rowId));
             const oldRemarks = match && match.remarks ? match.remarks : '';
@@ -606,7 +574,7 @@
             renderTable(items);
         }
 
-        // Fetch records matching selected date filter
+        // Date-specific data fetching based on selected date filter
         async function fetchRecords() {
             const selectedDateVal = document.getElementById('dateFilterInput').value;
             if (!selectedDateVal) return;
