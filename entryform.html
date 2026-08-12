@@ -56,6 +56,10 @@
         /* Dropdown Theme Colors Pipeline */
         html[data-theme="dark"] .dropdown-menu { background: #1e293b; border-color: #475569; }
         html[data-theme="light"] .dropdown-menu { background: #ffffff; border-color: #cbd5e1; }
+
+        /* Sticky Action Column Pinning for visibility */
+        html[data-theme="dark"] .sticky-col { background: #0f172a; }
+        html[data-theme="light"] .sticky-col { background: #ffffff; }
     </style>
 </head>
 <body class="p-4 md:p-8 font-sans min-height: 100vh transition-colors duration-200">
@@ -206,24 +210,23 @@
             </div>
         </div>
 
-        <div class="table-container backdrop-blur-sm">
-            <div class="overflow-x-auto">
-                <table class="w-full text-left border-collapse">
-                    <thead class="text-[10px] uppercase tracking-widest text-slate-500 dark:text-slate-300">
-                        <tr>
-                            <th class="p-4">Patient</th>
-                            <th class="p-4">Transaction / Service Details</th>
-                            <th class="p-4">HMO Status</th>
-                            <th class="p-4">Arrival</th>
-                            <th class="p-4">Call Logs</th>
-                            <th class="p-4">TAT Status</th>
-                            <th class="p-4">Associate</th>
-                            <th class="p-4 text-center">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody id="dataTableBody" class="text-xs text-slate-700 dark:text-slate-200"></tbody>
-                </table>
-            </div>
+        <div class="table-container backdrop-blur-sm relative overflow-x-auto">
+            <table class="w-full text-left border-collapse min-w-[850px]">
+                <thead class="text-[10px] uppercase tracking-widest text-slate-500 dark:text-slate-300">
+                    <tr>
+                        <th class="p-3">Patient</th>
+                        <th class="p-3">Transaction / Service Details</th>
+                        <th class="p-3">HMO Status</th>
+                        <th class="p-3">Arrival</th>
+                        <th class="p-3">Call Logs</th>
+                        <th class="p-3">TAT Status</th>
+                        <th class="p-3">Associate</th>
+                        <!-- Pinned Sticky Actions Column Header -->
+                        <th class="p-3 text-center sticky right-0 sticky-col shadow-l z-20 border-l border-slate-200 dark:border-slate-800">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="dataTableBody" class="text-xs text-slate-700 dark:text-slate-200"></tbody>
+            </table>
         </div>
     </div>
 
@@ -560,7 +563,7 @@
             document.getElementById('submitBtn').classList.remove('hidden');
         }
 
-        // Direct Cancellation Handler (Restored)
+        // Direct Cancellation Handler
         async function handleDirectCancel(rowId, arrivalTime, transType, existingEndCallTime) {
             const match = currentRecordDataset.find(r => String(r.id) === String(rowId));
             const oldRemarks = match && match.remarks ? match.remarks : '';
@@ -650,17 +653,17 @@
 
                 return `
                     <tr class="border-b transition duration-150">
-                        <td class="p-4">
+                        <td class="p-3">
                             <div class="font-bold text-sm text-slate-800 dark:text-white">${row.patient_name || 'No Name'}</div>
                             <div class="text-[10px] text-slate-500 dark:text-slate-300 uppercase font-semibold tracking-wide">${row.patient_type || 'Old'} | ${row.card_company || 'CASH'}</div>
                         </td>
-                        <td class="p-4">
+                        <td class="p-3">
                             <div class="text-blue-600 dark:text-blue-400 font-bold">${row.transaction_type || 'Consult'}</div>
                             <div class="text-[10px] text-slate-600 dark:text-slate-200 font-mono italic">${row.doctor_procedure || ''} ${parsedServices ? '📂 ('+parsedServices+')' : ''}</div>
                             ${row.amount ? `<div class="text-emerald-600 dark:text-emerald-400 font-extrabold mt-0.5">₱${Number(row.amount).toFixed(2)}</div>` : ''}
                             ${row.remarks ? `<div class="text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800/80 px-2 py-1 rounded mt-1 max-w-xs truncate text-[11px]">💬 ${row.remarks}</div>` : ''}
                         </td>
-                        <td class="p-4">
+                        <td class="p-3">
                             <div class="mb-2"><span class="status-pill border ${statusStyle}">${hmoStatus}</span></div>
                             
                             ${isStillOpen ? `
@@ -677,19 +680,20 @@
                                 </div>
                             `}
                         </td>
-                        <td class="p-4 font-mono text-slate-700 dark:text-slate-200">
+                        <td class="p-3 font-mono text-slate-700 dark:text-slate-200">
                             <div class="text-xs font-bold">${dateStr}</div>
                             <div class="text-[10px] text-slate-400 dark:text-slate-400">${arrival.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</div>
                         </td>
-                        <td class="p-4 font-medium">
+                        <td class="p-3 font-medium">
                             <div class="text-[10px] text-blue-600 dark:text-blue-400">START: ${start}</div>
                             <div class="text-[10px] text-emerald-600 dark:text-emerald-400">END: ${end}</div>
                         </td>
-                        <td class="p-4"><span class="status-pill border ${tatStyle}">${tatStatus}</span></td>
-                        <td class="p-4 text-slate-600 dark:text-slate-200 font-mono uppercase text-[10px] font-semibold">${row.name_of_associate || '-'}</td>
-                        <td class="p-4 text-center">
+                        <td class="p-3"><span class="status-pill border ${tatStyle}">${tatStatus}</span></td>
+                        <td class="p-3 text-slate-600 dark:text-slate-200 font-mono uppercase text-[10px] font-semibold">${row.name_of_associate || '-'}</td>
+                        <!-- Sticky Pinned Action Cell (Always Visible) -->
+                        <td class="p-3 text-center sticky right-0 sticky-col border-l border-slate-200 dark:border-slate-800">
                             ${hmoStatus !== 'Cancel' ? `
-                                <button onclick="handleDirectCancel('${row.id}', '${row.time_of_arrival}', '${row.transaction_type}', '${row.end_time_of_call}')" class="bg-red-500/10 hover:bg-red-500 hover:text-white border border-red-500/20 text-red-600 dark:text-red-400 text-[11px] font-bold px-2.5 py-1 rounded transition uppercase tracking-wider">
+                                <button onclick="handleDirectCancel('${row.id}', '${row.time_of_arrival}', '${row.transaction_type}', '${row.end_time_of_call}')" class="bg-red-500/10 hover:bg-red-500 hover:text-white border border-red-500/20 text-red-600 dark:text-red-400 text-[11px] font-bold px-2.5 py-1 rounded transition uppercase tracking-wider whitespace-nowrap shadow-sm">
                                     ❌ Cancel
                                 </button>
                             ` : `
