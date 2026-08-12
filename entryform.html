@@ -232,7 +232,7 @@
         const SUPABASE_KEY = "sb_publishable_EnGVUAl1bAs_rp35OEWRiQ_O6K9VuBc";
         const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        // Security Barrier: Prevent unauthenticated users from bypassing the login page
+        // Security Check: Prevents bypassing the login page
         async function enforceSecurityBarrier() {
             const { data: { session }, error } = await _supabase.auth.getSession();
             if (error || !session) {
@@ -247,7 +247,7 @@
                         <div style="font-size: 48px; margin-bottom: 16px;">🚫</div>
                         <h1 style="font-size: clamp(1.875rem, 5vw, 2.5rem); font-weight: 900; color: #ef4444; text-transform: uppercase; margin: 0; tracking: -0.025em; line-height: 1.1;">ACCESS DENIED</h1>
                         <p style="font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.25em; margin-top: 12px; margin-bottom: 32px;">${subtitleText}</p>
-                        <a href="index.html" style="display: inline-block; width: 100%; background-color: #ef4444; hover:background-color: #dc2626; color: #ffffff; font-weight: 800; font-size: 12px; text-transform: uppercase; letter-spacing: 0.15em; padding: 16px 24px; border-radius: 12px; text-decoration: none; transition: all 0.2s ease; box-shadow: 0 10px 15px -3px rgba(239, 68, 68, 0.3); box-sizing: border-box;">
+                        <a href="index.html" style="display: inline-block; width: 100%; background-color: #ef4444; color: #ffffff; font-weight: 800; font-size: 12px; text-transform: uppercase; letter-spacing: 0.15em; padding: 16px 24px; border-radius: 12px; text-decoration: none; transition: all 0.2s ease; box-shadow: 0 10px 15px -3px rgba(239, 68, 68, 0.3); box-sizing: border-box;">
                             Return to Login Page 🔑
                         </a>
                     </div>
@@ -560,6 +560,7 @@
             document.getElementById('submitBtn').classList.remove('hidden');
         }
 
+        // Direct Cancellation Handler (Restored)
         async function handleDirectCancel(rowId, arrivalTime, transType, existingEndCallTime) {
             const match = currentRecordDataset.find(r => String(r.id) === String(rowId));
             const oldRemarks = match && match.remarks ? match.remarks : '';
@@ -605,7 +606,7 @@
             renderTable(items);
         }
 
-        // Date-specific data fetching based on selected date filter
+        // Fetch records matching selected date filter
         async function fetchRecords() {
             const selectedDateVal = document.getElementById('dateFilterInput').value;
             if (!selectedDateVal) return;
