@@ -128,7 +128,7 @@
                         <label class="text-[10px] text-slate-400 dark:text-slate-400 ml-1 uppercase font-bold">Transaction</label>
                         <select name="transaction_type" id="transaction_type" class="w-full rounded-lg p-2.5 outline-none">
                             <option value="Consult">Consult (10m)</option>
-                            <option value="Loa">LOA (40m)</option>
+                            <option value="LOA">LOA (40m)</option>
                             <option value="Procedure">Procedure (40m)</option>
                             <option value="Online(Consult)">Online(Consult) (10m)</option>
                             <option value="Online(Procedure)">Online(Procedure) (40m)</option>
@@ -407,7 +407,7 @@
 
         transTypeSelect.addEventListener('change', (e) => {
             const val = e.target.value; selectedServices = []; renderBadges(); amountField.value = "";
-            if (val === 'Loa' || val.includes('Procedure')) {
+            if (val === 'LOA' || val.includes('Procedure')) {
                 serviceContainer.innerHTML = `
                     <label class="text-[10px] text-slate-400 dark:text-slate-400 ml-1 uppercase font-bold">Service (Smart Array)</label>
                     <input type="text" id="service_search_input" placeholder="Type test or code..." class="w-full rounded-lg p-2.5 outline-none" autocomplete="off">
@@ -491,7 +491,7 @@
             const transType = match.transaction_type || 'Consult';
             document.getElementById('transaction_type').value = transType;
             
-            if (transType === 'Loa' || transType.includes('Procedure')) {
+            if (transType === 'LOA' || transType.includes('Procedure')) {
                 serviceContainer.innerHTML = `
                     <label class="text-[10px] text-slate-400 dark:text-slate-400 ml-1 uppercase font-bold">Service (Smart Array)</label>
                     <input type="text" id="service_search_input" placeholder="Type test or code..." class="w-full rounded-lg p-2.5 outline-none" autocomplete="off">
@@ -766,7 +766,7 @@
                 entry.remarks = entry.remarks.trim() || null;
                 entry.doctor_procedure = document.getElementById('doctor_hidden_value').value || null;
 
-                if (entry.transaction_type === 'Loa' || entry.transaction_type.includes('Procedure')) {
+                if (entry.transaction_type === 'LOA' || entry.transaction_type.includes('Procedure')) {
                     entry.service = selectedServices.map(s => s.name); 
                 } else {
                     const fallbackVal = document.getElementById('service_field')?.value || 'Consultation';
